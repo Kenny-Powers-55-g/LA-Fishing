@@ -104,11 +104,27 @@ def coops_latest(station, product):
         return None
     return j["data"][-1]
 
+def nearest(points, target, tol):
+    """Value of the (time, value) point closest to target, if within tol."""
+    best = None
+    for t, v in points:
+        d = abs(t - target)
+        if best is None or d < best[0]:
+            best = (d, v)
+    return best[1] if best and best[0] <= tol else None
+
 def coops_source(station):
     out = {}
-    d = coops_latest(station, "water_temperature")
-    if d and fnum(d.get("v")) is not None:
-        out["temp_f"] = (fnum(d["v"]), parse_gmt(d["t"]), None)
+    j = get_json(COOPS, dict(station=station, product="water_temperature", date="recent",
+                             units="english", time_zone="gmt", format="json", application=APP))
+    pts = [(parse_gmt(d["t"]), fnum(d.get("v"))) for d in (j or {}).get("data", [])]
+    pts = [(t, v) for t, v in pts if v is not None]
+    if pts:
+        t, v = pts[-1]
+        out["temp_f"] = (v, t, None)
+        ref = nearest(pts, t - timedelta(hours=24), timedelta(hours=1))
+        if ref is not None:
+            out["temp_d24"] = (v - ref, t, None)           # deg F change over 24 h
     d = coops_latest(station, "conductivity")            # mS/cm
     if d and fnum(d.get("v")) is not None:
         out["cond_ms"] = (fnum(d["v"]), parse_gmt(d["t"]), None)   # temp-correct later
@@ -130,37 +146,48 @@ def tide_stage(station, now):
     prev = [p for p in pts if p[0] <= now]
     nxt = [p for p in pts if p[0] > now]
     if not prev or not nxt:
-        return None
+        return None, None
     pv, nx = prev[-1], nxt[0]
     near_turn = min(now - pv[0], nx[0] - now) < timedelta(minutes=30)
-    weak = abs(nx[1] - pv[1]) < 0.3      # tiny range = effectively no current
-    if near_turn or weak:
-        return "Slack"
-    return "Incoming" if nx[2] == "H" else "Outgoing"
+    rng = abs(nx[1] - pv[1])
+    if near_turn or rng < 0.3:           # tiny range = effectively no current
+        return "Slack", rng
+    return ("Incoming" if nx[2] == "H" else "Outgoing"), rng
 
 # ---------------------------------------------------------------- USGS
 USGS = "https://waterservices.usgs.gov/nwis/iv/"
 
+LEVEL_STEP = 0.2   # ft change over ~6 h that counts as Rising/Falling (adjust to taste)
+
 def usgs_source(site):
-    j = get_json(USGS, dict(format="json", sites=site, siteStatus="all",
-                            parameterCd="00010,00095,63680"))
+    j = get_json(USGS, dict(format="json", sites=site, siteStatus="all", period="P1D",
+                            parameterCd="00010,00095,63680,00065"))
     out = {}
     try:
         for ts in j["value"]["timeSeries"]:
             code = ts["variable"]["variableCode"][0]["value"]
             nodata = ts["variable"]["noDataValue"]
-            vals = ts["values"][0]["value"]
-            if not vals:
+            pts = []
+            for v in ts["values"][0]["value"]:
+                x = fnum(v["value"])
+                if x is not None and x != nodata:
+                    pts.append((datetime.fromisoformat(v["dateTime"]).astimezone(UTC), x))
+            if not pts:
                 continue
-            x, t = fnum(vals[-1]["value"]), datetime.fromisoformat(vals[-1]["dateTime"]).astimezone(UTC)
-            if x is None or x == nodata:
-                continue
+            t, x = pts[-1]
             if code == "00010":
                 out["temp_f"] = (f_from_c(x), t, None)
+                ref = nearest(pts, t - timedelta(hours=24), timedelta(hours=2))
+                if ref is not None:
+                    out["temp_d24"] = ((x - ref) * 9 / 5, t, None)
             elif code == "00095":                        # uS/cm at 25 C
                 out["cond_ms"] = (x / 1000.0, t, 25.0)
             elif code == "63680":
                 out["turb_fnu"] = (x, t, None)
+            elif code == "00065":                        # gage height, ft
+                ref = nearest(pts, t - timedelta(hours=6), timedelta(hours=1))
+                if ref is not None:
+                    out["level_d6"] = (x - ref, t, None)
     except (TypeError, KeyError, ValueError, IndexError) as e:
         log.warning("USGS parse problem for %s: %s", site, e)
     return out
@@ -168,31 +195,36 @@ def usgs_source(site):
 # ---------------------------------------------------------------- weather
 def weather(lat, lon):
     j = get_json("https://api.open-meteo.com/v1/forecast", dict(
-        latitude=lat, longitude=lon, current="wind_speed_10m,cloud_cover,surface_pressure",
-        hourly="surface_pressure", past_hours=6, forecast_hours=1,
-        wind_speed_unit="mph", timezone="GMT"))
+        latitude=lat, longitude=lon,
+        current="wind_speed_10m,cloud_cover,surface_pressure,temperature_2m",
+        hourly="surface_pressure,temperature_2m,precipitation", past_hours=48, forecast_hours=1,
+        wind_speed_unit="mph", temperature_unit="fahrenheit", precipitation_unit="inch",
+        timezone="GMT"))
     try:
         cur = j["current"]
         t = datetime.fromisoformat(cur["time"]).replace(tzinfo=UTC)
-        target = t - timedelta(hours=3)
-        pairs = [(datetime.fromisoformat(a).replace(tzinfo=UTC), p)
-                 for a, p in zip(j["hourly"]["time"], j["hourly"]["surface_pressure"]) if p is not None]
-        ref = min(pairs, key=lambda x: abs(x[0] - target), default=None)
-        delta = None
-        if ref and abs(ref[0] - target) <= timedelta(minutes=90):
-            delta = cur["surface_pressure"] - ref[1]
+        H = j["hourly"]
+        times = [datetime.fromisoformat(a).replace(tzinfo=UTC) for a in H["time"]]
+        def series(key):
+            return [(ts, v) for ts, v in zip(times, H[key]) if v is not None]
+        ref = nearest(series("surface_pressure"), t - timedelta(hours=3), timedelta(minutes=90))
+        delta = None if ref is None else cur["surface_pressure"] - ref
         trend = None if delta is None else ("Falling" if delta <= -1.0 else "Rising" if delta >= 1.0 else "Steady")
+        ref_air = nearest(series("temperature_2m"), t - timedelta(hours=24), timedelta(minutes=90))
+        air_d24 = None if ref_air is None else cur["temperature_2m"] - ref_air
+        rain = [v for ts, v in series("precipitation") if t - timedelta(hours=48) < ts <= t]
+        rain48 = sum(rain) if len(rain) >= 40 else None      # need most of the window
         return {"time": t, "wind_mph": cur["wind_speed_10m"], "cloud": cur["cloud_cover"],
-                "pres": trend, "pres_delta_hpa": delta}
+                "pres": trend, "pres_delta_hpa": delta, "air_d24": air_d24, "rain48": rain48}
     except (TypeError, KeyError, ValueError):
         return None
 
-def clarity_label(turb, wind, sal):
+def clarity_label(turb, wind, sal, rain=None):
     if turb is not None:
         return ("Clear" if turb < 10 else "Stained" if turb < 40 else "Muddy"), "measured"
-    if wind is not None and wind >= 20:
+    if (wind is not None and wind >= 20) or (rain is not None and rain >= 1.5):
         return "Muddy", "estimated"
-    if sal is not None and sal >= 20 and (wind or 0) < 12:
+    if sal is not None and sal >= 20 and (wind or 0) < 12 and (rain or 0) < 0.5:
         return "Clear", "estimated"
     return "Stained", "estimated"
 
@@ -210,7 +242,7 @@ def collect(spot, now, cache):
         key = (kind, sid)
         if key not in cache:
             cache[key] = coops_source(sid) if kind == "coops" else usgs_source(sid)
-        for m in ("temp_f", "cond_ms", "turb_fnu", "wind_mph"):
+        for m in ("temp_f", "temp_d24", "cond_ms", "turb_fnu", "wind_mph", "level_d6"):
             take(m, cache[key], f"{kind}:{sid}")
 
     wx = cache.setdefault(("wx", spot["id"]), weather(spot["lat"], spot["lon"]))
@@ -222,8 +254,12 @@ def collect(spot, now, cache):
         got["cloud"], src["cloud"] = (wx["cloud"], wx["time"], None), wsrc
         if wx["pres"]:
             got["pres"], src["pres"] = (wx["pres"], wx["time"], None), wsrc
+        if wx["rain48"] is not None:
+            got["rain"], src["rain"] = (wx["rain48"], wx["time"], None), wsrc
+        if wx["air_d24"] is not None:
+            got["front"], src["front"] = (wx["air_d24"], wx["time"], None), wsrc
 
-    tide = tide_stage(spot["tide"], now) if spot["tide"] else None
+    tide, trange = tide_stage(spot["tide"], now) if spot["tide"] else (None, None)
     if tide:
         src["tide"] = {"source": f"coops-predictions:{spot['tide']}", "age_min": 0}
 
@@ -236,22 +272,39 @@ def collect(spot, now, cache):
             src["sal"] = src.pop("cond_ms")
     turb = got["turb_fnu"][0] if "turb_fnu" in got else None
     wind = got["wind_mph"][0] if "wind_mph" in got else None
-    clar, clar_kind = clarity_label(turb, wind, sal)
+    rain = got["rain"][0] if "rain" in got else None
+    clar, clar_kind = clarity_label(turb, wind, sal, rain)
+    level = None
+    if "level_d6" in got:
+        d = got["level_d6"][0]
+        level = "Rising" if d >= LEVEL_STEP else "Falling" if d <= -LEVEL_STEP else "Steady"
 
     cond = {"temp": round(got["temp_f"][0]) if "temp_f" in got else None,
             "wind": round(wind) if wind is not None else None,
             "pres": got["pres"][0] if "pres" in got else None,
             "tide": tide if tide else ("Slack" if not spot["tide"] else None),
             "sal": sal, "clar": clar,
-            "cloud": round(got["cloud"][0]) if "cloud" in got else None}
-    missing = [k for k, v in cond.items() if v is None]
-    return {"id": spot["id"], "name": spot["name"], "updated": now.isoformat(),
+            "cloud": round(got["cloud"][0]) if "cloud" in got else None,
+            "dtemp": round(got["temp_d24"][0], 1) if "temp_d24" in got else None,
+            "rain": round(rain, 2) if rain is not None else None,
+            "front": round(got["front"][0]) if "front" in got else None,
+            "level": level,
+            "trange": round(trange, 1) if trange is not None else None}
+    na = []
+    if not spot["tide"]:
+        na += ["tide", "trange"]
+    if not any(k == "usgs" for k, _ in spot["water"]):
+        na.append("level")
+    missing = [k for k, v in cond.items() if v is None and k not in na]
+    applicable = len(cond) - len(na)
+    return {"id": spot["id"], "name": spot["name"], "lat": spot["lat"], "lon": spot["lon"],
+            "updated": now.isoformat(),
             "conditions": cond,
             "quality": {"missing": missing, "sources": src,
                         "estimated": ["clar"] if clar_kind == "estimated" else [],
-                        "not_applicable": ["tide"] if not spot["tide"] else [],
+                        "not_applicable": na,
                         "pressure_delta_3h_hpa": None if not wx or wx["pres_delta_hpa"] is None else round(wx["pres_delta_hpa"], 1),
-                        "completeness": round(1 - len(missing) / len(cond), 2)}}
+                        "completeness": round(1 - len(missing) / applicable, 2)}}
 
 # ---------------------------------------------------------------- storage / run
 def save(results, now):
