@@ -33,7 +33,7 @@ jobs:
       - name: Collect the site files
         run: |
           mkdir site
-          cp index.html latest.json manifest.webmanifest sw.js icon-192.png icon-512.png site/
+          cp index.html latest.json forecast.json manifest.webmanifest sw.js icon-192.png icon-512.png site/
 
       - uses: actions/configure-pages@v5
 
