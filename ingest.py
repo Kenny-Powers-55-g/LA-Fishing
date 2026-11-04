@@ -48,6 +48,18 @@ SPOTS = [
      "water": [("usgs", "07381515")], "tide": None},
     {"id": "verret", "name": "Lake Verret", "lat": 29.95, "lon": -91.15,
      "water": [("usgs", "295610091110000"), ("usgs", "07381515")], "tide": None},
+    # Houma area. Coordinates are approximate; inland spots have no listed gauge, so the
+    # worker searches for the nearest USGS temperature and salinity stations by itself.
+    {"id": "cocodrie", "name": "Cocodrie / Terrebonne Bay", "lat": 29.26, "lon": -90.66,
+     "water": [("coops", "8762928")], "tide": "8762928"},
+    {"id": "dulac", "name": "Dulac / Houma Navigation Canal", "lat": 29.39, "lon": -90.72,
+     "water": [("coops", "8762928")], "tide": "8762928"},
+    {"id": "fourchon", "name": "Port Fourchon / Belle Pass", "lat": 29.11, "lon": -90.20,
+     "water": [("coops", "8762075"), ("coops", "8761724")], "tide": "8762075"},
+    {"id": "houma", "name": "Houma Bayous (Bayou Terrebonne)", "lat": 29.58, "lon": -90.72,
+     "water": [], "tide": None},
+    {"id": "palourde", "name": "Lake Palourde", "lat": 29.70, "lon": -91.08,
+     "water": [], "tide": None},
 ]
 
 # ---------------------------------------------------------------- HTTP
@@ -172,14 +184,14 @@ def tide_stage(station, now):
 # ---------------------------------------------------------------- USGS
 USGS = "https://waterservices.usgs.gov/nwis/iv/"
 
-def sal_candidates(spot, cache, radius_mi=40, limit=4):
-    """Nearest active USGS sites that report specific conductance (-> salinity)."""
-    key = ("sites", spot["id"])
+def near_sites(spot, cache, pcode, radius_mi=40, limit=4):
+    """Nearest active USGS sites reporting a parameter (00095 conductance, 00010 water temp)."""
+    key = ("sites", spot["id"], pcode)
     if key in cache:
         return cache[key]
     d = 0.65
     txt = get_text("https://waterservices.usgs.gov/nwis/site/", dict(
-        format="rdb", parameterCd="00095", hasDataTypeCd="iv", siteStatus="active",
+        format="rdb", parameterCd=pcode, hasDataTypeCd="iv", siteStatus="active",
         bBox=f"{spot['lon']-d:.4f},{spot['lat']-d:.4f},{spot['lon']+d:.4f},{spot['lat']+d:.4f}"))
     out, have = [], {sid for k, sid in spot["water"] if k == "usgs"}
     rows = [l.split("\t") for l in (txt or "").splitlines() if l and not l.startswith("#")]
@@ -238,7 +250,7 @@ def weather(lat, lon):
     j = get_json("https://api.open-meteo.com/v1/forecast", dict(
         latitude=lat, longitude=lon,
         current="wind_speed_10m,cloud_cover,surface_pressure,temperature_2m",
-        hourly="surface_pressure,temperature_2m,precipitation", past_hours=48, forecast_hours=1,
+        hourly="surface_pressure,temperature_2m,precipitation,wind_speed_10m,cloud_cover", past_hours=48, forecast_hours=169,
         wind_speed_unit="mph", temperature_unit="fahrenheit", precipitation_unit="inch",
         timezone="GMT"))
     try:
@@ -256,7 +268,9 @@ def weather(lat, lon):
         rain = [v for ts, v in series("precipitation") if t - timedelta(hours=48) < ts <= t]
         rain48 = sum(rain) if len(rain) >= 40 else None      # need most of the window
         return {"time": t, "wind_mph": cur["wind_speed_10m"], "cloud": cur["cloud_cover"],
-                "pres": trend, "pres_delta_hpa": delta, "air_d24": air_d24, "rain48": rain48}
+                "pres": trend, "pres_delta_hpa": delta, "air_d24": air_d24, "rain48": rain48,
+                "series": {"t": times, "pres": H["surface_pressure"], "air": H["temperature_2m"], "rain": H["precipitation"],
+                           "wind": H["wind_speed_10m"], "cloud": H["cloud_cover"]}}
     except (TypeError, KeyError, ValueError):
         return None
 
@@ -268,6 +282,68 @@ def clarity_label(turb, wind, sal, rain=None):
     if sal is not None and sal >= 20 and (wind or 0) < 12 and (rain or 0) < 0.5:
         return "Clear", "estimated"
     return "Stained", "estimated"
+
+# ---------------------------------------------------------------- 7-day outlook
+def tide_pts(station, now):
+    j = get_json(COOPS, dict(station=station, product="predictions", datum="MLLW", interval="hilo",
+                             begin_date=(now - timedelta(days=1)).strftime("%Y%m%d"),
+                             end_date=(now + timedelta(days=9)).strftime("%Y%m%d"),
+                             units="english", time_zone="gmt", format="json", application=APP))
+    pts = [(parse_gmt(p["t"]), fnum(p.get("v")), p["type"]) for p in (j or {}).get("predictions", [])]
+    return [p for p in pts if p[1] is not None]
+
+def stage_at(pts, t):
+    prev = [p for p in pts if p[0] <= t]
+    nxt = [p for p in pts if p[0] > t]
+    if not prev or not nxt:
+        return None, None
+    pv, nx = prev[-1], nxt[0]
+    rng = abs(nx[1] - pv[1])
+    if rng < 0.3 or min(t - pv[0], nx[0] - t) < timedelta(minutes=30):
+        return "Slack", rng
+    return ("Incoming" if nx[2] == "H" else "Outgoing"), rng
+
+def build_forecast(cond, wx, pts, now):
+    """Hourly conditions for the next 168 h. Wind, cloud, rain, pressure and tide are forecasts;
+    water temp is a damped guess from forecast air temp; salinity and level are held at today's value."""
+    S = wx["series"]
+    idx = {t: i for i, t in enumerate(S["t"])}
+    H = lambda n: timedelta(hours=n)
+    def at(key, t):
+        i = idx.get(t)
+        return None if i is None else S[key][i]
+    def a24(t):
+        v = [x for x in (at("air", t - H(k)) for k in range(24)) if x is not None]
+        return sum(v) / len(v) if len(v) >= 18 else None
+    now_h = now.replace(minute=0, second=0, microsecond=0)
+    base = a24(now_h)
+    def wt(t):
+        a = a24(t)
+        return None if cond["temp"] is None or a is None or base is None else cond["temp"] + 0.3 * (a - base)
+    start = now_h + H(1)
+    o = {k: [] for k in ("temp", "wind", "cloud", "pres", "tide", "trange", "front", "dtemp", "rain", "clar")}
+    for n in range(168):
+        t = start + H(n)
+        p, p3 = at("pres", t), at("pres", t - H(3))
+        d = None if p is None or p3 is None else p - p3
+        o["pres"].append(None if d is None else "Falling" if d <= -1 else "Rising" if d >= 1 else "Steady")
+        a, a1 = at("air", t), at("air", t - H(24))
+        o["front"].append(None if a is None or a1 is None else round(a - a1))
+        r = [x for x in (at("rain", t - H(k)) for k in range(48)) if x is not None]
+        rain = round(sum(r), 2) if len(r) >= 40 else None
+        o["rain"].append(rain)
+        w, w1 = wt(t), wt(t - H(24))
+        o["temp"].append(None if w is None else round(w))
+        o["dtemp"].append(None if w is None or w1 is None else round(w - w1, 1))
+        wind, cloud = at("wind", t), at("cloud", t)
+        o["wind"].append(None if wind is None else round(wind))
+        o["cloud"].append(None if cloud is None else round(cloud))
+        st, rg = stage_at(pts, t) if pts else (None, None)
+        o["tide"].append(st)
+        o["trange"].append(None if rg is None else round(rg, 1))
+        o["clar"].append(clarity_label(None, wind, cond["sal"], rain)[0])
+    o["start"] = start.isoformat()
+    return o
 
 # ---------------------------------------------------------------- collection
 def collect(spot, now, cache):
@@ -287,11 +363,20 @@ def collect(spot, now, cache):
             take(m, cache[key], f"{kind}:{sid}")
 
     if "cond_ms" not in got:                  # no salinity yet: try nearby USGS stations
-        for sid, dist in sal_candidates(spot, cache):
+        for sid, dist in near_sites(spot, cache, "00095"):
             if ("usgs", sid) not in cache:
                 cache[("usgs", sid)] = usgs_source(sid)
             take("cond_ms", cache[("usgs", sid)], f"usgs:{sid}", {"distance_mi": dist})
             if "cond_ms" in got:
+                break
+
+    if "temp_f" not in got:                   # no water temp yet: try nearby USGS stations
+        for sid, dist in near_sites(spot, cache, "00010"):
+            if ("usgs", sid) not in cache:
+                cache[("usgs", sid)] = usgs_source(sid)
+            for m in ("temp_f", "temp_d24"):
+                take(m, cache[("usgs", sid)], f"usgs:{sid}", {"distance_mi": dist})
+            if "temp_f" in got:
                 break
 
     wx = cache.setdefault(("wx", spot["id"]), weather(spot["lat"], spot["lon"]))
@@ -308,7 +393,8 @@ def collect(spot, now, cache):
         if wx["air_d24"] is not None:
             got["front"], src["front"] = (wx["air_d24"], wx["time"], None), wsrc
 
-    tide, trange = tide_stage(spot["tide"], now) if spot["tide"] else (None, None)
+    pts = tide_pts(spot["tide"], now) if spot["tide"] else []
+    tide, trange = stage_at(pts, now) if pts else (None, None)
     if tide:
         src["tide"] = {"source": f"coops-predictions:{spot['tide']}", "age_min": 0}
 
@@ -348,6 +434,7 @@ def collect(spot, now, cache):
     applicable = len(cond) - len(na)
     return {"id": spot["id"], "name": spot["name"], "lat": spot["lat"], "lon": spot["lon"],
             "updated": now.isoformat(),
+            "forecast": build_forecast(cond, wx, pts, now) if wx and wx.get("series") else None,
             "conditions": cond,
             "quality": {"missing": missing, "sources": src,
                         "estimated": ["clar"] if clar_kind == "estimated" else [],
@@ -379,7 +466,13 @@ def run_once():
             results.append(collect(spot, now, cache))
         except Exception:                       # one bad spot must not stop the rest
             log.exception("spot %s failed", spot["id"])
+    fc = {"generated": now.isoformat(), "spots": {r["id"]: r["forecast"] for r in results if r.get("forecast")}}
+    for r in results:
+        r.pop("forecast", None)
     save(results, now)
+    with open("forecast.json.tmp", "w") as f:
+        json.dump(fc, f, separators=(",", ":"))
+    os.replace("forecast.json.tmp", "forecast.json")
     tmp = OUT + ".tmp"
     with open(tmp, "w") as f:
         json.dump({"generated": now.isoformat(), "spots": results}, f, indent=2)
