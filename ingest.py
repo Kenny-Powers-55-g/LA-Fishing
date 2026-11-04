@@ -25,7 +25,7 @@ from urllib.error import HTTPError, URLError
 from urllib.parse import urlencode
 from urllib.request import Request, urlopen
 
-CONTACT = "you@example.com"
+CONTACT = "reecerich2020@gmail.com"
 APP = "la-fishing-prototype"
 DB, OUT = "fishing.db", "latest.json"
 STALE_MIN = 180          # readings older than this are treated as missing
