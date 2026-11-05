@@ -34,6 +34,8 @@ jobs:
         run: |
           mkdir site
           cp index.html latest.json forecast.json manifest.webmanifest sw.js icon-192.png icon-512.png site/
+          # optional health file (present after a successful ingest)
+          [ -f status.json ] && cp status.json site/ || true
 
       - uses: actions/configure-pages@v5
 
