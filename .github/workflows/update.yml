@@ -1,0 +1,56 @@
+name: Update fishing data
+
+on:
+  schedule:
+    # Hourly is enough for water/weather; avoids overlapping runs when ingest is slow
+    - cron: "15 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Do not use the shared "pages" group — it collides with other Pages deploys and
+# cancels runs with "higher priority waiting request for pages exists".
+concurrency:
+  group: la-fishing-update
+  cancel-in-progress: true
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Pull the latest readings
+        run: python ingest.py once
+        timeout-minutes: 35
+
+      - name: Collect the site files
+        run: |
+          mkdir site
+          cp index.html latest.json forecast.json manifest.webmanifest sw.js site/
+          for f in icon-192.png icon-512.png status.json; do
+            [ -f "$f" ] && cp "$f" site/ || true
+          done
+          # Fail clearly if core data is missing
+          test -f site/latest.json
+          test -f site/index.html
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+      - id: deployment
+        uses: actions/deploy-pages@v4
