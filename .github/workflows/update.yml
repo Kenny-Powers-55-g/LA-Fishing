@@ -2,7 +2,7 @@ name: Update fishing data
 
 on:
   schedule:
-    # Hourly is enough for water/weather; avoids overlapping runs when ingest is slow
+    # Hourly is enough for water/weather; avoids overlapping 30‑min runs when ingest is slow
     - cron: "15 * * * *"
   workflow_dispatch:
 
@@ -30,6 +30,13 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+
+      - name: Restore saved station lookups
+        uses: actions/cache@v4
+        with:
+          path: stations_cache.json
+          key: stations-${{ github.run_id }}
+          restore-keys: stations-
 
       - name: Pull the latest readings
         run: python ingest.py once
