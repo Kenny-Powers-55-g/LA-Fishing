@@ -131,6 +131,14 @@ button.t.on{background:var(--ac);color:var(--onac);border-color:var(--ac);font-w
 .legendline{display:inline-block;width:18px;height:0;border-top:3px solid;vertical-align:middle;margin:0 4px 0 8px}
 .marinefc{background:var(--bg);border-radius:12px;padding:10px 14px;margin:12px 0;font-size:14px;display:grid;gap:6px}
 .marinefc .head{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap}
+.rules{margin:10px 0}
+.rules a,.alerthelp a{color:var(--ac)}
+.alerthelp{margin:10px 0}
+.alerthelp summary{list-style:none;cursor:pointer}
+.alerthelp summary::-webkit-details-marker{display:none}
+.alerthelp pre{background:var(--bg);border-radius:10px;padding:8px 10px;white-space:pre-wrap;word-break:break-all;font-size:12px}
+.myspotform{display:flex;gap:8px;flex-wrap:wrap;margin-top:6px}
+.myspotform input{padding:6px 10px;border:1px solid var(--bd);border-radius:10px;background:var(--card);color:var(--tx);font:inherit;min-width:180px}
 .wswatch{width:18px;height:18px;border-radius:50%;display:inline-block;vertical-align:middle;margin-right:6px;border:1px solid var(--bd)}
 
 /* Mobile + PWA polish */
@@ -742,11 +750,13 @@ async function setSat(k){
 // Base maps: street map, NOAA nautical chart (soundings and depth contours), NOAA depth shading.
 // The NOAA chart cache numbers its levels 2 below standard web zoom (its level 0 = web zoom 2),
 // so tiles are requested as tile/{z-2}/{y}/{x}.
-const NoaaChart=L.TileLayer.extend({getTileUrl(c){
+// (guarded: if the map library didn't load, the rest of the page must still work)
+const HAS_L=typeof L!=="undefined";
+const NoaaChart=HAS_L&&L.TileLayer.extend({getTileUrl(c){
  return c.z<2?"":`https://gis.charttools.noaa.gov/arcgis/rest/services/MarineChart_Services/NOAACharts/MapServer/tile/${c.z-2}/${c.y}/${c.x}`}});
 // NOAA NCEI bathymetry (ETOPO 2022 plus high-resolution coastal surveys) as colored shaded relief
 const MERC=20037508.342789244;
-const NceiShade=L.TileLayer.extend({getTileUrl(c){
+const NceiShade=HAS_L&&L.TileLayer.extend({getTileUrl(c){
  const n=2**c.z,w=2*MERC/n,x0=-MERC+c.x*w,y1=MERC-c.y*w;
  return`https://gis.ngdc.noaa.gov/arcgis/rest/services/DEM_mosaics/DEM_global_mosaic_hillshade/ImageServer/exportImage?bbox=${x0},${y1-w},${x0+w},${y1}&bboxSR=3857&imageSR=3857&size=256,256&format=jpgpng&f=image`}});
 const BASES={
@@ -788,6 +798,7 @@ async function depthAt(ll){
  if(m==null)el.textContent=`${pos} · depth lookup isn't available right now; switch the map to Nautical chart to read depths.`;
  else if(m>=0)el.textContent=`${pos} · land or marsh`;
  else el.textContent=`${pos} · about ${Math.round(-m*3.28084).toLocaleString()} ft deep (${DEPTH_SRC}; check your depth finder)`;
+ saveMySpotForm(ll,m!=null&&m<0?Math.round(-m*3.28084):null);
 }
 // ---- Map overlays: temperature breaks, color lines, Loop Current/eddies, rigs, reefs ----
 const OVF={breaks:"ocean.json",color:"ocean.json",ssh:"ocean.json",rigs:"rigs.json",reefs:"reefs.json"},OVDATA={},OVLAYER={};
@@ -830,6 +841,78 @@ function marinePanel(spot){
   ${m.periods.slice(0,3).map(p=>`<div><b>${esc(p.name)}:</b> ${esc(p.text)}</div>`).join("")}
   <a class="note" href="${esc(m.url)}" target="_blank" rel="noopener" style="color:var(--ac)">Full forecast from the National Weather Service</a></div>`;
 }
+// ---- My spots: pins you save on this device ----
+// Water readings (temperature, salinity, tide, clarity, river) are borrowed from the nearest
+// official spot; wind, clouds and pressure are fetched live for the pin from Open-Meteo.
+const MY_KEY="la-fish-myspots";
+function getMy(){try{return JSON.parse(localStorage.getItem(MY_KEY)||"[]")}catch(e){return[]}}
+function saveMy(a){try{localStorage.setItem(MY_KEY,JSON.stringify(a))}catch(e){}}
+function milesJS(la1,lo1,la2,lo2){const r=Math.PI/180,a=Math.sin((la2-la1)*r/2)**2+Math.cos(la1*r)*Math.cos(la2*r)*Math.sin((lo2-lo1)*r/2)**2;return 3959*2*Math.asin(Math.sqrt(a))}
+function buildMySpot(m){
+ const near=DATA.spots.filter(s=>!s.user&&s.lat!=null).reduce((b,s)=>{const d=milesJS(m.lat,m.lon,s.lat,s.lon);return!b||d<b.d?{s,d}:b},null);
+ if(!near)return null;
+ const b=JSON.parse(JSON.stringify(near.s));
+ b.quality=b.quality||{};b.quality.borrowed={from:near.s.name,mi:Math.round(near.d)};
+ return{...b,id:m.id,name:m.name,lat:m.lat,lon:m.lon,user:true,base:near.s.id,note:null,tides:near.s.tides,
+  depth_ft:m.depth_ft??null,depth_src:m.depth_ft!=null?"lookup at your pin":null};
+}
+function addMySpots(){
+ DATA.spots=DATA.spots.filter(s=>!s.user);
+ for(const m of getMy()){const s=buildMySpot(m);if(!s)continue;DATA.spots.push(s);
+  if(FC&&FC.spots&&FC.spots[s.base])FC.spots[s.id]=FC.spots[s.base];liveWeather(s)}
+}
+async function liveWeather(s){
+ try{
+  const r=await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${s.lat}&longitude=${s.lon}&current=wind_speed_10m,wind_direction_10m,cloud_cover,surface_pressure&hourly=surface_pressure&past_hours=4&forecast_hours=1&wind_speed_unit=mph&timezone=GMT`);
+  if(!r.ok)return;const j=await r.json(),c=j.current,h=j.hourly;
+  const i=h.time.findIndex(t=>Date.parse(t+"Z")>=Date.parse(c.time+"Z")-3*36e5),d=i>=0&&h.surface_pressure[i]!=null?c.surface_pressure-h.surface_pressure[i]:null;
+  Object.assign(s.conditions,{wind:Math.round(c.wind_speed_10m),wdir:Math.round(c.wind_direction_10m),cloud:Math.round(c.cloud_cover)});
+  if(d!=null)s.conditions.pres=d<=-1?"Falling":d>=1?"Rising":"Steady";
+  const src={source:"Open-Meteo at your pin",age_min:0};Object.assign(s.quality.sources=s.quality.sources||{},{wind_mph:src,cloud:src,pres:src});
+  if(DATA&&sel)render();
+ }catch(e){}
+}
+function saveMySpotForm(ll,depthFt){
+ const el=$("depthinfo"),id="u"+Date.now().toString(36);
+ el.insertAdjacentHTML("beforeend",`<form class="myspotform" id="myspotform"><input id="myspotname" maxlength="40" placeholder="Name this spot" aria-label="Spot name" required>
+  <button class="t" type="submit">Save as my spot</button></form>`);
+ $("myspotform").onsubmit=e=>{e.preventDefault();const name=$("myspotname").value.trim();if(!name)return;
+  const a=getMy();a.push({id,name,lat:+ll.lat.toFixed(5),lon:+ll.lng.toFixed(5),depth_ft:depthFt});saveMy(a);
+  addMySpots();const s=DATA.spots.find(x=>x.id===id);if(s)addMarker(s);sel=id;pick();
+  $("depthinfo").textContent=`Saved “${name}” on this device. It's in the spot list and on the map.`};
+}
+function removeMySpot(id){
+ saveMy(getMy().filter(m=>m.id!==id));if(MK[id]&&MAP){MAP.removeLayer(MK[id]);delete MK[id]}
+ DATA.spots=DATA.spots.filter(s=>s.id!==id);if(sel===id)sel=DATA.spots[0].id;render();
+}
+// ---- Where the rules are ----
+const RULES={salt:["Louisiana saltwater seasons and limits","https://wlf.louisiana.gov/fishing/saltwater-seasons-limits"],
+ fresh:["Louisiana freshwater creel and size limits","https://wlf.louisiana.gov/fishing/freshwater-creel-size-limits"]};
+const FRESH_SP=new Set(["bass","crappie","catfish"]);
+function rulesPanel(spId,spot){
+ const p=SP[spId],r=RULES[FRESH_SP.has(spId)?"fresh":"salt"];
+ let h=`<div class="note rules">Rules: <a href="${r[1]}" target="_blank" rel="noopener">${r[0]} (LDWF)</a>.`;
+ if(p.zone==="offshore")h+=` Many offshore species also need Louisiana's free Recreational Offshore Landing Permit, and federal rules apply past state waters.`;
+ if((spId==="bass"||spId==="crappie")&&["atch","verret","palourde"].includes(spot.base||spot.id))
+  h+=` New bass and crappie size and creel limits took effect Aug. 1, 2026 in parts of the Atchafalaya Basin and nearby lakes: <a href="https://www.wlf.louisiana.gov/news/new-fishing-regs-in-atchafalaya-basin-on-aug-1" target="_blank" rel="noopener">check the area</a>.`;
+ return h+`</div>`;
+}
+// ---- Phone alerts: help writing a rule for alerts.json ----
+function repoInfo(){const m=/^([^.]+)\.github\.io$/.exec(location.hostname),seg=location.pathname.split("/").filter(Boolean)[0];
+ return m&&seg?{owner:m[1],repo:seg}:null}
+function alertHelp(spId,spot,total){
+ if(spot.user)return`<div class="note">Phone alerts work for the site's spots; your own spots live only on this device.</div>`;
+ const rule={species:spId,spots:[spot.id],min_score:Math.min(95,Math.max(70,Math.round(((total||70)+5)/5)*5)),days:["Fri","Sat","Sun"]};
+ const ri=repoInfo(),edit=ri?`https://github.com/${ri.owner}/${ri.repo}/edit/main/alerts.json`:null;
+ return`<details class="alerthelp"><summary class="t" style="display:inline-flex">Get alerts for this</summary>
+  <p class="note">The hourly update can send a notification to your phone (free ntfy app) when a good window is coming. Add this rule to <code>alerts.json</code> in your GitHub repository${edit?` (<a href="${edit}" target="_blank" rel="noopener">edit it here</a>)`:""}, inside the <code>"rules"</code> list:</p>
+  <pre id="ruletxt">${esc(JSON.stringify(rule))}</pre><button type="button" class="t" id="copyrule">Copy rule</button> <span class="note" id="copymsg"></span>
+  <p class="note">Change <code>min_score</code> or <code>days</code> to taste. Setup steps are at the top of <code>alerts.json</code>.</p></details>`;
+}
+function addMarker(s){
+ if(!MAP||s.lat==null||MK[s.id])return;
+ MK[s.id]=L.circleMarker([s.lat,s.lon],{radius:13,color:s.user?"#ffd166":"#fff",weight:2,dashArray:s.user?"4 3":null,fillOpacity:.95,bubblingMouseEvents:false}).addTo(MAP).on("click",()=>{sel=s.id;pick()});
+}
 function mapInit(){
  if(typeof L==="undefined"||MAP){if(typeof L==="undefined")$("mapcard").hidden=true;return}
  try{MAP=L.map("map",{scrollWheelZoom:false,tapTolerance:15,touchZoom:true,dragging:true});
@@ -842,8 +925,7 @@ function mapInit(){
    MAP.scrollWheelZoom[big?"enable":"disable"]();setTimeout(()=>MAP.invalidateSize(),50)};
   MAP.on("click",e=>depthAt(e.latlng));
   initOverlays();
-  DATA.spots.forEach(s=>{if(s.lat==null)return;
-   MK[s.id]=L.circleMarker([s.lat,s.lon],{radius:13,color:"#fff",weight:2,fillOpacity:.95,bubblingMouseEvents:false}).addTo(MAP).on("click",()=>{sel=s.id;pick()})});
+  DATA.spots.forEach(addMarker);
   MAP.fitBounds(DATA.spots.filter(s=>s.lat!=null).map(s=>[s.lat,s.lon]),{padding:[30,30]});
  }catch(e){$("mapcard").hidden=true}
 }
@@ -925,7 +1007,7 @@ function render(){
   return (b.r.total??-1)-(a.r.total??-1);
  });
  $("ranks").innerHTML=list.map(({s,r})=>`<div class="rank ${s.id===sel?"on":""}" data-id="${s.id}" role="button" tabindex="0" aria-current="${s.id===sel}" style="--w:${r.gate?0:r.total}%;--c:${r.gate?"var(--mu)":col(r.total)}">
-  <span><button class="fav ${favs.includes(s.id)?"on":""}" data-fav="${s.id}" title="Pin spot" aria-label="Pin ${esc(s.name)}" aria-pressed="${favs.includes(s.id)}">★</button>${esc(s.name)}</span>
+  <span><button class="fav ${favs.includes(s.id)?"on":""}" data-fav="${s.id}" title="Pin spot" aria-label="Pin ${esc(s.name)}" aria-pressed="${favs.includes(s.id)}">★</button>${esc(s.name)}${s.user?' <span class="note">(yours)</span>':""}</span>
   ${r.gate?`<span class="note">n/a</span>`:`<span><b style="color:${col(r.total)}">${r.total}</b> <span class="note">${lab(r.total)}</span></span>`}</div>`).join("");
  const spot=DATA.spots.find(s=>s.id===sel),r=score(sp,spot),mi=moonInfo(spot),c={...spot.conditions,zone:spot.zone,alerts:(spot.alerts||[]).map(a=>a.event).join("|"),light:lightNow(spot),moon:mi},q=spot.quality||{},p=SP[sp];
  writeHash();
@@ -995,6 +1077,10 @@ function render(){
  if(!r.gate)h+=`<div class="share-row"><button type="button" class="t" id="shareBtn">Share this score</button><span class="note" id="shareMsg" role="status" style="align-self:center"></span></div>`;
  if(spot.alerts&&spot.alerts.length)h+=`<div class="warn bad"><b>Active weather alerts:</b> ${spot.alerts.map(a=>esc(a.event)+(a.ends?` (until ${new Date(a.ends).toLocaleString([],{weekday:"short",hour:"numeric"})})`:"")).join("; ")}. Check the NWS marine forecast before you go.</div>`;
  if(p.note)h+=`<div class="warn">${p.note}</div>`;
+ if(spot.user){const bq=(spot.quality||{}).borrowed||{};
+  h+=`<div class="spotnote">Your spot, saved on this device. Water readings (temperature, salinity, tide, clarity) come from ${esc(bq.from)}, ${bq.mi} mi away; wind, clouds and pressure are for your pin. <button type="button" class="t" data-rmspot="${esc(spot.id)}" style="font-size:12px;padding:3px 10px;min-height:0">Remove</button></div>`}
+ h+=rulesPanel(sp,spot);
+ if(!r.gate)h+=alertHelp(sp,spot,r.total);
  if(spot.zone==="offshore"&&!r.gate){const bs=(q.sources||{}).temp_f,isB=bs&&bs.source.startsWith("ndbc");
   h+=`<div class="warn">${isB?`Current readings are from NOAA buoy <b>${bs.source.slice(5)}</b>, ${bs.distance_mi} miles from this spot, so conditions may differ here. Current speed and the 7-day outlook are from a forecast model, with sea temperature adjusted to match the buoy.`:`No buoy is close enough to this spot, so sea temperature, waves and current come from a forecast model.`} Use the NWS marine forecast to decide whether to go.</div>`}
  if(!r.gate){
@@ -1009,6 +1095,8 @@ function render(){
  }
  $("detail").innerHTML=h;
  const sh=$("shareBtn");if(sh)sh.onclick=()=>shareScore(p.name,spot.name,r.total,lab(r.total));
+ const rm=document.querySelector("[data-rmspot]");if(rm)rm.onclick=()=>removeMySpot(rm.dataset.rmspot);
+ const cr=$("copyrule");if(cr)cr.onclick=async()=>{try{await navigator.clipboard.writeText($("ruletxt").textContent);$("copymsg").textContent="Copied."}catch(e){$("copymsg").textContent="Select the rule above and copy it."}};
  const all=[],ud=userDepth();for(const k of Object.keys(SP))for(const x of DATA.spots){const q=score(k,x,Date.now(),ud);if(!q.gate)all.push({k,x,v:q.total,cov:q.coverage,reason:q.reason||""})}
  all.sort((a,b)=>b.v-a.v);const seen=new Set();
  // best spot for each species, so one species cannot fill every card
@@ -1211,6 +1299,7 @@ async function load(isRefresh){
  try{const fr=await fetch("forecast.json?t="+Date.now());if(fr.ok)FC=await fr.json()}catch(e){}
  fetch("history.json?t="+Date.now()).then(r=>r.ok?r.json():null).then(h=>{if(h&&h.t){HIST=h;if(DATA&&sel)render()}}).catch(()=>{});
  computeTune();
+ addMySpots();
  LAST_LOAD=Date.now();
  if(!isRefresh)readHash();
  if(!sel||!DATA.spots.some(s=>s.id===sel))sel=DATA.spots[0].id;
