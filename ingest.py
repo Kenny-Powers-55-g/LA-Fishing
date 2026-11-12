@@ -62,7 +62,7 @@ def save_station_cache(cache):
     # only persist the discovery keys (sites / buoys), not live readings
     out = {}
     for k, v in cache.items():
-        if isinstance(k, tuple) and k and k[0] in ("sites", "buoys", "depth"):
+        if isinstance(k, tuple) and k and k[0] in ("sites", "buoys", "depth", "mzone"):
             # JSON keys must be strings
             out["|".join(str(x) for x in k)] = v
         elif k == "buoys":
@@ -1146,8 +1146,9 @@ def collect(spot, now, cache):
     missing = [k for k, v in cond.items() if v is None and k not in na]
     applicable = len(cond) - len(na)
     depth_ft, depth_src = bottom_depth(spot, cache)
+    mzone = marine_zone(spot, cache)
     return {"id": spot["id"], "name": spot["name"], "lat": spot["lat"], "lon": spot["lon"],
-            "depth_ft": depth_ft, "depth_src": depth_src, "note": spot.get("note"), "river": spot.get("river"),
+            "depth_ft": depth_ft, "depth_src": depth_src, "note": spot.get("note"), "river": spot.get("river"), "mzone": mzone,
             "updated": now.isoformat(),
             "zone": "offshore" if spot.get("marine") else "inshore",
             "alerts": get_alerts(spot["lat"], spot["lon"]),
@@ -1178,6 +1179,310 @@ def save(results, now):
                         (r["id"], m, v if isinstance(v, (int, float)) else None,
                          v if isinstance(v, str) else None, s, now.isoformat()))
     con.commit(); con.close()
+
+# ---------------------------------------------------------------- ocean features (map lines)
+# Lines drawn on the map: temperature breaks, color (chlorophyll) edges, and the Loop Current /
+# eddy outline from satellite sea surface height. Written to ocean.json.
+OCEAN = "ocean.json"
+BOX = (26.4, 30.5, -94.6, -87.4)          # lat0, lat1, lon0, lon1: Louisiana shelf and slope
+
+def griddap_box(base, ds, var, lat0, lat1, lon0, lon1, stride=1, lat_desc=False, extra="[(0.0)]"):
+    """(time, lats, lons, grid) from an ERDDAP griddap dataset for the newest time step.
+    grid[i][j] is None where there's no data (land, clouds)."""
+    la = f"[({lat1}):{stride}:({lat0})]" if lat_desc else f"[({lat0}):{stride}:({lat1})]"
+    url = f"{base}/griddap/{ds}.json?{var}[(last)]{extra}{la}[({lon0}):{stride}:({lon1})]"
+    j = get_json(url, tries=1, timeout=60)
+    try:
+        rows = j["table"]["rows"]
+        names = j["table"]["columnNames"]
+    except (TypeError, KeyError):
+        return None
+    ilat, ilon, ival = names.index("latitude"), names.index("longitude"), len(names) - 1
+    lats = sorted({r[ilat] for r in rows})
+    lons = sorted({r[ilon] for r in rows})
+    li, lj = {v: i for i, v in enumerate(lats)}, {v: j for j, v in enumerate(lons)}
+    grid = [[None] * len(lons) for _ in lats]
+    for r in rows:
+        v = r[ival]
+        if isinstance(v, (int, float)) and v == v:          # skip NaN
+            grid[li[r[ilat]]][lj[r[ilon]]] = float(v)
+    return rows[0][0] if rows else None, lats, lons, grid
+
+def contour(grid, lats, lons, level):
+    """Marching squares: line segments where the grid crosses `level`. Cells with a gap
+    (None) are skipped. Returns [[(lat, lon), (lat, lon)], ...]."""
+    segs = []
+    for i in range(len(lats) - 1):
+        for j in range(len(lons) - 1):
+            c = (grid[i][j], grid[i][j + 1], grid[i + 1][j + 1], grid[i + 1][j])   # SW, SE, NE, NW
+            if any(v is None for v in c):
+                continue
+            corners = ((lats[i], lons[j]), (lats[i], lons[j + 1]), (lats[i + 1], lons[j + 1]), (lats[i + 1], lons[j]))
+            pts = []
+            for a in range(4):
+                b = (a + 1) % 4
+                va, vb = c[a], c[b]
+                if (va < level) != (vb < level):
+                    t = (level - va) / (vb - va)
+                    pts.append((corners[a][0] + t * (corners[b][0] - corners[a][0]),
+                                corners[a][1] + t * (corners[b][1] - corners[a][1])))
+            if len(pts) == 2:
+                segs.append(pts)
+            elif len(pts) == 4:                                   # saddle: pair them in order
+                segs += [pts[:2], pts[2:]]
+    return segs
+
+def join_segments(segs, nd=3):
+    """Join touching segments into longer lines to keep ocean.json small."""
+    key = lambda p: (round(p[0], nd), round(p[1], nd))
+    ends, lines = {}, []
+    for a, b in segs:
+        a, b = key(a), key(b)
+        la, lb = ends.pop(a, None), ends.pop(b, None)
+        if la is not None and lb is not None and la is not lb:
+            if la[-1] != a: la.reverse()
+            if lb[0] != b: lb.reverse()
+            la.extend(lb)
+            lines.remove(lb)
+            ends.pop(la[0], None); ends.pop(la[-1], None)
+            ends[la[0]] = la; ends[la[-1]] = la
+        elif la is not None:
+            (la.append(b) if la[-1] == a else la.insert(0, b))
+            ends[b] = la
+        elif lb is not None:
+            (lb.insert(0, a) if lb[0] == b else lb.append(a))
+            ends[a] = lb
+        else:
+            ln = [a, b]
+            lines.append(ln)
+            ends[a] = ln; ends[b] = ln
+    return [ln for ln in lines if len(ln) >= 3]
+
+def gradient(grid, lats, lons, i, j):
+    """Magnitude of change per mile at grid cell (i, j), or None."""
+    def g(ii, jj):
+        return grid[ii][jj] if 0 <= ii < len(lats) and 0 <= jj < len(lons) else None
+    c, n, s_, e, w = g(i, j), g(i + 1, j), g(i - 1, j), g(i, j + 1), g(i, j - 1)
+    if c is None:
+        return None
+    dy = ((n if n is not None else c) - (s_ if s_ is not None else c))
+    dx = ((e if e is not None else c) - (w if w is not None else c))
+    mi_lat = 69.0 * (lats[min(i + 1, len(lats) - 1)] - lats[max(i - 1, 0)]) or 1
+    mi_lon = 69.0 * math.cos(math.radians(lats[i])) * (lons[min(j + 1, len(lons) - 1)] - lons[max(j - 1, 0)]) or 1
+    return math.hypot(dy / mi_lat, dx / mi_lon)
+
+def breaks(grid, lats, lons, step, min_grad, keep_share=0.25):
+    """Contours every `step` units, keeping only pieces that sit on a sharp change."""
+    vals = [v for row in grid for v in row if v is not None]
+    if len(vals) < 50:
+        return []
+    lo, hi = min(vals), max(vals)
+    level = math.ceil(lo / step) * step
+    scored = []
+    while level < hi:
+        for seg in contour(grid, lats, lons, level):
+            mid = ((seg[0][0] + seg[1][0]) / 2, (seg[0][1] + seg[1][1]) / 2)
+            i = min(range(len(lats)), key=lambda k: abs(lats[k] - mid[0]))
+            j = min(range(len(lons)), key=lambda k: abs(lons[k] - mid[1]))
+            gr = gradient(grid, lats, lons, i, j)
+            if gr is not None:
+                scored.append((gr, seg))
+        level += step
+    if not scored:
+        return []
+    scored.sort(key=lambda x: -x[0])
+    cut = max(min_grad, scored[int(len(scored) * keep_share) - 1][0] if len(scored) > 4 else min_grad)
+    return join_segments([seg for gr, seg in scored if gr >= cut])
+
+def ocean_features(now):
+    lat0, lat1, lon0, lon1 = BOX
+    out = {"generated": now.isoformat()}
+    # temperature breaks from MUR sea surface temperature (deg C -> F), about 2 mi cells
+    g = griddap_box("https://coastwatch.pfeg.noaa.gov/erddap", "jplMURSST41", "analysed_sst",
+                    lat0, lat1, lon0, lon1, stride=3, extra="")
+    if g:
+        t, la, lo, gr = g
+        gr = [[None if v is None else v * 1.8 + 32 for v in row] for row in gr]
+        out["sst_breaks"] = {"time": t, "lines": breaks(gr, la, lo, 1.0, 0.12)}
+    # color lines: where chlorophyll crosses 0.3 and 1 mg/m3 (blue to green-blue to green water)
+    g = griddap_box("https://coastwatch.pfeg.noaa.gov/erddap", "nesdisVHNnoaa20chlaDaily", "chlor_a",
+                    lat0, lat1, lon0, lon1, stride=1, lat_desc=True)
+    if g:
+        t, la, lo, gr = g
+        lg = [[None if v is None or v <= 0 else math.log10(v) for v in row] for row in gr]
+        out["color_lines"] = {"time": t, "levels": {
+            "0.3": join_segments(contour(lg, la, lo, math.log10(0.3))),
+            "1": join_segments(contour(lg, la, lo, 0.0))}}
+    # Loop Current and eddies: sea surface height 17 cm above the Gulf average (Leben's method)
+    for ds in (f"SSH_GoA_{now.year}", f"SSH_GoA_{now.year - 1}"):
+        g = griddap_box("https://gcoos5.geos.tamu.edu/erddap", ds, "adt", 18.0, 31.0, -98.0, -80.0, extra="")
+        if not g:
+            continue
+        t, la, lo, gr = g
+        try:
+            age = (now - parse_iso(t)).days
+        except (TypeError, ValueError):
+            age = 99
+        if age > 10:
+            continue
+        gulf = [v for i, row in enumerate(gr) if la[i] >= 22 for v in row if v is not None]
+        if not gulf:
+            continue
+        mean = sum(gulf) / len(gulf)
+        rel = [[None if v is None else v - mean for v in row] for row in gr]
+        out["ssh"] = {"time": t, "warm": join_segments(contour(rel, la, lo, 0.17)),
+                      "cold": join_segments(contour(rel, la, lo, -0.10))}
+        break
+    def rnd(lines):
+        return [[[round(a, 3), round(b, 3)] for a, b in ln] for ln in lines]
+    for k in ("sst_breaks", "ssh"):
+        if k in out:
+            for kk in ("lines", "warm", "cold"):
+                if kk in out[k]:
+                    out[k][kk] = rnd(out[k][kk])
+    if "color_lines" in out:
+        out["color_lines"]["levels"] = {k: rnd(v) for k, v in out["color_lines"]["levels"].items()}
+    return out
+
+# ---------------------------------------------------------------- rigs and reefs (weekly)
+RIGS, REEFS = "rigs.json", "reefs.json"
+STATIC_DAYS = 7
+
+def arcgis_geojson(url, where="1=1", bbox=None, max_pages=10, page=2000):
+    """All features from an ArcGIS layer query as GeoJSON features (paged)."""
+    feats = []
+    for k in range(max_pages):
+        params = dict(where=where, outFields="*", returnGeometry="true", outSR="4326", f="geojson",
+                      resultOffset=k * page, resultRecordCount=page)
+        if bbox:
+            params.update(geometry=",".join(map(str, bbox)), geometryType="esriGeometryEnvelope",
+                          inSR="4326", spatialRel="esriSpatialRelIntersects")
+        j = get_json(url + "/query", params, tries=2, timeout=60)
+        fs = (j or {}).get("features")
+        if fs is None:
+            return feats or None
+        feats += fs
+        if len(fs) < page and not (j or {}).get("exceededTransferLimit"):
+            break
+    return feats
+
+def point_of(geom):
+    """Representative (lat, lon) for a point or polygon geometry."""
+    if not geom:
+        return None
+    t, c = geom.get("type"), geom.get("coordinates")
+    try:
+        if t == "Point":
+            return c[1], c[0]
+        ring = c[0] if t == "Polygon" else c[0][0]
+        return sum(p[1] for p in ring) / len(ring), sum(p[0] for p in ring) / len(ring)
+    except (TypeError, IndexError, ZeroDivisionError):
+        return None
+
+def static_layers(now, rigs_path=RIGS, reefs_path=REEFS):
+    """Refresh rigs.json and reefs.json about once a week (the workflow downloads the
+    current copies from the live site first)."""
+    def stale(path):
+        try:
+            with open(path) as f:
+                return (now - parse_iso(json.load(f)["generated"])).days >= STATIC_DAYS
+        except (OSError, KeyError, ValueError, TypeError, json.JSONDecodeError):
+            return True
+    bbox = (-94.5, 26.4, -87.5, 30.6)
+    if stale(rigs_path):
+        feats = None
+        for url in ("https://gis.boem.gov/arcgis/rest/services/BOEM_BSEE/GOM_Layers/MapServer/0",
+                    "https://maps.nccs.nasa.gov/mapping/rest/services/hifld_open/energy/FeatureServer/12"):
+            feats = arcgis_geojson(url, bbox=bbox)
+            if feats:
+                break
+        if feats:
+            pts = []
+            for f in feats:
+                p = f.get("properties") or {}
+                if any(p.get(k) for k in ("REMOVAL_DATE", "removal_da", "REMOVAL_DT")):
+                    continue                                       # removed structures
+                ll = point_of(f.get("geometry"))
+                if not ll:
+                    continue
+                name = next((str(p[k]) for k in ("STRUCTURE_NAME", "STR_NAME", "str_name", "AREA_BLOCK",
+                                                  "COMPLEX_ID_NUM", "complex_id") if p.get(k)), "")
+                pts.append([round(ll[0], 4), round(ll[1], 4), name])
+            with open(rigs_path, "w") as fh:
+                json.dump({"generated": now.isoformat(), "source": "BOEM/BSEE OCS platforms", "rigs": pts}, fh,
+                          separators=(",", ":"))
+            log.info("rigs.json: %d platforms", len(pts))
+    if stale(reefs_path):
+        feats = arcgis_geojson("https://gis.ngdc.noaa.gov/arcgis/rest/services/NMSP/FGB/MapServer/23")
+        if feats:
+            reefs = []
+            for f in feats:
+                p, ll = f.get("properties") or {}, point_of(f.get("geometry"))
+                if ll:
+                    name = next((str(p[k]) for k in ("multilabel", "NAME", "Name", "REEF_NAME", "SITE_NAME") if p.get(k)), "Artificial reef")
+                    reefs.append([round(ll[0], 4), round(ll[1], 4), name])
+            with open(reefs_path, "w") as fh:
+                json.dump({"generated": now.isoformat(), "source": "LDWF artificial reefs (via NOAA)", "reefs": reefs}, fh,
+                          separators=(",", ":"))
+            log.info("reefs.json: %d reefs", len(reefs))
+
+# ---------------------------------------------------------------- NWS marine forecasts
+def marine_zone(spot, cache):
+    """NWS coastal or offshore marine zone id covering a spot (looked up once, cached)."""
+    key = ("mzone", spot["id"])
+    if key in cache:
+        return cache[key][0] if isinstance(cache[key], (list, tuple)) else cache[key]
+    for typ in ("coastal", "offshore"):
+        j = get_json("https://api.weather.gov/zones", dict(type=typ, point=f"{spot['lat']:.4f},{spot['lon']:.4f}"),
+                     tries=2, headers={"Accept": "application/geo+json"})
+        fs = (j or {}).get("features") or []
+        if fs:
+            zid = (fs[0].get("properties") or {}).get("id")
+            if zid:
+                cache[key] = [zid, typ]
+                return zid
+        if j is None:
+            return None                                # API down: try again next run
+    cache[key] = [None, None]
+    return None
+
+def marine_forecast(zone, cache):
+    """First few periods of the NWS marine forecast text for a zone."""
+    key = ("mfc", zone)
+    if key in cache:
+        return cache[key]
+    z = zone.lower()
+    txt = None
+    for d in ("coastal", "offshore"):
+        txt = get_text(f"https://tgftp.nws.noaa.gov/data/forecasts/marine/{d}/gm/{z}.txt")
+        if txt and zone.upper() in txt.upper():
+            break
+        txt = None
+    out = None
+    if txt:
+        lines = [l.rstrip() for l in txt.splitlines()]
+        zi = next((i for i, l in enumerate(lines) if l.upper().startswith(zone.upper())), None)
+        name = next((l.strip().rstrip("-").strip() for l in lines[zi + 1:zi + 4] if l.strip()), zone) if zi is not None else zone
+        issued = next((l.strip() for l in lines if " CST " in l or " CDT " in l), "")
+        periods, cur = [], None
+        for l in lines:
+            if l.startswith(".") and not l.startswith("..") and "..." in l:     # ".TODAY...text" (not a "...HEADLINE...")
+                if cur:
+                    periods.append(cur)
+                head, _, rest = l[1:].partition("...")
+                cur = {"name": head.strip().title(), "text": rest.strip()}
+            elif cur is not None and l.strip() and not l.startswith(("$$", "...")):
+                cur["text"] += " " + l.strip()
+            elif l.startswith("$$"):
+                break
+        if cur:
+            periods.append(cur)
+        headline = next((l.strip(". ") for l in lines if l.startswith("...") and l.rstrip().endswith("...")), None)
+        out = {"zone": zone, "name": name, "issued": issued, "headline": headline,
+               "periods": periods[:4],
+               "url": f"https://forecast.weather.gov/shmrn.php?mz={z}"}
+    cache[key] = out
+    return out
 
 # ---------------------------------------------------------------- history
 HISTORY = "history.json"
@@ -1254,6 +1559,25 @@ def run_once():
             else:
                 results.append(r)
     log.info("collected %d spots in %.0f s", len(results), time.time() - t0)
+    marine = {}
+    for z in sorted({r.get("mzone") for r in results if r.get("mzone")}):
+        try:
+            fc = marine_forecast(z, cache)
+            if fc:
+                marine[z] = fc
+        except Exception:
+            log.exception("marine forecast %s failed", z)
+    cache["marine"] = marine
+    for name, fn in (("ocean lines", lambda: ocean_features(now)), ("rigs and reefs", lambda: static_layers(now))):
+        try:
+            res = fn()
+            if name == "ocean lines" and res:
+                with open(OCEAN + ".tmp", "w") as fh:
+                    json.dump(res, fh, separators=(",", ":"))
+                os.replace(OCEAN + ".tmp", OCEAN)
+                log.info("ocean.json: %s", ", ".join(k for k in res if k != "generated") or "no layers")
+        except Exception:                          # map extras must never break the run
+            log.exception("%s failed", name)
     save_station_cache(cache)
     fc = {"generated": now.isoformat(), "spots": {r["id"]: r["forecast"] for r in results if r.get("forecast")}}
     for r in results:
@@ -1264,7 +1588,8 @@ def run_once():
     os.replace("forecast.json.tmp", "forecast.json")
     tmp = OUT + ".tmp"
     with open(tmp, "w") as f:
-        json.dump({"generated": now.isoformat(), "rivers": cache.get("rivers") or {}, "spots": results}, f, indent=2)
+        json.dump({"generated": now.isoformat(), "rivers": cache.get("rivers") or {}, "marine": cache.get("marine") or {},
+                   "spots": results}, f, indent=2)
     os.replace(tmp, OUT)
     # Lightweight health summary for the UI and operators
     status = {

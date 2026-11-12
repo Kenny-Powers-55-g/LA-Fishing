@@ -112,6 +112,27 @@ class FullRun(unittest.TestCase):
         self.assertEqual(len(h["spots"]["barat"]["temp"]), 1)
         self.assertIn("miss", h["rivers"])
 
+    def test_ocean_lines(self):
+        with open("ocean.json") as f:
+            o = json.load(f)
+        self.assertTrue(o["sst_breaks"]["lines"])
+        self.assertTrue(o["ssh"]["warm"])
+        self.assertIn("0.3", o["color_lines"]["levels"])
+
+    def test_rigs_and_reefs(self):
+        with open("rigs.json") as f:
+            rigs = json.load(f)["rigs"]
+        self.assertEqual(len(rigs), 16)                    # 4 of 20 have a removal date
+        with open("reefs.json") as f:
+            self.assertEqual(json.load(f)["reefs"][0][2], "South Timbalier 128")
+
+    def test_marine_forecast(self):
+        m = self.latest["marine"]["GMZ550"]
+        self.assertEqual(m["periods"][0]["name"], "Today")
+        self.assertIn("Northeast winds", m["periods"][0]["text"])
+        self.assertEqual(self.spots["barat"]["mzone"], "GMZ550")
+        self.assertEqual(self.spots["off90"]["mzone"], "GMZ089")
+
     def test_status_file(self):
         with open("status.json") as f:
             st = json.load(f)
