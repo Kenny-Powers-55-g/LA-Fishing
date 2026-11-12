@@ -1896,7 +1896,7 @@ async function initAccounts(){
  const c=acctCfg(),b=$("acctbtn");if(!c||!b)return;
  b.hidden=false;b.onclick=openAcct;acctUI();
  // A common setup slip: pasting the website's own address instead of the Supabase Project URL
- let host="";try{host=new URL(c.supabaseUrl).host}catch(e){}
+ let host="";try{const u=new URL(c.supabaseUrl);host=u.host;c.supabaseUrl=u.origin}catch(e){}   // keep only https://xxxx.supabase.co (drop a pasted /rest/v1/ etc.)
  if(!host||host===location.host||/github\.io$/.test(host)||/(^|\.)supabase\.com$/.test(host)){
   ACCT.state="err";ACCT.msg=`Accounts aren't set up correctly: in config.js, supabaseUrl must be your Supabase Project URL (it looks like https://abcdefghijkl.supabase.co), not ${host||"this value"}. Find it in Supabase under Project Settings → Data API.`;acctUI();return}
  if(!window.supabase)await loadScript("https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2");
