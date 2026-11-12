@@ -41,6 +41,11 @@ jobs:
       - name: Pull the latest readings
         run: python ingest.py once
         timeout-minutes: 35
+        env:
+          # Free key from https://api.waterdata.usgs.gov/signup, saved as a repository
+          # secret named USGS_API_KEY. Without it, USGS may rate-limit the hourly run.
+          USGS_API_KEY: ${{ secrets.USGS_API_KEY }}
+          INGEST_WORKERS: "4"
 
       - name: Collect the site files
         run: |
