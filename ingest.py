@@ -37,7 +37,7 @@ import xml.etree.ElementTree as ET
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta, timezone
 from urllib.error import HTTPError, URLError
-from urllib.parse import urlencode
+from urllib.parse import urlencode, urlparse
 from urllib.request import Request, urlopen
 
 CONTACT = "https://github.com/Kenny-Powers-55-g/LA-Fishing"   # a project URL works; no personal email needed
@@ -1386,24 +1386,53 @@ def ocean_features(now):
 # ---------------------------------------------------------------- rigs and reefs (weekly)
 RIGS, REEFS = "rigs.json", "reefs.json"
 STATIC_DAYS = 7
+# Tried in order until one answers
+RIG_SOURCES = (
+    "https://gis.boem.gov/arcgis/rest/services/BOEM_BSEE/GOM_Layers/MapServer/0",
+    "https://services2.coastalresilience.org/arcgis/rest/services/Gulf_of_Mexico/Conservation_Blueways/MapServer/18",
+    "https://maps.nccs.nasa.gov/mapping/rest/services/hifld_open/energy/FeatureServer/12",
+)
+REEF_SOURCES = (   # (url, label, filter to the Louisiana box?)
+    ("https://gis.ngdc.noaa.gov/arcgis/rest/services/NMSP/FGB/MapServer/23", "LDWF artificial reefs (via NOAA)", False),
+    ("https://coast.noaa.gov/arcgis/rest/services/Hosted/ArtificialReefs/FeatureServer/0", "Artificial reefs (NOAA Office for Coastal Management)", True),
+)
+
+def _esri_to_geojson(f):
+    """One Esri JSON feature as a GeoJSON feature (points, polygons, polylines)."""
+    g, geom = f.get("geometry") or {}, None
+    if "x" in g and "y" in g:
+        geom = {"type": "Point", "coordinates": [g["x"], g["y"]]}
+    elif g.get("rings"):
+        geom = {"type": "MultiPolygon", "coordinates": [[r] for r in g["rings"]]}
+    elif g.get("paths"):
+        geom = {"type": "MultiLineString", "coordinates": g["paths"]}
+    return {"type": "Feature", "properties": f.get("attributes") or {}, "geometry": geom}
 
 def arcgis_geojson(url, where="1=1", bbox=None, max_pages=10, page=2000):
-    """All features from an ArcGIS layer query as GeoJSON features (paged)."""
-    feats = []
-    for k in range(max_pages):
-        params = dict(where=where, outFields="*", returnGeometry="true", outSR="4326", f="geojson",
-                      resultOffset=k * page, resultRecordCount=page)
-        if bbox:
-            params.update(geometry=",".join(map(str, bbox)), geometryType="esriGeometryEnvelope",
-                          inSR="4326", spatialRel="esriSpatialRelIntersects")
-        j = get_json(url + "/query", params, tries=2, timeout=60)
-        fs = (j or {}).get("features")
-        if fs is None:
-            return feats or None
-        feats += fs
-        if len(fs) < page and not (j or {}).get("exceededTransferLimit"):
-            break
-    return feats
+    """All features from an ArcGIS layer query as GeoJSON features. Tries GeoJSON with
+    paging first, then Esri JSON (older servers), then a single unpaged request.
+    Returns None when no form of the query answered, [] when it answered with nothing."""
+    base = dict(where=where, outFields="*", returnGeometry="true", outSR="4326")
+    if bbox:
+        base.update(geometry=",".join(map(str, bbox)), geometryType="esriGeometryEnvelope",
+                    inSR="4326", spatialRel="esriSpatialRelIntersects")
+    for fmt, paged in (("geojson", True), ("json", True), ("json", False)):
+        feats, answered = [], False
+        for k in range(max_pages if paged else 1):
+            params = dict(base, f=fmt)
+            if paged:
+                params.update(resultOffset=k * page, resultRecordCount=page)
+            j = get_json(url + "/query", params, tries=2, timeout=60)
+            fs = j.get("features") if isinstance(j, dict) else None
+            if fs is None:
+                break
+            answered = True
+            feats += fs if fmt == "geojson" else [_esri_to_geojson(x) for x in fs]
+            if len(fs) < page and not j.get("exceededTransferLimit"):
+                break
+        if answered:
+            return feats
+    return None
 
 def point_of(geom):
     """Representative (lat, lon) for a point or polygon geometry."""
@@ -1440,8 +1469,7 @@ def static_layers(now, rigs_path=RIGS, reefs_path=REEFS):
 def _rigs(now, rigs_path, bbox, stale):
     if stale(rigs_path):
         feats = None
-        for url in ("https://gis.boem.gov/arcgis/rest/services/BOEM_BSEE/GOM_Layers/MapServer/0",
-                    "https://maps.nccs.nasa.gov/mapping/rest/services/hifld_open/energy/FeatureServer/12"):
+        for url in RIG_SOURCES:
             feats = arcgis_geojson(url, bbox=bbox)
             if feats:
                 break
@@ -1455,7 +1483,7 @@ def _rigs(now, rigs_path, bbox, stale):
                 if not ll:
                     continue
                 name = next((str(p[k]) for k in ("STRUCTURE_NAME", "STR_NAME", "str_name", "AREA_BLOCK",
-                                                  "COMPLEX_ID_NUM", "complex_id") if p.get(k)), "")
+                                                  "PLATFORM_", "COMPLEX_ID_NUM", "complex_id") if p.get(k)), "")
                 pts.append([round(ll[0], 4), round(ll[1], 4), name])
             with open(rigs_path, "w") as fh:
                 json.dump({"generated": now.isoformat(), "source": "BOEM/BSEE OCS platforms", "rigs": pts}, fh,
@@ -1464,20 +1492,215 @@ def _rigs(now, rigs_path, bbox, stale):
         else:
             log.warning("rigs.json: no platform source answered; will retry next run")
 
-def _reefs(now, reefs_path, stale):
-    if stale(reefs_path):
-        feats = arcgis_geojson("https://gis.ngdc.noaa.gov/arcgis/rest/services/NMSP/FGB/MapServer/23")
-        if feats:
-            reefs = []
-            for f in feats:
-                p, ll = f.get("properties") or {}, point_of(f.get("geometry"))
-                if ll:
-                    name = next((str(p[k]) for k in ("multilabel", "NAME", "Name", "REEF_NAME", "SITE_NAME") if p.get(k)), "Artificial reef")
-                    reefs.append([round(ll[0], 4), round(ll[1], 4), name])
-            with open(reefs_path, "w") as fh:
-                json.dump({"generated": now.isoformat(), "source": "LDWF artificial reefs (via NOAA)", "reefs": reefs}, fh,
-                          separators=(",", ":"))
-            log.info("reefs.json: %d reefs", len(reefs))
+def _reefs(now, reefs_path, stale, bbox=(-94.5, 26.4, -87.5, 30.6)):
+    if not stale(reefs_path):
+        return
+    for url, label, use_bbox in REEF_SOURCES:
+        feats = arcgis_geojson(url, bbox=bbox if use_bbox else None)
+        if not feats:
+            continue
+        reefs = []
+        for f in feats:
+            p, ll = f.get("properties") or {}, point_of(f.get("geometry"))
+            if not ll:
+                continue
+            name = next((str(p[k]) for k in ("multilabel", "reefname", "NAME", "Name", "REEF_NAME", "SITE_NAME") if p.get(k)), "Artificial reef")
+            d = p.get("waterdepthfeet")
+            if isinstance(d, (int, float)) and d > 0:
+                name += f" ({round(d)} ft)"
+            reefs.append([round(ll[0], 4), round(ll[1], 4), name])
+        with open(reefs_path, "w") as fh:
+            json.dump({"generated": now.isoformat(), "source": label, "reefs": reefs}, fh, separators=(",", ":"))
+        log.info("reefs.json: %d reefs from %s", len(reefs), label)
+        return
+    log.warning("reefs.json: no reef source answered; will retry next run")
+
+# ---------------------------------------------------------------- tropical storms (NHC)
+TROPICAL = "tropical.json"
+NHC_MS = "https://mapservices.weather.noaa.gov/tropical/rest/services/tropical/NHC_tropical_weather/MapServer"
+# Atlantic storm slots AT1..AT5 in that service: (forecast points, track, cone, watches/warnings)
+NHC_SLOTS = ((6, 7, 8, 9), (32, 33, 34, 35), (58, 59, 60, 61), (84, 85, 86, 87), (110, 111, 112, 113))
+NHC_OUTLOOK7 = 3          # seven-day potential development areas
+# Louisiana coast, Sabine Pass to the Pearl River, for "is the coast in the cone" checks
+LA_COAST = ((29.73, -93.85), (29.60, -92.80), (29.55, -92.30), (29.35, -91.40), (29.10, -90.70),
+            (29.15, -90.10), (29.25, -89.60), (29.00, -89.30), (29.70, -89.40), (30.18, -89.60))
+LA_BOX = (28.6, -94.1, 30.6, -88.7)     # lat_lo, lon_lo, lat_hi, lon_hi, for watches/warnings
+GULF_BOX = (18.0, -98.0, 31.0, -80.5)
+TROP_LEVELS = ("none", "far", "gulf", "near", "cone", "watch", "warning")
+TROP_TYPES = {"HU": "Hurricane", "TS": "Tropical Storm", "TD": "Tropical Depression", "STS": "Subtropical Storm",
+              "SD": "Subtropical Depression", "PTC": "Potential Tropical Cyclone", "PT": "Post-Tropical Cyclone",
+              "MH": "Major Hurricane", "M": "Major Hurricane", "H": "Hurricane", "S": "Tropical Storm", "D": "Tropical Depression"}
+
+def _prop(p, *names):
+    """First non-empty attribute among names, ignoring case."""
+    low = {str(k).lower(): v for k, v in (p or {}).items()}
+    for n in names:
+        v = low.get(n.lower())
+        if v not in (None, "", " "):
+            return v
+    return None
+
+def _num(v):
+    try:
+        return float(v)
+    except (TypeError, ValueError):
+        return None
+
+def _rings(geom, step_max=160):
+    """Outer rings of a (multi)polygon as [[lat, lon], ...], thinned for the page."""
+    if not geom:
+        return []
+    t, c = geom.get("type"), geom.get("coordinates") or []
+    polys = [c] if t == "Polygon" else c if t == "MultiPolygon" else []
+    out = []
+    for poly in polys:
+        ring = poly[0] if poly else []
+        if len(ring) >= 3:
+            step = max(1, len(ring) // step_max)
+            out.append([[round(y, 3), round(x, 3)] for x, y in ring[::step]])
+    return out
+
+def _paths(geom):
+    if not geom:
+        return []
+    t, c = geom.get("type"), geom.get("coordinates") or []
+    paths = [c] if t == "LineString" else c if t == "MultiLineString" else []
+    return [[[round(y, 3), round(x, 3)] for x, y in p] for p in paths if len(p) >= 2]
+
+def _inside(lat, lon, ring):
+    """Point in polygon (ray casting) for a ring of [lat, lon]."""
+    hit, j = False, len(ring) - 1
+    for i in range(len(ring)):
+        (yi, xi), (yj, xj) = ring[i], ring[j]
+        if (yi > lat) != (yj > lat) and lon < (xj - xi) * (lat - yi) / ((yj - yi) or 1e-12) + xi:
+            hit = not hit
+        j = i
+    return hit
+
+def _in_box(lat, lon, box):
+    return box[0] <= lat <= box[2] and box[1] <= lon <= box[3]
+
+def _storm(slot, now):
+    """One active Atlantic storm from the NHC map service, or None if the slot is empty.
+    Raises LookupError if the service didn't answer."""
+    pts_id, trk_id, cone_id, ww_id = NHC_SLOTS[slot]
+    pts = arcgis_geojson(f"{NHC_MS}/{pts_id}", max_pages=1, page=200)
+    if pts is None:
+        raise LookupError("NHC map service didn't answer")
+    if not pts:
+        return None
+    rows = []
+    for f in pts:
+        p, ll = f.get("properties") or {}, point_of(f.get("geometry"))
+        if ll:
+            rows.append(dict(lat=round(ll[0], 2), lon=round(ll[1], 2), tau=_num(_prop(p, "tau", "fcstprd")) or 0,
+                             kt=_num(_prop(p, "maxwind", "intensity")), label=_prop(p, "dvlbl", "tcdvlp", "stormtype"),
+                             when=_prop(p, "datelbl", "fldatelbl", "validtime"), p=p))
+    if not rows:
+        return None
+    rows.sort(key=lambda r: r["tau"])
+    first = rows[0]["p"]
+    name = str(_prop(first, "stormname", "storm_name", "name") or f"Storm AT{slot + 1}").title()
+    typ = _prop(first, "stormtype", "tcdvlp", "dvlbl")
+    typ = TROP_TYPES.get(str(typ).upper(), str(typ).title()) if typ else "Tropical cyclone"
+    cone, track, ww = [], [], []
+    for f in arcgis_geojson(f"{NHC_MS}/{cone_id}", max_pages=1) or []:
+        cone += _rings(f.get("geometry"))
+    for f in arcgis_geojson(f"{NHC_MS}/{trk_id}", max_pages=1) or []:
+        track += _paths(f.get("geometry"))
+    for f in arcgis_geojson(f"{NHC_MS}/{ww_id}", max_pages=1) or []:
+        kind = str(_prop(f.get("properties"), "tcww", "type", "wwtype") or "").upper()
+        for pth in _paths(f.get("geometry")):
+            ww.append({"kind": kind, "path": pth})
+    # How close does it come to Louisiana?
+    best = None
+    for r in rows:
+        d = min(miles(r["lat"], r["lon"], a, b) for a, b in LA_COAST)
+        if best is None or d < best[0]:
+            best = (d, r)
+    in_cone = any(_inside(a, b, ring) for ring in cone for a, b in LA_COAST)
+    la_ww = [w["kind"] for w in ww if any(_in_box(a, b, LA_BOX) for a, b in w["path"])]
+    if any(k in ("HWR", "TWR") or "WARN" in k for k in la_ww):
+        level = "warning"
+    elif la_ww:
+        level = "watch"
+    elif in_cone:
+        level = "cone"
+    elif best[0] <= 350:
+        level = "near"
+    elif any(_in_box(r["lat"], r["lon"], GULF_BOX) for r in rows):
+        level = "gulf"
+    else:
+        level = "far"
+    d, r = best
+    kt = rows[0]["kt"]
+    head = f"{typ} {name}" + (f" ({round(kt * 1.151)} mph)" if kt else "")
+    closest = (f"closest forecast position about {round(d / 10) * 10:,} miles from the coast"
+               + (f" in {round(r['tau'])} hours" if r["tau"] else " now"))
+    text = {"warning": f"{head}: hurricane or tropical storm warnings cover part of the Louisiana coast. Stay off the water.",
+            "watch": f"{head}: watches cover part of the Louisiana coast. Plan to be off the water and secure your boat.",
+            "cone": f"{head}: the Louisiana coast is inside the forecast cone; {closest}.",
+            "near": f"{head}: {closest}. Swells and rough seas likely offshore.",
+            "gulf": f"{head} is in the Gulf; {closest}.",
+            "far": f"{head}: {closest}."}[level]
+    return {"name": name, "type": typ, "wind_kt": kt, "level": level, "text": text,
+            "closest_mi": round(d), "closest_h": r["tau"],
+            "points": [[r["lat"], r["lon"], r["tau"], r["kt"], r["label"], r["when"]] for r in rows],
+            "cone": cone, "track": track, "ww": ww}
+
+def tropical(now, path=TROPICAL):
+    """Active Atlantic storms and the 7-day outlook from NHC, with how much each threatens
+    the Louisiana coast. Writes tropical.json and returns a short summary for latest.json,
+    or None when the NHC service didn't answer (the previous file is kept)."""
+    storms = []
+    try:
+        for slot in range(len(NHC_SLOTS)):
+            s = _storm(slot, now)
+            if s:
+                storms.append(s)
+    except LookupError as e:
+        log.warning("tropical: %s", e)
+        return None
+    outlook = []
+    for f in arcgis_geojson(f"{NHC_MS}/{NHC_OUTLOOK7}", max_pages=1) or []:
+        p, rings = f.get("properties") or {}, _rings(f.get("geometry"))
+        if not rings or not any(_in_box(a, b, GULF_BOX) for ring in rings for a, b in ring):
+            continue
+        cen = point_of(f.get("geometry")) or (rings[0][0][0], rings[0][0][1])
+        outlook.append({"rings": rings, "prob2": _prop(p, "prob2day"), "prob7": _prop(p, "prob7day"),
+                        "risk": _prop(p, "risk7day", "risk2day"),
+                        "near": min(miles(cen[0], cen[1], a, b) for a, b in LA_COAST) <= 500})
+    rank = max([TROP_LEVELS.index(s["level"]) for s in storms] + [0])
+    level = TROP_LEVELS[rank]
+    if storms:
+        text = " ".join(s["text"] for s in sorted(storms, key=lambda s: -TROP_LEVELS.index(s["level"]))[:2])
+    else:
+        near = [o for o in outlook if o["near"]]
+        text = (f"No active storms. NHC is watching an area in the Gulf ({near[0]['prob7'] or 'low'} chance of "
+                "development in 7 days)." if near else "No active tropical storms in the Atlantic or Gulf.")
+        if near and rank < 2:
+            level, rank = "gulf", 2
+    out = {"generated": now.isoformat(), "level": level, "rank": rank, "text": text, "storms": storms, "outlook": outlook,
+           "source": "NOAA National Hurricane Center"}
+    with open(path + ".tmp", "w") as fh:
+        json.dump(out, fh, separators=(",", ":"))
+    os.replace(path + ".tmp", path)
+    log.info("tropical.json: %d storms, level %s", len(storms), level)
+    return {"generated": out["generated"], "level": level, "rank": rank, "text": text,
+            "storms": [{"name": s["name"], "type": s["type"], "level": s["level"], "closest_mi": s["closest_mi"],
+                        "closest_h": s["closest_h"]} for s in storms]}
+
+def previous_tropical(now, path=TROPICAL, max_h=12):
+    """Summary from the last tropical.json if it is recent (used when NHC doesn't answer)."""
+    try:
+        with open(path) as f:
+            d = json.load(f)
+        if (now - parse_iso(d["generated"])).total_seconds() / 3600 > max_h:
+            return None
+        return {"generated": d["generated"], "level": d["level"], "rank": d["rank"], "text": d["text"], "stale": True,
+                "storms": [{k: s.get(k) for k in ("name", "type", "level", "closest_mi", "closest_h")} for s in d.get("storms", [])]}
+    except (OSError, KeyError, ValueError, TypeError):
+        return None
 
 # ---------------------------------------------------------------- NWS marine forecasts
 def marine_zone(spot, cache):
@@ -1621,6 +1844,11 @@ def run_once():
         except Exception:
             log.exception("marine forecast %s failed", z)
     cache["marine"] = marine
+    try:
+        cache["tropical"] = tropical(now) or previous_tropical(now)
+    except Exception:
+        log.exception("tropical storms failed")
+        cache["tropical"] = previous_tropical(now)
     for name, fn in (("ocean lines", lambda: ocean_features(now)), ("rigs and reefs", lambda: static_layers(now))):
         try:
             res = fn()
@@ -1642,7 +1870,7 @@ def run_once():
     tmp = OUT + ".tmp"
     with open(tmp, "w") as f:
         json.dump({"generated": now.isoformat(), "rivers": cache.get("rivers") or {}, "marine": cache.get("marine") or {},
-                   "spots": results}, f, indent=2)
+                   "tropical": cache.get("tropical"), "spots": results}, f, indent=2)
     os.replace(tmp, OUT)
     # Lightweight health summary for the UI and operators
     status = {
@@ -1754,32 +1982,68 @@ def health(out_md="health.md"):
     now, res = datetime.now(UTC), []
     def add(name, ok, detail, critical=False):
         res.append((name, bool(ok), detail, critical))
-    d = coops_latest("8761724", "water_temperature")
-    add("NOAA tides and currents (Grand Isle)", d, f"water temp {d.get('v')} F at {d.get('t')} UTC" if d else "no data", True)
-    wx = weather(29.27, -89.95)
-    add("Open-Meteo weather", wx and wx.get("series"), "forecast OK" if wx else "no data", True)
-    al = get_json("https://api.weather.gov/alerts/active", dict(point="29.27,-89.95"), tries=2)
-    add("NWS alerts", al is not None, f"{len((al or {}).get('features', []))} active" if al is not None else "no answer", True)
-    u = usgs_source_new("07381515")
-    add("USGS Water Data API (new)", u, ", ".join(sorted(u)) if u else
-        f"nothing returned{'' if USGS_KEY else ' (no USGS_API_KEY set)'}")
-    g = river_gauge("NORL1", now)
-    add("NWS river gauges", g, f"Mississippi at New Orleans {g['stage']} ft" if g else "no data")
-    kd = sat_kd490(29.27, -89.95, {}, now)
-    add("Satellite water clarity (Kd490)", kd, f"{kd[2]}, {kd[1]:%Y-%m-%d}" if kd else "no dataset answered")
-    b = buoy_obs("42040")
-    add("NDBC buoy 42040", b, ", ".join(sorted(b)) or "no data")
-    now_y = datetime.now(UTC).year
-    ssh = griddap_box("https://gcoos5.geos.tamu.edu/erddap", f"SSH_GoA_{now_y}", "adt", 28.0, 29.0, -90.0, -89.0, extra="")
-    add("Sea surface height (Loop Current)", ssh, f"newest {ssh[0]}" if ssh else "no answer")
-    rigs = arcgis_geojson("https://gis.boem.gov/arcgis/rest/services/BOEM_BSEE/GOM_Layers/MapServer/0",
-                          bbox=(-90.5, 28.5, -90.0, 29.0), max_pages=1, page=50)
-    add("Offshore platforms (BOEM)", rigs, f"{len(rigs)} near Grand Isle" if rigs else "no answer")
-    reefs = arcgis_geojson("https://gis.ngdc.noaa.gov/arcgis/rest/services/NMSP/FGB/MapServer/23", max_pages=1, page=5)
-    add("Artificial reefs (LDWF via NOAA)", reefs, f"{len(reefs)} returned" if reefs else "no answer")
-    mf = marine_forecast("GMZ550", {})
-    add("NWS marine forecast text", mf, (mf["periods"][0]["name"] + ": " + mf["periods"][0]["text"][:60]) if mf and mf["periods"] else "no answer")
-    for name, ok, detail in map_checks():
+    def check(name, fn, critical=False):
+        """fn returns (ok, detail); a crash in one check is a failed check, not a failed report."""
+        try:
+            ok, detail = fn()
+        except Exception as e:                       # noqa: BLE001 - report it and carry on
+            ok, detail = False, f"error: {type(e).__name__}: {e}"[:160]
+        add(name, ok, detail, critical)
+    def coops():
+        d = coops_latest("8761724", "water_temperature")
+        return d, f"water temp {d.get('v')} F at {d.get('t')} UTC" if d else "no data"
+    def wx():
+        w = weather(29.27, -89.95)
+        return w and w.get("series"), "forecast OK" if w else "no data"
+    def nws():
+        al = get_json("https://api.weather.gov/alerts/active", dict(point="29.27,-89.95"), tries=2)
+        return al is not None, f"{len((al or {}).get('features', []))} active" if al is not None else "no answer"
+    def usgs():
+        u = usgs_source_new("07381515")
+        return u, ", ".join(sorted(u)) if u else f"nothing returned{'' if USGS_KEY else ' (no USGS_API_KEY set)'}"
+    def river():
+        g = river_gauge("NORL1", now)
+        return g, f"Mississippi at New Orleans {g['stage']} ft" if g else "no data"
+    def kd490():
+        kd = sat_kd490(29.27, -89.95, {}, now)
+        return kd, f"{kd[2]}, {kd[1]:%Y-%m-%d}" if kd else "no dataset answered"
+    def buoy():
+        b = buoy_obs("42040") or {}
+        return b, ", ".join(sorted(b)) or "no data"
+    def ssh():
+        r = griddap_box("https://gcoos5.geos.tamu.edu/erddap", f"SSH_GoA_{now.year}", "adt", 28.0, 29.0, -90.0, -89.0, extra="")
+        return r, f"newest {r[0]}" if r else "no answer"
+    def layer(urls, bbox):
+        def fn():
+            for u in urls:
+                feats = arcgis_geojson(u, bbox=bbox, max_pages=1, page=50)
+                if feats:
+                    return True, f"{len(feats)} from {urlparse(u).netloc}"
+            return False, "no source answered"
+        return fn
+    def nhc():
+        pts = arcgis_geojson(f"{NHC_MS}/{NHC_SLOTS[0][0]}", max_pages=1, page=50)
+        return pts is not None, (f"{len(pts)} forecast points for storm 1" if pts else "answered, no active storm in slot 1") if pts is not None else "no answer"
+    def marine():
+        mf = marine_forecast("GMZ550", {})
+        return mf, (mf["periods"][0]["name"] + ": " + mf["periods"][0]["text"][:60]) if mf and mf["periods"] else "no answer"
+    check("NOAA tides and currents (Grand Isle)", coops, True)
+    check("Open-Meteo weather", wx, True)
+    check("NWS alerts", nws, True)
+    check("USGS Water Data API (new)", usgs)
+    check("NWS river gauges", river)
+    check("Satellite water clarity (Kd490)", kd490)
+    check("NDBC buoy 42040", buoy)
+    check("Sea surface height (Loop Current)", ssh)
+    check("Offshore platforms", layer(RIG_SOURCES, (-90.5, 28.5, -90.0, 29.0)))
+    check("Artificial reefs", layer([u for u, _, _ in REEF_SOURCES], (-90.5, 28.5, -89.5, 29.2)))
+    check("NHC tropical storms", nhc)
+    check("NWS marine forecast text", marine)
+    try:
+        checks = map_checks()
+    except Exception as e:                           # noqa: BLE001
+        checks = [("Map layers", False, f"error: {e}"[:160])]
+    for name, ok, detail in checks:
         add(name, ok, detail)
     fails = [r for r in res if not r[1]]
     lines = [f"Checked {now:%Y-%m-%d %H:%M} UTC. {len(res) - len(fails)} of {len(res)} sources OK.", "",

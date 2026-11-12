@@ -155,6 +155,9 @@ button.t,.pick{min-height:44px}
 @keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
 @media(prefers-reduced-motion:reduce){.sk{animation:none}}
 #refresh{margin-left:8px;font-size:13px;padding:5px 12px}
+.tropbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;justify-content:center;padding:9px 14px;font-size:13.5px;font-weight:600;text-align:center}
+.tropbar.l2{background:#f3d36b;color:#2a1c00}.tropbar.l3,.tropbar.l4{background:#f08d45;color:#1d0a00}.tropbar.l5,.tropbar.l6{background:#c4402f;color:#fff}
+.tropbar a,.tropbar button{color:inherit;text-decoration:underline;background:none;border:0;font:inherit;cursor:pointer;padding:0}
 .offline-banner{background:var(--y);color:#1a1200;text-align:center;padding:8px 12px;font-size:13px;font-weight:600}
 .hdr-actions{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:10px}
 @media(max-width:799px){
@@ -183,6 +186,7 @@ button.t,.pick{min-height:44px}
   <button class="t" id="install" hidden>Install app</button>
  </div></div>
 </header>
+<div id="tropbar" class="tropbar" role="alert" hidden></div>
 <div id="offline" class="offline-banner" hidden>You're offline — showing the last saved readings.</div>
 <main id="main" hidden>
  <div id="skeleton" class="card" style="grid-column:1/-1">
@@ -208,6 +212,7 @@ button.t,.pick{min-height:44px}
     <label><input type="checkbox" data-ov="ssh"> Loop Current &amp; eddies</label>
     <label><input type="checkbox" data-ov="rigs"> Rigs</label>
     <label><input type="checkbox" data-ov="reefs"> Reefs</label>
+    <label><input type="checkbox" data-ov="tropical"> Tropical storms</label>
    </span>
    <span id="ovnote"></span>
    <span id="basenote"></span><span id="satnote"></span>
@@ -285,6 +290,10 @@ const rain=(w,hi)=>({k:"rain",l:"Recent rain (48h)",w,f:v=>trap(v,[-1,0,0.4,hi])
 const NIGHT=E({Night:1,Dusk:1,Dawn:.9,Daytime:.7});
 const light=(w,m=LIGHT)=>({k:"light",l:"Light (now)",w,f:m,t:v=>v});
 const moon=w=>({k:"moon",l:"Moon (phase and solunar)",w,f:v=>v.s,t:v=>v.txt});
+// Time of year: 12 monthly weights, January first (fish that come and go with the seasons)
+const MON=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+const seas=(w,m)=>({k:"mon",l:"Time of year",w,f:v=>m[v-1]??0,t:v=>MON[v-1]});
+const monthOf=ts=>+new Intl.DateTimeFormat("en-US",{timeZone:"America/Chicago",month:"numeric"}).format(ts);
 // Preferred depth band [too_shallow, good_low, good_high, too_deep] in feet
 const depth=(w,band)=>({k:"depth",l:"Depth fit",w,f:v=>trap(v,band),t:v=>v+" ft (pref "+band[1]+"–"+band[2]+")"});
 function closedNow(p,ts=Date.now()){if(!p.closed)return null;const d=new Date(ts),n=(d.getMonth()+1)*100+d.getDate(),[[a,b],[c,e]]=p.closed;
@@ -367,6 +376,35 @@ const SP={
   {k:"level",l:"Water level trend",w:2,f:E({Rising:1,Steady:.85,Falling:.6}),t:v=>v},
   {k:"clar",l:"Water clarity",w:1,f:E({Clear:.6,Stained:1,Muddy:1}),t:v=>v},
   {k:"wind",l:"Wind",w:1,f:v=>trap(v,[-1,0,15,28]),t:v=>v+" mph"},dtemp(1),rain(1,6),light(1,NIGHT),depth(1.2,[3, 8, 25, 50])]},
+ bream:{name:"Bream (Bluegill)",tip:"Bream bed in shallow, firm-bottom pockets around the full moon from April to August. Crickets, worms or small jigs under a light cork.",gate:c=>c.sal!=null&&c.sal>4?"Too salty for bream":null,factors:[
+  {k:"temp",l:"Water temp",w:4,f:v=>trap(v,[55,68,85,92]),t:v=>v+"°F"},
+  {k:"wind",l:"Wind",w:1.5,f:v=>trap(v,[-1,0,10,20]),t:v=>v+" mph"},
+  {k:"clar",l:"Water clarity",w:1,f:E({Clear:1,Stained:.9,Muddy:.4}),t:v=>v},
+  {k:"level",l:"Water level trend",w:1,f:E({Steady:1,Falling:.7,Rising:.6}),t:v=>v},
+  {k:"pres",l:"Pressure trend",w:1,f:E({Falling:.9,Steady:1,Rising:.6}),t:v=>v},
+  moon(1.5),light(1),front(1.5),dtemp(1),depth(1,[1,2,8,20]),seas(1.5,[.2,.3,.6,.9,1,1,1,.9,.7,.5,.3,.2])]},
+ bullred:{name:"Bull Redfish",tip:"Big spawning reds school at the passes, beachfronts and rigs near shore from late summer into fall. Heavy tackle, cracked crab or cut mullet on the bottom on a strong outgoing tide. Release the big ones carefully; check LDWF for the size limit.",gate:c=>c.sal!=null&&c.sal<12?"Bull reds school in salty water at the passes and beaches":null,factors:[
+  {k:"temp",l:"Water temp",w:2,f:v=>trap(v,[58,66,82,90]),t:v=>v+"°F"},
+  {k:"tide",l:"Tide movement",w:3,f:E({Outgoing:1,Incoming:.85,Slack:.25}),t:v=>v},
+  {k:"trange",l:"Tide swing",w:2,f:v=>trap(v,[0.3,1.1,3,4.5]),t:v=>v+" ft"},
+  {k:"wind",l:"Wind",w:2,f:v=>trap(v,[-1,0,14,24]),t:v=>v+" mph"},
+  {k:"sal",l:"Salinity",w:1.5,f:v=>trap(v,[12,20,36,42]),t:v=>v+" ppt"},
+  {k:"pres",l:"Pressure trend",w:1,f:E({Falling:1,Steady:.85,Rising:.6}),t:v=>v},
+  moon(0.7),light(0.5),depth(1.5,[4,10,40,70]),seas(2,[.4,.35,.4,.45,.5,.55,.65,.85,1,1,.9,.6])]},
+ spanish:{name:"Spanish Mackerel",tip:"Spanish run the beaches, passes and nearshore rigs in clean, salty water when it's above about 70°F. Small shiny spoons or Got-Cha plugs, fast retrieve, a light wire or heavy fluoro leader.",gate:c=>c.sal!=null&&c.sal<15?"Spanish mackerel need clean, salty water":null,factors:[
+  {k:"temp",l:"Water temp",w:3,f:v=>trap(v,[66,72,86,92]),t:v=>v+"°F"},
+  {k:"clar",l:"Water clarity",w:2.5,f:E({Clear:1,Stained:.45,Muddy:.05}),t:v=>v},
+  {k:"sal",l:"Salinity",w:2,f:v=>trap(v,[15,24,36,40]),t:v=>v+" ppt"},
+  {k:"tide",l:"Tide movement",w:1.5,f:E({Incoming:1,Outgoing:.9,Slack:.4}),t:v=>v},
+  {k:"wind",l:"Wind",w:2,f:v=>trap(v,[-1,0,12,20]),t:v=>v+" mph"},
+  light(1),depth(1,[3,6,30,60]),seas(1.5,[0,0,.1,.6,1,1,1,1,1,.7,.2,0])]},
+ pompano:{name:"Pompano",tip:"Pompano work the surf troughs and sandy beachfronts in clear, salty water, best in spring and fall runs. Small jigs (pompano jigs) bounced on the bottom or sand fleas and shrimp on a surf rig.",gate:c=>c.sal!=null&&c.sal<15?"Pompano need clear, salty water":null,factors:[
+  {k:"temp",l:"Water temp",w:3,f:v=>trap(v,[64,70,84,90]),t:v=>v+"°F"},
+  {k:"clar",l:"Water clarity",w:2.5,f:E({Clear:1,Stained:.6,Muddy:.15}),t:v=>v},
+  {k:"wind",l:"Wind",w:2,f:v=>trap(v,[-1,0,10,18]),t:v=>v+" mph"},
+  {k:"tide",l:"Tide movement",w:1.5,f:E({Incoming:1,Outgoing:.8,Slack:.4}),t:v=>v},
+  {k:"sal",l:"Salinity",w:1,f:v=>trap(v,[15,25,36,40]),t:v=>v+" ppt"},
+  light(0.7),depth(1,[1,3,12,25]),seas(1.5,[.1,.2,.7,1,1,.7,.6,.6,.8,1,.8,.3])]},
  yft:{name:"Yellowfin Tuna",zone:"offshore",gate:offGate,factors:[sbreak(2),visO(1.5,30),
   {k:"temp",l:"Sea temp",w:3,f:v=>trap(v,[66,72,84,90]),t:v=>v+"°F"},wave(2),windO(1),cur(1),presO(1),dtemp(1),light(1),depth(2,[60,80,250,500])]},
  mahi:{name:"Mahi-Mahi",zone:"offshore",gate:offGate,factors:[sbreak(2),visO(1.5,25),
@@ -390,7 +428,11 @@ const SP={
   wave(3),windO(2),cur(1.5,2.5),presO(1),light(1),depth(2,[15,30,100,200])]},
  cubera:{name:"Cubera Snapper",zone:"offshore",note:LIM,gate:offGate,factors:[
   {k:"temp",l:"Sea temp",w:2,f:v=>trap(v,[64,70,84,90]),t:v=>v+"°F"},
-  wave(3),windO(2),cur(2,2.5),presO(1),depth(2,[40,60,180,300])]}
+  wave(3),windO(2),cur(2,2.5),presO(1),depth(2,[40,60,180,300])]},
+ blackfin:{name:"Blackfin Tuna",zone:"offshore",tip:"Blackfin hang around rigs in 150 to 600 ft, especially at first light and when shrimp boats are culling. Chum and freeline, or jig vertically around the legs.",gate:offGate,factors:[sbreak(1.5),visO(1.5,25),
+  {k:"temp",l:"Sea temp",w:3,f:v=>trap(v,[66,72,84,90]),t:v=>v+"°F"},wave(2),windO(1),cur(1),presO(1),light(1.5),moon(0.5),depth(2,[80,150,600,1500])]},
+ grouper:{name:"Grouper",zone:"offshore",note:LIM+" Gag, red and other groupers each have their own federal seasons and limits.",tip:"Grouper sit tight to hard bottom, reefs and rig bases. Heavy tackle and lock the drag so they can't reach the rocks; live bait or big cut bait on the bottom.",gate:offGate,factors:[
+  {k:"temp",l:"Sea temp",w:2,f:v=>trap(v,[58,64,82,88]),t:v=>v+"°F"},wave(3),windO(2),cur(2,2),presO(1),light(0.5),depth(2,[50,80,300,450])]}
 };
 // River level (share of flood stage, and trend) for spots fed by the Mississippi or Atchafalaya.
 // High or rising river means fresh, muddy water for most fish; catfish don't mind rising water.
@@ -598,6 +640,8 @@ function tipsFor(spot,c){
 }
 function goNoGo(spot,c){
  if(spot.zone!=="offshore")return null;
+ const tr=DATA&&DATA.tropical;
+ if(tr&&tr.rank>=4)return{lvl:"nogo",txt:"No-go — tropical storm threat to the coast"};
  if(c.alerts&&/Gale|Storm|Hurricane|Tropical|Hazardous Seas/i.test(c.alerts))return{lvl:"nogo",txt:"No-go — severe marine alert"};
  if(c.wave!=null&&c.wave>=7)return{lvl:"nogo",txt:`No-go — seas ${c.wave} ft`};
  if(c.wind!=null&&c.wind>=28)return{lvl:"nogo",txt:`No-go — wind ${c.wind} mph`};
@@ -639,14 +683,14 @@ function userDepth(){
  return null;
 }
 function score(spId,spot,ts=Date.now(),depth=userDepth()){
- const c={...spot.conditions,zone:spot.zone,alerts:(spot.alerts||[]).map(a=>a.event).join("|"),light:lightNow(spot,ts),moon:moonInfo(spot,ts)};
+ const c={...spot.conditions,zone:spot.zone,alerts:(spot.alerts||[]).map(a=>a.event).join("|"),light:lightNow(spot,ts),moon:moonInfo(spot,ts),mon:monthOf(ts)};
  if(depth!=null)c.depth=depth;
  return scoreC(spId,c,spot.quality||{},ts);
 }
 // Conditions for forecast hour i (shared by the outlook and the best-window finder)
 const FC_KEYS=["temp","wind","cloud","pres","tide","trange","front","dtemp","rain","clar","wave","cur"];
 function fcConditions(spot,f,i,ts,depth){
- const c={...spot.conditions,zone:spot.zone,light:lightNow(spot,ts),moon:moonInfo(spot,ts)};
+ const c={...spot.conditions,zone:spot.zone,light:lightNow(spot,ts),moon:moonInfo(spot,ts),mon:monthOf(ts)};
  if(depth!=null)c.depth=depth;
  for(const k of FC_KEYS)c[k]=f[k]?f[k][i]:null;
  return c;
@@ -801,7 +845,7 @@ async function depthAt(ll){
  saveMySpotForm(ll,m!=null&&m<0?Math.round(-m*3.28084):null);
 }
 // ---- Map overlays: temperature breaks, color lines, Loop Current/eddies, rigs, reefs ----
-const OVF={breaks:"ocean.json",color:"ocean.json",ssh:"ocean.json",rigs:"rigs.json",reefs:"reefs.json"},OVDATA={},OVLAYER={};
+const OVF={breaks:"ocean.json",color:"ocean.json",ssh:"ocean.json",rigs:"rigs.json",reefs:"reefs.json",tropical:"tropical.json"},OVDATA={},OVLAYER={};
 const OVCOL={breaks:"#ff4d2e",color03:"#1aa5c8",color1:"#3c9a3c",warm:"#ff2d7a",cold:"#3d6bff",rig:"#ffb400",reef:"#2bd4c4"};
 async function ovData(f){if(!(f in OVDATA))OVDATA[f]=fetch(f+"?t="+Math.floor(Date.now()/36e5)).then(r=>r.ok?r.json():null).catch(()=>null);return OVDATA[f]}
 const ovDate=t=>{const d=new Date(t);return isNaN(d)?"":d.toLocaleDateString([],{month:"short",day:"numeric"})};
@@ -816,16 +860,45 @@ async function buildOverlay(k){
  if(k==="ssh"){const h=d.ssh;if(!h)return{layer:null,note:"no recent sea height data"};
   return{layer:L.layerGroup([line(h.warm||[],OVCOL.warm,3),line(h.cold||[],OVCOL.cold,2,"4 4")]),
    note:`<span class="legendline" style="border-color:${OVCOL.warm}"></span>Loop Current and warm eddies <span class="legendline" style="border-color:${OVCOL.cold};border-top-style:dashed"></span>cold eddies, ${ovDate(h.time)}`}}
+ if(k==="tropical")return tropOverlay(d);
  const list=k==="rigs"?d.rigs:d.reefs,col=k==="rigs"?OVCOL.rig:OVCOL.reef,R2=L.canvas();
  if(!list||!list.length)return{layer:null,note:"no locations loaded"};
  return{layer:L.layerGroup(list.map(([la,lo,n])=>L.circleMarker([la,lo],{renderer:R2,radius:k==="rigs"?3:5,color:"#000",weight:k==="rigs"?.5:1,fillColor:col,fillOpacity:.95,bubblingMouseEvents:false})
-   .bindTooltip(`${k==="rigs"?"Platform":"LDWF reef"}${n?": "+esc(n):""}`))),
-  note:`<span class="legendline" style="border-color:${col}"></span>${list.length.toLocaleString()} ${k==="rigs"?"active platforms (BOEM)":"LDWF artificial reefs"}`};
+   .bindTooltip(`${k==="rigs"?"Platform":"Reef"}${n?": "+esc(n):""}`))),
+  note:`<span class="legendline" style="border-color:${col}"></span>${list.length.toLocaleString()} ${k==="rigs"?"active platforms (BOEM)":"artificial reefs"}`};
+}
+// ---- Tropical storms (NHC): banner, map layer, and effect on offshore go / no-go ----
+const WWCOL={HWR:"#e0161b",HWA:"#ff6ec7",TWR:"#2563eb",TWA:"#f2c200"},WWTXT={HWR:"Hurricane warning",HWA:"Hurricane watch",TWR:"Tropical storm warning",TWA:"Tropical storm watch"};
+function tropOverlay(d){
+ const ls=[],R=L.svg();
+ for(const o of d.outlook||[])for(const ring of o.rings)ls.push(L.polygon(ring,{renderer:R,color:"#f08d45",weight:1.5,dashArray:"5 4",fillOpacity:.12,interactive:true}).bindTooltip(`NHC 7-day outlook: ${esc(o.prob7||"low")} chance of development`));
+ for(const s of d.storms||[]){
+  for(const ring of s.cone)ls.push(L.polygon(ring,{renderer:R,color:"#3a3a3a",weight:1.5,fillColor:"#ffffff",fillOpacity:.3,interactive:false}));
+  for(const p of s.track)ls.push(L.polyline(p,{renderer:R,color:"#111",weight:2,dashArray:"2 5",interactive:false}));
+  for(const w of s.ww)ls.push(L.polyline(w.path,{renderer:R,color:WWCOL[w.kind]||"#e0161b",weight:6,opacity:.9}).bindTooltip(WWTXT[w.kind]||"Watch or warning"));
+  for(const [la,lo,tau,kt,lbl,when] of s.points)ls.push(L.circleMarker([la,lo],{renderer:R,radius:tau?5:8,color:"#000",weight:1,fillColor:kt>=96?"#7a0a8a":kt>=64?"#e0161b":kt>=34?"#f2c200":"#3d9be9",fillOpacity:.95,bubblingMouseEvents:false})
+   .bindTooltip(`${esc(s.type)} ${esc(s.name)}${tau?` · +${Math.round(tau)} h${when?" ("+esc(String(when))+")":""}`:" · now"}${kt?` · ${Math.round(kt*1.151)} mph`:""}`));
+ }
+ if(!ls.length)return{layer:null,note:"no active storms or Gulf outlook areas right now"};
+ return{layer:L.layerGroup(ls),note:`${(d.storms||[]).length?`<span class="legendline" style="border-color:#3a3a3a"></span>forecast cone (NHC)`:""}${(d.outlook||[]).length?` <span class="legendline" style="border-color:#f08d45;border-top-style:dashed"></span>7-day outlook`:""}, ${ovDate(d.generated)} ${new Date(d.generated).toLocaleTimeString([],{hour:"numeric",minute:"2-digit"})}`};
+}
+function tropBanner(){
+ const el=$("tropbar"),t=DATA&&DATA.tropical;if(!el)return;
+ if(!t||t.rank<2){el.hidden=true;return}
+ el.className="tropbar l"+t.rank;el.hidden=false;
+ el.innerHTML=`<span>🌀 ${esc(t.text)}${t.stale?" (latest NHC update not reached; this may be a few hours old)":""}</span>
+  <button type="button" id="tropmap">Show on map</button><a href="https://www.nhc.noaa.gov/" target="_blank" rel="noopener">NHC</a>`;
+ $("tropmap").onclick=showTropical;
+}
+function showTropical(){
+ const cb=document.querySelector('#overlays [data-ov="tropical"]');if(cb&&!cb.checked){cb.checked=true;setOverlay("tropical",true)}
+ const m=$("mapcard");if(m&&m.scrollIntoView)m.scrollIntoView({behavior:"smooth",block:"start"});
+ if(MAP&&DATA&&DATA.tropical&&DATA.tropical.rank>=3)MAP.setView([27.5,-90],5);
 }
 async function setOverlay(k,on){
  if(!MAP)return;
  if(OVLAYER[k]){MAP.removeLayer(OVLAYER[k].layer);delete OVLAYER[k]}
- if(on){const o=await buildOverlay(k);if(o.layer){o.layer.addTo(MAP);OVLAYER[k]=o}else OVLAYER[k]={layer:L.layerGroup(),note:`${{breaks:"Temp breaks",color:"Color lines",ssh:"Loop Current",rigs:"Rigs",reefs:"Reefs"}[k]}: ${o.note}`}}
+ if(on){const o=await buildOverlay(k);if(o.layer){o.layer.addTo(MAP);OVLAYER[k]=o}else OVLAYER[k]={layer:L.layerGroup(),note:`${{breaks:"Temp breaks",color:"Color lines",ssh:"Loop Current",rigs:"Rigs",reefs:"Reefs",tropical:"Tropical storms"}[k]}: ${o.note}`}}
  $("ovnote").innerHTML=Object.values(OVLAYER).map(o=>o.note).join(" · ")+(Object.keys(OVLAYER).some(x=>x==="breaks"||x==="color"||x==="ssh")?" · Satellite analysis; lines move daily.":"");
  try{localStorage.setItem("la-fish-overlays",JSON.stringify(Object.keys(OVLAYER)))}catch(e){}
 }
@@ -888,7 +961,7 @@ function removeMySpot(id){
 // ---- Where the rules are ----
 const RULES={salt:["Louisiana saltwater seasons and limits","https://wlf.louisiana.gov/fishing/saltwater-seasons-limits"],
  fresh:["Louisiana freshwater creel and size limits","https://wlf.louisiana.gov/fishing/freshwater-creel-size-limits"]};
-const FRESH_SP=new Set(["bass","crappie","catfish"]);
+const FRESH_SP=new Set(["bass","crappie","catfish","bream"]);
 function rulesPanel(spId,spot){
  const p=SP[spId],r=RULES[FRESH_SP.has(spId)?"fresh":"salt"];
  let h=`<div class="note rules">Rules: <a href="${r[1]}" target="_blank" rel="noopener">${r[0]} (LDWF)</a>.`;
@@ -1009,7 +1082,7 @@ function render(){
  $("ranks").innerHTML=list.map(({s,r})=>`<div class="rank ${s.id===sel?"on":""}" data-id="${s.id}" role="button" tabindex="0" aria-current="${s.id===sel}" style="--w:${r.gate?0:r.total}%;--c:${r.gate?"var(--mu)":col(r.total)}">
   <span><button class="fav ${favs.includes(s.id)?"on":""}" data-fav="${s.id}" title="Pin spot" aria-label="Pin ${esc(s.name)}" aria-pressed="${favs.includes(s.id)}">★</button>${esc(s.name)}${s.user?' <span class="note">(yours)</span>':""}</span>
   ${r.gate?`<span class="note">n/a</span>`:`<span><b style="color:${col(r.total)}">${r.total}</b> <span class="note">${lab(r.total)}</span></span>`}</div>`).join("");
- const spot=DATA.spots.find(s=>s.id===sel),r=score(sp,spot),mi=moonInfo(spot),c={...spot.conditions,zone:spot.zone,alerts:(spot.alerts||[]).map(a=>a.event).join("|"),light:lightNow(spot),moon:mi},q=spot.quality||{},p=SP[sp];
+ const spot=DATA.spots.find(s=>s.id===sel),r=score(sp,spot),mi=moonInfo(spot),c={...spot.conditions,zone:spot.zone,alerts:(spot.alerts||[]).map(a=>a.event).join("|"),light:lightNow(spot),moon:mi,mon:monthOf(Date.now())},q=spot.quality||{},p=SP[sp];
  writeHash();
  let h=`<div class="big"><div class="dial" style="--p:${r.gate?0:r.total};--c:${r.gate?"var(--mu)":col(r.total)}"><span style="color:var(--c)">${r.gate?"—":r.total}</span></div><div>
   <div style="font-size:17px;font-weight:600">${p.name} at ${esc(spot.name)} <button class="fav ${favs.includes(spot.id)?"on":""}" data-fav="${spot.id}" title="Pin spot" aria-label="Pin ${esc(spot.name)}" aria-pressed="${favs.includes(spot.id)}">★</button></div>
@@ -1073,10 +1146,12 @@ function render(){
  // Offshore go / no-go
  const gng=goNoGo(spot,c);
  if(gng)h+=`<div style="margin:10px 0"><span class="gono ${gng.lvl}">${gng.txt}</span></div>`;
+ if(DATA.tropical&&DATA.tropical.rank>=3)h+=`<div class="warn bad"><b>Tropical:</b> ${esc(DATA.tropical.text)} Long-period swells, higher tides and rough seas can arrive days ahead of a storm.</div>`;
  // Share
  if(!r.gate)h+=`<div class="share-row"><button type="button" class="t" id="shareBtn">Share this score</button><span class="note" id="shareMsg" role="status" style="align-self:center"></span></div>`;
  if(spot.alerts&&spot.alerts.length)h+=`<div class="warn bad"><b>Active weather alerts:</b> ${spot.alerts.map(a=>esc(a.event)+(a.ends?` (until ${new Date(a.ends).toLocaleString([],{weekday:"short",hour:"numeric"})})`:"")).join("; ")}. Check the NWS marine forecast before you go.</div>`;
  if(p.note)h+=`<div class="warn">${p.note}</div>`;
+ if(p.tip&&!r.gate)h+=`<div class="spotnote"><b>${esc(p.name)}:</b> ${esc(p.tip)}</div>`;
  if(spot.user){const bq=(spot.quality||{}).borrowed||{};
   h+=`<div class="spotnote">Your spot, saved on this device. Water readings (temperature, salinity, tide, clarity) come from ${esc(bq.from)}, ${bq.mi} mi away; wind, clouds and pressure are for your pin. <button type="button" class="t" data-rmspot="${esc(spot.id)}" style="font-size:12px;padding:3px 10px;min-height:0">Remove</button></div>`}
  h+=rulesPanel(sp,spot);
@@ -1097,7 +1172,7 @@ function render(){
  const sh=$("shareBtn");if(sh)sh.onclick=()=>shareScore(p.name,spot.name,r.total,lab(r.total));
  const rm=document.querySelector("[data-rmspot]");if(rm)rm.onclick=()=>removeMySpot(rm.dataset.rmspot);
  const cr=$("copyrule");if(cr)cr.onclick=async()=>{try{await navigator.clipboard.writeText($("ruletxt").textContent);$("copymsg").textContent="Copied."}catch(e){$("copymsg").textContent="Select the rule above and copy it."}};
- const all=[],ud=userDepth();for(const k of Object.keys(SP))for(const x of DATA.spots){const q=score(k,x,Date.now(),ud);if(!q.gate)all.push({k,x,v:q.total,cov:q.coverage,reason:q.reason||""})}
+ const all=[],ud=userDepth(),tropNo=DATA.tropical&&DATA.tropical.rank>=4;for(const k of Object.keys(SP))for(const x of DATA.spots){if(tropNo&&x.zone==="offshore")continue;const q=score(k,x,Date.now(),ud);if(!q.gate)all.push({k,x,v:q.total,cov:q.coverage,reason:q.reason||""})}
  all.sort((a,b)=>b.v-a.v);const seen=new Set();
  // best spot for each species, so one species cannot fill every card
  const picks=all.filter(a=>a.cov>=.65&&!seen.has(a.k)&&seen.add(a.k)).slice(0,6);
@@ -1235,6 +1310,7 @@ async function load(isRefresh){
  }
  const age=(Date.now()-new Date(DATA.generated))/3600000;
  $("status").innerHTML=`Data updated ${ago(DATA.generated)}`+(age>3?` · <span style="color:var(--r)">over 3 hours old</span>`:"")+(navigator.onLine?"":` · offline`);
+ tropBanner();
  if(!isRefresh){
   let lastZ="",tb="";for(const [k,v] of Object.entries(SP)){const z=v.zone||"inshore";if(z!==lastZ){tb+=`<span class="note" style="width:100%;margin-top:4px">${z==="offshore"?"Offshore":"Inshore"}</span>`;lastZ=z}tb+=`<button class="t" data-k="${k}">${v.name}</button>`}$("tabs").innerHTML=tb;
   $("tabs").onclick=e=>{if(e.target.dataset.k){sp=e.target.dataset.k;render()}};
@@ -1251,7 +1327,7 @@ async function load(isRefresh){
   $("logExport").onclick=exportLogs;
   $("logImportBtn").onclick=()=>$("logImport").click();
   $("logImport").onchange=e=>{const f=e.target.files[0];if(f)importLogs(f);e.target.value=""};
-  addEventListener("hashchange",()=>{if(readHash())render()});
+  addEventListener("hashchange",()=>{if(location.hash==="#tropical")showTropical();else if(readHash())render()});
   $("detail").onclick=e=>{const favBtn=e.target.closest("[data-fav]");if(favBtn){e.stopPropagation();toggleFav(favBtn.dataset.fav)}};
   $("refresh").onclick=()=>load(true);
   // Panel switch: Conditions vs My catches
@@ -1301,7 +1377,7 @@ async function load(isRefresh){
  computeTune();
  addMySpots();
  LAST_LOAD=Date.now();
- if(!isRefresh)readHash();
+ if(!isRefresh&&location.hash==="#tropical")setTimeout(showTropical,300);else if(!isRefresh)readHash();
  if(!sel||!DATA.spots.some(s=>s.id===sel))sel=DATA.spots[0].id;
  if(sk)sk.hidden=true;
  $("main").hidden=false;

@@ -4,12 +4,19 @@
     "1. Install the free ntfy app (iPhone or Android) and subscribe to a topic name that's hard to guess, e.g. la-fishing-7xq2k9. Anyone who knows the name can read it.",
     "2. In GitHub: Settings > Secrets and variables > Actions > New repository secret. Name: NTFY_TOPIC. Value: your topic name.",
     "3. Add rules below and set enabled to true. On the site, 'Get alerts for this' on any spot gives you a ready-made rule.",
-    "species: redfish, trout, flounder, sheepshead, drum, crab, bass, crappie, catfish, yft, mahi, wahoo, snapper, amberjack, kingmack, cobia, tripletail, mangrove, cubera",
+    "species: redfish, bullred, trout, flounder, sheepshead, drum, crab, spanish, pompano, bass, crappie, bream, catfish, yft, blackfin, mahi, wahoo, snapper, grouper, amberjack, kingmack, cobia, tripletail, mangrove, cubera",
     "spots: spot ids from the site's link (#trout/barat means spot barat), or [\"*\"] for every spot.",
     "min_score: alert when the best 3-hour daylight window in the next 48 hours averages at least this.",
     "days: only windows starting on these days (Mon Tue Wed Thu Fri Sat Sun). Leave out for any day.",
-    "You get at most one alert per rule, spot and day."
+    "You get at most one alert per rule, spot and day.",
+    "SAFETY ALERTS (the 'safety' section): set enabled to true to be told about danger at your spots, even with no fishing rule.",
+    "  spots: which spots to watch. Leave out to use the spots in your fishing rules; [\"*\"] for all.",
+    "  nws: true sends NWS alerts in effect at those spots (Small Craft Advisory, Gale Warning, Special Marine Warning, storm and hurricane watches and warnings, dense fog, rip currents, coastal flooding and more). Use events to pick your own list, e.g. [\"Gale\", \"Special Marine\"].",
+    "  wind_mph / wave_ft: alert when the forecast reaches this in the next 48 hours (waves are for offshore spots). Remove a line to turn it off.",
+    "  tropical: alert when a tropical storm threat to the Louisiana coast reaches this level: gulf (storm or watched area in the Gulf), near (forecast within about 350 miles), cone (coast in the forecast cone), watch, or warning.",
+    "  Each warning is sent once per spot and day; the tropical alert again whenever the level changes."
   ],
+  "safety": {"enabled": false, "spots": [], "nws": true, "wind_mph": 25, "wave_ft": 6, "tropical": "near"},
   "rules": [
     {"species": "trout", "spots": ["barat", "cocodrie"], "min_score": 80, "days": ["Fri", "Sat", "Sun"], "enabled": false}
   ]
