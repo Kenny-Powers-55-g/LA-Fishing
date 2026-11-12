@@ -143,14 +143,16 @@ Coastal waters from Port Fourchon LA to Lower Atchafalaya River LA out 20 NM-
 $$
 """
 
-def fake_text(url, params=None):
+def fake_text(url, params=None, quiet_404=False):
     if "tgftp" in url:
         bump("tgftp")
         return MARINE_TXT if "/coastal/" in url and "gmz550" in url else None
     if "activestations" in url:
-        bump("ndbc-list"); return '<stations><station id="42040" lat="29.2" lon="-88.2" met="y"/><station id="42001" lat="25.9" lon="-89.7" met="y"/></stations>'
+        bump("ndbc-list"); return '<stations><station id="42040" lat="29.2" lon="-88.2" met="y"/><station id="42001" lat="25.9" lon="-89.7" met="y"/><station id="kvaf" lat="29.0" lon="-89.6" met="y"/></stations>'
     if "realtime2" in url:
         bump("ndbc-obs")
+        if "/kvaf." in url:                     # a coastal station with no realtime file (404)
+            bump("ndbc-404"); return None
         hdr="#YY  MM DD hh mm WDIR WSPD GST  WVHT   DPD   APD MWD   PRES  ATMP  WTMP  DEWP  VIS PTDY  TIDE\n#yr  mo dy hr mn degT m/s  m/s     m   sec   sec degT   hPa  degC  degC  degC  nmi  hPa    ft\n"
         rows="".join(f"{t:%Y %m %d %H %M} 180 5.0 7.0 0.9 6 5 180 1015.0 24.0 25.5 20 MM MM MM\n" for t in [now-timedelta(minutes=30*k) for k in range(60)])
         return hdr+rows
