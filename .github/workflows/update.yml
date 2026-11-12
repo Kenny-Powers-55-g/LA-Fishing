@@ -78,7 +78,7 @@ jobs:
       - name: Collect the site files
         run: |
           mkdir site
-          cp index.html latest.json forecast.json manifest.webmanifest sw.js site/
+          cp index.html config.js latest.json forecast.json manifest.webmanifest sw.js site/
           for f in icon-192.png icon-512.png status.json history.json ocean.json rigs.json reefs.json tropical.json deadzone.json alerts_state.json; do
             [ -f "$f" ] && cp "$f" site/ || true
           done
