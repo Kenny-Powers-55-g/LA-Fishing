@@ -133,6 +133,24 @@ class FullRun(unittest.TestCase):
         self.assertEqual(self.spots["barat"]["mzone"], "GMZ550")
         self.assertEqual(self.spots["off90"]["mzone"], "GMZ089")
 
+    def test_phone_alerts_dry_run_and_no_repeats(self):
+        import subprocess
+        if not shutil.which("node"):
+            self.skipTest("node not installed")
+        with open("alerts.json", "w") as f:
+            json.dump({"rules": [{"species": "redfish", "spots": ["barat", "cocodrie"], "min_score": 0},
+                                 {"species": "redfish", "spots": ["barat"], "min_score": 101}]}, f)
+        env = dict(os.environ, ALERTS_DIR=os.getcwd(), ALERTS_RECORD_DRY="1")
+        env.pop("NTFY_TOPIC", None)
+        script = os.path.join(os.path.dirname(HERE), "scripts", "alerts.js")
+        out1 = subprocess.run(["node", script], env=env, capture_output=True, text=True, timeout=60)
+        self.assertEqual(out1.returncode, 0, out1.stderr)
+        self.assertEqual(out1.stdout.count("[dry run] Redfish at"), 2, out1.stdout)
+        out2 = subprocess.run(["node", script], env=env, capture_output=True, text=True, timeout=60)
+        self.assertNotIn("[dry run]", out2.stdout)                    # same day: not sent again
+        with open("alerts_state.json") as f:
+            self.assertEqual(len(json.load(f)["sent"]), 2)
+
     def test_status_file(self):
         with open("status.json") as f:
             st = json.load(f)

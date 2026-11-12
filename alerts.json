@@ -1,0 +1,16 @@
+{
+  "how_to": [
+    "Phone alerts: the hourly update checks these rules and sends a notification when a good window is coming.",
+    "1. Install the free ntfy app (iPhone or Android) and subscribe to a topic name that's hard to guess, e.g. la-fishing-7xq2k9. Anyone who knows the name can read it.",
+    "2. In GitHub: Settings > Secrets and variables > Actions > New repository secret. Name: NTFY_TOPIC. Value: your topic name.",
+    "3. Add rules below and set enabled to true. On the site, 'Get alerts for this' on any spot gives you a ready-made rule.",
+    "species: redfish, trout, flounder, sheepshead, drum, crab, bass, crappie, catfish, yft, mahi, wahoo, snapper, amberjack, kingmack, cobia, tripletail, mangrove, cubera",
+    "spots: spot ids from the site's link (#trout/barat means spot barat), or [\"*\"] for every spot.",
+    "min_score: alert when the best 3-hour daylight window in the next 48 hours averages at least this.",
+    "days: only windows starting on these days (Mon Tue Wed Thu Fri Sat Sun). Leave out for any day.",
+    "You get at most one alert per rule, spot and day."
+  ],
+  "rules": [
+    {"species": "trout", "spots": ["barat", "cocodrie"], "min_score": 80, "days": ["Fri", "Sat", "Sun"], "enabled": false}
+  ]
+}

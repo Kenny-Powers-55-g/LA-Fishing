@@ -48,7 +48,7 @@ jobs:
         run: |
           owner="${GITHUB_REPOSITORY%%/*}"; repo="${GITHUB_REPOSITORY#*/}"
           site="https://$(echo "$owner" | tr 'A-Z' 'a-z').github.io/$repo"
-          for f in history.json rigs.json reefs.json; do
+          for f in history.json rigs.json reefs.json alerts_state.json; do
             curl -sfL "$site/$f" -o "$f" && echo "$f: $(wc -c < "$f") bytes" || echo "no $f yet; it will be built"
           done
 
@@ -65,11 +65,21 @@ jobs:
         # If this fails, nothing is deployed and the site keeps the last good data.
         run: python ingest.py validate
 
+      - name: Send phone alerts
+        # Rules live in alerts.json. Needs the NTFY_TOPIC repository secret; without it this
+        # prints what it would have sent. Never blocks the deploy.
+        continue-on-error: true
+        run: |
+          owner="${GITHUB_REPOSITORY%%/*}"; repo="${GITHUB_REPOSITORY#*/}"
+          SITE_URL="https://$(echo "$owner" | tr 'A-Z' 'a-z').github.io/$repo" node scripts/alerts.js
+        env:
+          NTFY_TOPIC: ${{ secrets.NTFY_TOPIC }}
+
       - name: Collect the site files
         run: |
           mkdir site
           cp index.html latest.json forecast.json manifest.webmanifest sw.js site/
-          for f in icon-192.png icon-512.png status.json history.json ocean.json rigs.json reefs.json; do
+          for f in icon-192.png icon-512.png status.json history.json ocean.json rigs.json reefs.json alerts_state.json; do
             [ -f "$f" ] && cp "$f" site/ || true
           done
           # Fail clearly if core data is missing
