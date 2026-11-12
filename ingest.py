@@ -17,6 +17,8 @@ Usage (Python 3.9+, standard library only)
   python ingest.py discover     # list what each configured station really offers
   python ingest.py check-usgs   # test the USGS API (and your key) on one gauge
   python ingest.py check-map    # test the chart, depth and satellite map sources
+  python ingest.py health       # check every data source, write health.md
+  python ingest.py validate     # sanity-check latest.json before deploying
   python ingest.py once         # one pull, writes fishing.db + latest.json
   python ingest.py loop 30      # repeat every 30 minutes
 
@@ -515,6 +517,9 @@ def sat_sst(lat, lon, cache):
     url = ("https://coastwatch.pfeg.noaa.gov/erddap/griddap/jplMURSST41.json"
            f"?analysed_sst[(last)][({lat-d:.2f}):3:({lat+d:.2f})][({lon-d:.2f}):3:({lon+d:.2f})]")
     j = get_json(url, tries=1)
+    if j is None:                              # server didn't answer; get_json already logged it
+        cache[key] = None
+        return None
     try:
         rows = j["table"]["rows"]
         grid = {(round(r[1], 3), round(r[2], 3)): r[3] for r in rows if r[3] is not None}
@@ -1269,34 +1274,104 @@ def check_usgs(site="07381515"):
     near = near_sites({"id": "check", "lat": 29.95, "lon": -91.15, "water": []}, {}, "00095")
     print(f"Conductance gauges near Lake Verret: {near or 'none found'}")
 
-def check_map():
-    """Tests each map source from this computer and says which ones answer with real data.
-    (A web page also needs the server to allow cross-site requests; this can't test that.)"""
-    def tile(url, label):
-        try:
-            with urlopen(Request(url, headers={"User-Agent": f"{APP} ({CONTACT})"}), timeout=25) as r:
-                body = r.read()
-            kind = "image" if body[:4] in (b"\x89PNG", b"\xff\xd8\xff\xe0", b"\xff\xd8\xff\xe1") or body[:3] == b"\xff\xd8\xff" else "not an image"
-            ok = kind == "image" and len(body) > 1500           # tiny PNGs are blank tiles
-            print(f"  {'OK  ' if ok else 'FAIL'} {label}: {len(body)} bytes, {kind}")
-        except (URLError, TimeoutError, OSError) as e:
-            print(f"  FAIL {label}: {e}")
-    print("Map layers (tiles over the Louisiana coast):")
-    tile("https://gis.charttools.noaa.gov/arcgis/rest/services/MarineChart_Services/NOAACharts/MapServer/tile/7/212/127",
-         "NOAA nautical chart (web zoom 9)")
-    R = 20037508.342789244; n = 2 ** 7; w = 2 * R / n; x0 = -R + 32 * w; y1 = R - 53 * w
-    tile("https://gis.ngdc.noaa.gov/arcgis/rest/services/DEM_mosaics/DEM_global_mosaic_hillshade/ImageServer/exportImage"
-         f"?bbox={x0},{y1 - w},{x0 + w},{y1}&bboxSR=3857&imageSR=3857&size=256,256&format=jpgpng&f=image",
-         "NOAA NCEI depth shading")
-    for lay in ("GHRSST_L4_MUR_Sea_Surface_Temperature", "VIIRS_NOAA21_Chlorophyll_a", "VIIRS_NOAA20_Chlorophyll_a",
-                "OCI_PACE_Chlorophyll_a", "MODIS_Aqua_L2_Chlorophyll_A"):
-        day = (datetime.now(UTC) - timedelta(days=3)).strftime("%Y-%m-%d")
-        tile(f"https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/{lay}/default/{day}/GoogleMapsCompatible_Level7/6/26/15.png",
-             f"NASA {lay} ({day})")
-    print("Depth lookups (Midnight Lump, published crest about 206 ft):")
+def tile_ok(url):
+    """(ok, detail) for one map tile: ok means a real, non-blank image came back."""
+    try:
+        with urlopen(Request(url, headers={"User-Agent": f"{APP} ({CONTACT})"}), timeout=25) as r:
+            body = r.read()
+    except (URLError, TimeoutError, OSError) as e:
+        return False, str(e)
+    img = body[:4] == b"\x89PNG" or body[:3] == b"\xff\xd8\xff"
+    return img and len(body) > 1500, f"{len(body)} bytes, {'image' if img else 'not an image'}"   # tiny PNGs are blank
+
+GIBS = "https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/%s/default/%s/GoogleMapsCompatible_Level7/6/26/15.png"
+
+def gibs_newest(layer, days=12):
+    """Newest day (within `days`) a NASA GIBS layer has imagery over Louisiana, or None."""
+    for i in range(days):
+        day = (datetime.now(UTC) - timedelta(days=i)).strftime("%Y-%m-%d")
+        if tile_ok(GIBS % (layer, day))[0]:
+            return day
+    return None
+
+def map_checks():
+    R = 20037508.342789244; w = 2 * R / 2 ** 7; x0 = -R + 32 * w; y1 = R - 53 * w
+    out = []
+    ok, d = tile_ok("https://gis.charttools.noaa.gov/arcgis/rest/services/MarineChart_Services/NOAACharts/MapServer/tile/7/212/127")
+    out.append(("Map: NOAA nautical chart", ok, d))
+    ok, d = tile_ok("https://gis.ngdc.noaa.gov/arcgis/rest/services/DEM_mosaics/DEM_global_mosaic_hillshade/ImageServer/exportImage"
+                    f"?bbox={x0},{y1 - w},{x0 + w},{y1}&bboxSR=3857&imageSR=3857&size=256,256&format=jpgpng&f=image")
+    out.append(("Map: NOAA NCEI depth shading", ok, d))
+    day = gibs_newest("GHRSST_L4_MUR_Sea_Surface_Temperature")
+    out.append(("Map: sea temperature (NASA MUR)", bool(day), f"newest {day}" if day else "no image in 12 days"))
+    chl = [(l, gibs_newest(l)) for l in ("VIIRS_NOAA21_Chlorophyll_a", "VIIRS_NOAA20_Chlorophyll_a", "OCI_PACE_Chlorophyll_a")]
+    best = max((d for _, d in chl if d), default=None)
+    out.append(("Map: water color (NASA chlorophyll)", bool(best),
+                ", ".join(f"{l.split('_')[1]} {d or 'none'}" for l, d in chl)))
     m, src = depth_m(28.6375, -89.5568)
-    print(f"  {'OK  ' if m is not None else 'FAIL'} {src or 'no source answered'}: "
-          f"{'' if m is None else str(round(-m * 3.28084)) + ' ft'}")
+    out.append(("Depth lookup", m is not None, f"{src}: {round(-m * 3.28084)} ft at Midnight Lump" if m is not None else "no source answered"))
+    return out
+
+def check_map():
+    """Tests the chart, depth and satellite map sources from this computer."""
+    for name, ok, d in map_checks():
+        print(f"  {'OK  ' if ok else 'FAIL'} {name}: {d}")
+
+def health(out_md="health.md"):
+    """Checks every data source the site depends on. Writes a Markdown report and returns
+    the number of failures (critical sources: CO-OPS, Open-Meteo, NWS alerts)."""
+    now, res = datetime.now(UTC), []
+    def add(name, ok, detail, critical=False):
+        res.append((name, bool(ok), detail, critical))
+    d = coops_latest("8761724", "water_temperature")
+    add("NOAA tides and currents (Grand Isle)", d, f"water temp {d.get('v')} F at {d.get('t')} UTC" if d else "no data", True)
+    wx = weather(29.27, -89.95)
+    add("Open-Meteo weather", wx and wx.get("series"), "forecast OK" if wx else "no data", True)
+    al = get_json("https://api.weather.gov/alerts/active", dict(point="29.27,-89.95"), tries=2)
+    add("NWS alerts", al is not None, f"{len((al or {}).get('features', []))} active" if al is not None else "no answer", True)
+    u = usgs_source_new("07381515")
+    add("USGS Water Data API (new)", u, ", ".join(sorted(u)) if u else
+        f"nothing returned{'' if USGS_KEY else ' (no USGS_API_KEY set)'}")
+    g = river_gauge("NORL1", now)
+    add("NWS river gauges", g, f"Mississippi at New Orleans {g['stage']} ft" if g else "no data")
+    kd = sat_kd490(29.27, -89.95, {}, now)
+    add("Satellite water clarity (Kd490)", kd, f"{kd[2]}, {kd[1]:%Y-%m-%d}" if kd else "no dataset answered")
+    b = buoy_obs("42040")
+    add("NDBC buoy 42040", b, ", ".join(sorted(b)) or "no data")
+    for name, ok, detail in map_checks():
+        add(name, ok, detail)
+    fails = [r for r in res if not r[1]]
+    lines = [f"Checked {now:%Y-%m-%d %H:%M} UTC. {len(res) - len(fails)} of {len(res)} sources OK.", "",
+             "| Source | Status | Detail |", "|---|---|---|"]
+    lines += [f"| {n} | {'OK' if ok else ('**FAIL** (critical)' if c else '**FAIL**')} | {str(dt).replace('|', '/')} |"
+              for n, ok, dt, c in res]
+    with open(out_md, "w") as f:
+        f.write("\n".join(lines) + "\n")
+    print("\n".join(lines))
+    return len(fails)
+
+def validate(path=OUT, min_spots=15, min_completeness=0.45, max_age_h=3):
+    """Sanity-check a freshly written latest.json before it is deployed. Returns problems."""
+    problems = []
+    try:
+        with open(path) as f:
+            d = json.load(f)
+    except (OSError, json.JSONDecodeError) as e:
+        return [f"can't read {path}: {e}"]
+    spots = d.get("spots") or []
+    if len(spots) < min_spots:
+        problems.append(f"only {len(spots)} spots (expected at least {min_spots})")
+    if spots:
+        avg = sum((s.get("quality") or {}).get("completeness", 0) for s in spots) / len(spots)
+        if avg < min_completeness:
+            problems.append(f"average completeness {avg:.0%} is below {min_completeness:.0%}")
+    try:
+        age = (datetime.now(UTC) - parse_iso(d["generated"])).total_seconds() / 3600
+        if age > max_age_h:
+            problems.append(f"generated {age:.1f} h ago")
+    except (KeyError, TypeError, ValueError):
+        problems.append("no valid 'generated' time")
+    return problems
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
@@ -1305,6 +1380,14 @@ if __name__ == "__main__":
         discover()
     elif cmd == "check-map":
         check_map()
+    elif cmd == "health":
+        sys.exit(1 if health() else 0)
+    elif cmd in ("validate", "validate-file"):
+        probs = validate(sys.argv[2]) if cmd == "validate-file" and len(sys.argv) > 2 else validate()
+        for pr in probs:
+            print("PROBLEM:", pr)
+        print("latest.json looks good" if not probs else "latest.json failed validation")
+        sys.exit(1 if probs else 0)
     elif cmd == "check-usgs":
         check_usgs(*sys.argv[2:3])
     elif cmd == "loop":

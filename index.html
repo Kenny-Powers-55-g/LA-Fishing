@@ -117,6 +117,10 @@ button.t.on{background:var(--ac);color:var(--onac);border-color:var(--ac);font-w
 .spotnote.river{display:grid;gap:4px}
 .spotnote a{color:var(--ac)}
 .spotnote{background:var(--bg);border-radius:12px;padding:10px 14px;margin:12px 0;font-size:14px}
+#health summary{cursor:pointer;list-style:none;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+#health summary::-webkit-details-marker{display:none}
+#health table{width:100%;border-collapse:collapse;font-size:13px;margin-top:8px}
+#health td,#health th{text-align:left;padding:5px 6px;border-top:1px solid var(--bd);vertical-align:top}
 .wswatch{width:18px;height:18px;border-radius:50%;display:inline-block;vertical-align:middle;margin-right:6px;border:1px solid var(--bd)}
 
 /* Mobile + PWA polish */
@@ -200,7 +204,8 @@ button.t,.pick{min-height:44px}
  <section><div class="card" id="detail"></div>
  <div class="card" id="outlook" style="margin-top:14px"></div>
  <div class="card" id="seastate" style="margin-top:14px"></div>
- <p class="note">Scores are estimates from public NOAA, USGS and Open-Meteo data, which can be hours old or miles from your spot. Seasons, size and bag limits change: confirm with the Louisiana Dept. of Wildlife &amp; Fisheries (wlf.louisiana.gov). Check marine forecasts and advisories before going out.</p></section>
+ <p class="note">Scores are estimates from public NOAA, USGS and Open-Meteo data, which can be hours old or miles from your spot. Seasons, size and bag limits change: confirm with the Louisiana Dept. of Wildlife &amp; Fisheries (wlf.louisiana.gov). Check marine forecasts and advisories before going out.</p>
+ <details class="card" id="health"><summary><b>Data health</b> <span class="note" id="healthsum"></span></summary><div id="healthbody"></div></details></section>
  </div>
  <div id="panel-log" hidden>
   <section class="card">
@@ -804,6 +809,22 @@ function toggleFav(id){let f=getFavs();if(f.includes(id))f=f.filter(x=>x!==id);e
 function confClass(cov){return cov>=0.75?"":cov>=0.5?"low":"bad"}
 function confLabel(cov){return cov>=0.75?"Solid data":cov>=0.5?"Partial data":"Low data"}
 
+// Data health: how fresh the data is and which readings are missing at which spots
+const MISSL={temp:"water temp",wind:"wind",pres:"pressure",tide:"tide",sal:"salinity",clar:"clarity",cloud:"clouds",dtemp:"temp change",
+ rain:"rain",front:"air temp change",level:"water level trend",trange:"tide swing",wave:"waves",cur:"current",sbreak:"temp break",ssat:"satellite sea temp",
+ vis:"visibility",wl_anom:"water vs tide table",riv:"river"};
+function renderHealth(){
+ const el=$("healthbody");if(!el||!DATA)return;
+ const ageH=(Date.now()-new Date(DATA.generated))/36e5,sp=DATA.spots,avg=sp.reduce((a,s)=>a+((s.quality||{}).completeness||0),0)/sp.length;
+ const weak=sp.filter(s=>((s.quality||{}).missing||[]).length).sort((a,b)=>(a.quality.completeness||0)-(b.quality.completeness||0));
+ const rivers=Object.values(DATA.rivers||{});
+ const dot=c=>`<span class="conf ${c}"><span class="dot"></span></span>`;
+ const ok=ageH<=2&&avg>=.75;
+ $("healthsum").innerHTML=`${dot(ok?"":ageH>3||avg<.5?"bad":"low")} Updated ${ago(DATA.generated)} · ${Math.round(avg*100)}% of readings available`;
+ el.innerHTML=`<p class="note">${sp.length} spots${rivers.length?`, river gauges at ${rivers.map(r=>esc(r.name.split(" at ")[1]||r.name)).join(" and ")}`:""}. ${weak.length?`${weak.length} spots have some readings missing right now:`:"Every spot has all of its readings."}</p>`+
+  (weak.length?`<table><tr><th>Spot</th><th>Data</th><th>Missing now</th></tr>${weak.map(s=>`<tr><td>${esc(s.name)}</td><td>${Math.round((s.quality.completeness||0)*100)}%</td><td>${s.quality.missing.map(m=>esc(MISSL[m]||m)).join(", ")}</td></tr>`).join("")}</table>`:"")+
+  `<p class="note">Missing readings are left out of the score, which lowers its confidence. Data updates every hour; a daily check reports broken sources on GitHub.</p>`;
+}
 function render(){
  [...$("tabs").querySelectorAll("button")].forEach(b=>{b.classList.toggle("on",b.dataset.k===sp);b.setAttribute("aria-pressed",b.dataset.k===sp)});
  const favs=getFavs();
@@ -911,7 +932,7 @@ function render(){
   const rr=score(sp,s);
   return `<button class="t" data-id="${s.id}" style="border-color:var(--y)"><span style="color:var(--y)">★</span> ${esc(s.name)}${rr.gate?"":` · <b style="color:${col(rr.total)}">${rr.total}</b>`}</button>`;
  }).join(""):"";
- mapUpdate(list);outlook();seaState();
+ mapUpdate(list);outlook();seaState();renderHealth();
 }
 
 const LOG_KEY="la-fish-catches-v1";

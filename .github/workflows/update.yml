@@ -38,9 +38,23 @@ jobs:
           key: stations-${{ github.run_id }}
           restore-keys: stations-
 
+      - name: Test the code before using it
+        run: |
+          python -m unittest discover -s tests -v
+          node tests/check_page.js
+
       - name: Pull the latest readings
         run: python ingest.py once
         timeout-minutes: 35
+        env:
+          # Free key from https://api.waterdata.usgs.gov/signup, saved as a repository
+          # secret named USGS_API_KEY. Without it, USGS may rate-limit the hourly run.
+          USGS_API_KEY: ${{ secrets.USGS_API_KEY }}
+          INGEST_WORKERS: "4"
+
+      - name: Check the new data before publishing it
+        # If this fails, nothing is deployed and the site keeps the last good data.
+        run: python ingest.py validate
 
       - name: Collect the site files
         run: |
