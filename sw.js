@@ -1,10 +1,10 @@
 // Caches the app so it opens offline. Data files and the page are network-first with the
 // saved copy as backup; on a weak connection the saved copy is used after a few seconds.
 // The map library and fonts are cached the first time they load.
-const V = "la-fishing-v9";
+const V = "la-fishing-v10";
 const CDN_CACHE = "la-fishing-cdn-v1";          // kept across app versions
 const ASSETS = ["./", "index.html", "manifest.webmanifest", "icon-192.png", "icon-512.png"];
-const DATA_RE = /\/(latest|forecast|status|history|ocean|rigs|reefs)\.json$/;
+const DATA_RE = /\/(latest|forecast|status|history|ocean|rigs|reefs|tropical)\.json$/;
 const CDN_RE = /^https:\/\/(cdnjs\.cloudflare\.com|fonts\.googleapis\.com|fonts\.gstatic\.com)\//;
 const SLOW_MS = 4000;                            // give up waiting on the network after this
 

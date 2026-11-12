@@ -50,11 +50,15 @@ def fake_json(url, params=None, tries=3, timeout=15, headers=None):
         return {"features": []}
     if "/griddap/" in url and ("(26.4)" in url or "(30.5)" in url or "SSH_GoA" in url):   # ocean_features boxes only
         bump("griddap"); return fake_grid(url)
+    if "mapservices.weather.noaa.gov/tropical" in url:
+        bump("nhc"); return fake_nhc(url, p)
     if "/query" in url and ("arcgis" in url or "mapping" in url):
         bump("arcgis")
-        if "NMSP/FGB" in url:
-            return {"features": [{"geometry": {"type": "Polygon", "coordinates": [[[-90.1, 28.5], [-90.0, 28.5], [-90.0, 28.6], [-90.1, 28.5]]]},
-                                  "properties": {"multilabel": "South Timbalier 128"}}]}
+        if "NMSP/FGB" in url:          # an older server: no GeoJSON, no paging (Esri JSON only)
+            if p.get("f") != "json" or "resultOffset" in p:
+                return {"error": {"code": 400, "message": "Invalid or missing input parameters."}}
+            return {"features": [{"geometry": {"rings": [[[-90.1, 28.5], [-90.0, 28.5], [-90.0, 28.6], [-90.1, 28.5]]]},
+                                  "attributes": {"multilabel": "South Timbalier 128"}}]}
         return {"features": [{"geometry": {"type": "Point", "coordinates": [-90.2 + k * 0.01, 28.4]},
                               "properties": {"STRUCTURE_NAME": f"A-{k}", "REMOVAL_DATE": None if k % 5 else 1600000000000}}
                              for k in range(20)]}
@@ -157,6 +161,26 @@ def fake_text(url, params=None, quiet_404=False):
         rows="".join(f"{t:%Y %m %d %H %M} 180 5.0 7.0 0.9 6 5 180 1015.0 24.0 25.5 20 MM MM MM\n" for t in [now-timedelta(minutes=30*k) for k in range(60)])
         return hdr+rows
     return None
+
+# One hurricane in the Gulf heading for Terrebonne Bay, with a tropical storm watch on the coast
+STATE["storm"] = True
+def fake_nhc(url, p):
+    lid = int(url.split("/MapServer/")[1].split("/")[0])
+    pt = lambda lo, la, tau, kt: {"type": "Feature", "geometry": {"type": "Point", "coordinates": [lo, la]},
+                                  "properties": {"stormname": "TESTER", "stormtype": "HU", "maxwind": kt, "tau": tau,
+                                                 "dvlbl": "H", "datelbl": f"+{tau}h"}}
+    if not STATE["storm"] or lid not in (6, 7, 8, 9, 3):
+        return {"type": "FeatureCollection", "features": []}
+    if lid == 6:
+        return {"features": [pt(-88.0, 25.0, 0, 85), pt(-89.0, 26.5, 24, 95), pt(-90.3, 28.3, 48, 100), pt(-90.8, 29.6, 72, 70)]}
+    if lid == 7:
+        return {"features": [{"geometry": {"type": "LineString", "coordinates": [[-88.0, 25.0], [-89.0, 26.5], [-90.3, 28.3], [-90.8, 29.6]]}, "properties": {}}]}
+    if lid == 8:
+        return {"features": [{"geometry": {"type": "Polygon", "coordinates": [[[-87.5, 24.8], [-88.5, 24.8], [-92.5, 30.2], [-89.0, 30.2], [-87.5, 24.8]]]}, "properties": {}}]}
+    if lid == 9:
+        return {"features": [{"geometry": {"type": "LineString", "coordinates": [[-91.3, 29.3], [-90.2, 29.1]]}, "properties": {"tcww": "TWA"}}]}
+    return {"features": [{"geometry": {"type": "Polygon", "coordinates": [[[-94, 26], [-92, 26], [-92, 27.5], [-94, 27.5], [-94, 26]]]},
+                          "properties": {"prob2day": "10%", "prob7day": "30%", "risk7day": "Low"}}]}
 
 def install(ingest):
     ingest.get_json = fake_json

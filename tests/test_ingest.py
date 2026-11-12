@@ -151,6 +151,57 @@ class FullRun(unittest.TestCase):
         with open("alerts_state.json") as f:
             self.assertEqual(len(json.load(f)["sent"]), 2)
 
+    def test_tropical_storm_threat(self):
+        with open("tropical.json") as f:
+            t = json.load(f)
+        self.assertEqual(len(t["storms"]), 1)
+        st = t["storms"][0]
+        self.assertEqual(st["name"], "Tester")
+        self.assertEqual(st["type"], "Hurricane")
+        self.assertEqual(st["level"], "watch")             # TS watch segment on the Louisiana coast
+        self.assertTrue(st["cone"] and st["track"] and st["ww"])
+        self.assertLess(st["closest_mi"], 60)
+        self.assertEqual(t["outlook"][0]["prob7"], "30%")
+        self.assertEqual(self.latest["tropical"]["level"], "watch")
+        self.assertEqual(self.latest["tropical"]["rank"], 5)
+        self.assertIn("Tester", self.latest["tropical"]["text"])
+
+    def test_safety_alerts(self):
+        import subprocess
+        if not shutil.which("node"):
+            self.skipTest("node not installed")
+        d = tempfile.mkdtemp(dir=os.getcwd())
+        for fn in ("latest.json", "forecast.json"):
+            shutil.copy(fn, d)
+        with open(os.path.join(d, "alerts.json"), "w") as f:
+            json.dump({"safety": {"enabled": True, "spots": ["barat", "off90"], "nws": True, "wind_mph": 10,
+                                  "tropical": "near"}, "rules": []}, f)
+        env = dict(os.environ, ALERTS_DIR=d, ALERTS_RECORD_DRY="1")
+        env.pop("NTFY_TOPIC", None)
+        script = os.path.join(os.path.dirname(HERE), "scripts", "alerts.js")
+        out = subprocess.run(["node", script], env=env, capture_output=True, text=True, timeout=60)
+        self.assertEqual(out.returncode, 0, out.stderr)
+        self.assertIn("Small Craft Advisory in effect for", out.stdout)
+        self.assertIn("Wind over 10 mph coming", out.stdout)
+        self.assertIn("Tropical: watch", out.stdout)
+        self.assertEqual(out.stdout.count("[dry run]"), 3, out.stdout)
+        again = subprocess.run(["node", script], env=env, capture_output=True, text=True, timeout=60)
+        self.assertNotIn("[dry run]", again.stdout)                 # each is sent once
+
+    def test_health_report_survives_a_missing_buoy(self):
+        saved = ingest.buoy_obs, ingest.map_checks
+        ingest.buoy_obs, ingest.map_checks = (lambda sid: None), (lambda: [])
+        try:
+            fails = ingest.health("health.md")
+        finally:
+            ingest.buoy_obs, ingest.map_checks = saved
+        with open("health.md") as f:
+            rep = f.read()
+        self.assertIn("| NDBC buoy 42040 | **FAIL** | no data |", rep)
+        self.assertIn("| NHC tropical storms | OK |", rep)
+        self.assertIn("| Artificial reefs | OK |", rep)
+        self.assertGreaterEqual(fails, 1)
+
     def test_stations_without_data_are_skipped_next_time(self):
         with open("stations_cache.json") as f:
             self.assertIn("kvaf", json.load(f).get("deadbuoys", []))
@@ -160,6 +211,39 @@ class FullRun(unittest.TestCase):
         with open("status.json") as f:
             st = json.load(f)
         self.assertEqual(st["spots_failed"], [])
+
+
+class Tropical(unittest.TestCase):
+    def test_service_down_keeps_last_file(self):
+        tmp = tempfile.mkdtemp()
+        path = os.path.join(tmp, "tropical.json")
+        fakes.install(ingest)
+        self.assertIsNotNone(ingest.tropical(fakes.now, path))
+        saved = ingest.get_json
+        ingest.get_json = lambda *a, **k: None
+        try:
+            self.assertIsNone(ingest.tropical(fakes.now, path))
+            prev = ingest.previous_tropical(fakes.now, path)
+        finally:
+            ingest.get_json = saved
+        self.assertTrue(prev["stale"])
+        self.assertEqual(prev["level"], "watch")
+
+    def test_quiet_season(self):
+        tmp = tempfile.mkdtemp()
+        fakes.install(ingest)
+        fakes.STATE["storm"] = False
+        try:
+            t = ingest.tropical(fakes.now, os.path.join(tmp, "t.json"))
+        finally:
+            fakes.STATE["storm"] = True
+        self.assertEqual(t["level"], "none")
+        self.assertEqual(t["storms"], [])
+
+    def test_point_in_cone(self):
+        ring = [[28, -91], [28, -89], [30, -89], [30, -91]]
+        self.assertTrue(ingest._inside(29, -90, ring))
+        self.assertFalse(ingest._inside(31, -90, ring))
 
 
 class History(unittest.TestCase):
