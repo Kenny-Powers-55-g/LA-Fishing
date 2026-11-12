@@ -11,6 +11,7 @@ Sources
                 water temp, specific conductance (-> salinity), turbidity, gage height
   Open-Meteo    wind, cloud cover, surface pressure (-> 3 hr trend), marine model
   NDBC, CoastWatch ERDDAP, NWS alerts
+  NWS NWPS      Mississippi and Atchafalaya river stage, forecast crest, flood levels
 
 Usage (Python 3.9+, standard library only)
   python ingest.py discover     # list what each configured station really offers
@@ -91,13 +92,13 @@ SPOTS = [
      "water": [("coops", "8768094")], "tide": "8768094"},
     {"id": "barat", "name": "Barataria Bay (Grand Isle)", "lat": 29.27, "lon": -89.95,
      "water": [("coops", "8761724")], "tide": "8761724"},
-    {"id": "venice", "name": "Venice / Delta Marsh", "lat": 29.28, "lon": -89.35,
+    {"id": "venice", "river": "miss", "name": "Venice / Delta Marsh", "lat": 29.28, "lon": -89.35,
      "water": [("coops", "8760721"), ("coops", "8760922")], "tide": "8760922"},
-    {"id": "pont", "name": "Lake Pontchartrain", "lat": 30.15, "lon": -90.10,
+    {"id": "pont", "river": "miss", "name": "Lake Pontchartrain", "lat": 30.15, "lon": -90.10,
      "water": [("coops", "8761927"), ("coops", "8761305")], "tide": "8761927"},
-    {"id": "atch", "name": "Atchafalaya Basin", "lat": 30.10, "lon": -91.60,
+    {"id": "atch", "river": "atch", "name": "Atchafalaya Basin", "lat": 30.10, "lon": -91.60,
      "water": [("usgs", "07381515")], "tide": None},
-    {"id": "verret", "name": "Lake Verret", "lat": 29.95, "lon": -91.15,
+    {"id": "verret", "river": "atch", "name": "Lake Verret", "lat": 29.95, "lon": -91.15,
      "water": [("usgs", "295610091110000"), ("usgs", "07381515")], "tide": None},
     # Houma area. Coordinates are approximate; inland spots have no listed gauge, so the
     # worker searches for the nearest USGS temperature and salinity stations by itself.
@@ -107,9 +108,9 @@ SPOTS = [
      "water": [("coops", "8762928")], "tide": "8762928"},
     {"id": "fourchon", "name": "Port Fourchon / Belle Pass", "lat": 29.11, "lon": -90.20,
      "water": [("coops", "8762075"), ("coops", "8761724")], "tide": "8762075"},
-    {"id": "houma", "name": "Houma Bayous (Bayou Terrebonne)", "lat": 29.58, "lon": -90.72,
+    {"id": "houma", "river": "atch", "name": "Houma Bayous (Bayou Terrebonne)", "lat": 29.58, "lon": -90.72,
      "water": [], "tide": None},
-    {"id": "palourde", "name": "Lake Palourde", "lat": 29.70, "lon": -91.08,
+    {"id": "palourde", "river": "atch", "name": "Lake Palourde", "lat": 29.70, "lon": -91.08,
      "water": [], "tide": None},
     # Offshore zones — approximate open-Gulf points (buoy/model data, not exact wrecks/rigs).
     # South of Houma / Terrebonne
@@ -159,7 +160,7 @@ SPOTS = [
      "note": "Sand shoal with rigs south of Isles Dernieres. Water around the old lighthouse is 10 to 12 ft. "
              "Cobia, tripletail, king mackerel and specks on the rigs."},
     # Nearshore, scored with inshore species
-    {"id": "swpass", "name": "Southwest Pass jetties", "lat": 28.9056, "lon": -89.4289,
+    {"id": "swpass", "river": "miss", "name": "Southwest Pass jetties", "lat": 28.9056, "lon": -89.4289,
      "water": [("coops", "8760922")], "tide": "8760922",
      "note": "End of the Mississippi River's Southwest Pass. Bull reds and specks along the jetties; strong current and ship traffic."},
 ]
@@ -741,6 +742,114 @@ def buoy_obs(sid):
         log.warning("buoy %s parse problem: %s", sid, e)
     return out
 
+# ---------------------------------------------------------------- rivers and water level
+# NWS river gauges (National Water Prediction Service). Mississippi stage drives clarity and
+# salinity around the delta and, through the Bonnet Carre Spillway, Lake Pontchartrain;
+# the Atchafalaya does the same for the basin, Morgan City and Terrebonne.
+NWPS = "https://api.water.noaa.gov/nwps/v1/gauges/%s"
+RIVERS = {
+    "miss": {"lid": "NORL1", "name": "Mississippi River at New Orleans (Carrollton)"},
+    "atch": {"lid": "MCGL1", "name": "Atchafalaya River at Morgan City",
+             "also": {"lid": "SMML1", "name": "Atchafalaya River at Simmesport"}},
+}
+SPILLWAY_WATCH_FT = 16.0      # Carrollton stage where the Corps starts preparing the Bonnet Carre Spillway
+
+def river_gauge(lid, now):
+    """Latest stage, 24 h change, forecast crest and flood thresholds for one NWS gauge."""
+    meta = get_json(NWPS % lid, tries=2)
+    sf = get_json(NWPS % lid + "/stageflow", tries=2)
+    try:
+        obs = (meta or {}).get("status", {}).get("observed", {})
+        stage = fnum(obs.get("primary"))
+        if stage is None or stage <= -900:
+            return None
+        cats = (meta.get("flood") or {}).get("categories") or {}
+        lvl = {k: fnum((cats.get(k) or {}).get("stage")) for k in ("action", "minor", "moderate", "major")}
+        lvl = {k: v for k, v in lvl.items() if v is not None and v > -900}
+        def series(kind):
+            out = []
+            for d in ((sf or {}).get(kind) or {}).get("data") or []:
+                v = fnum(d.get("primary"))
+                try:
+                    t = parse_iso(d.get("validTime"))
+                except (TypeError, ValueError):
+                    continue
+                if v is not None and v > -900:
+                    out.append((t, v))
+            return sorted(out)
+        o, f = series("observed"), series("forecast")
+        t_obs = parse_iso(obs.get("validTime")) if obs.get("validTime") else (o[-1][0] if o else now)
+        ref = nearest(o, t_obs - timedelta(hours=24), timedelta(hours=3)) if o else None
+        d24 = None if ref is None else round(stage - ref, 2)
+        future = [(t, v) for t, v in f if t > now]
+        crest = max(future, key=lambda x: x[1]) if future else None
+        trend = None if d24 is None else "Rising" if d24 >= 0.15 else "Falling" if d24 <= -0.15 else "Steady"
+        flow = fnum(obs.get("secondary"))
+        return {"lid": lid, "stage": round(stage, 2), "time": t_obs.isoformat(),
+                "flow_kcfs": None if flow is None or flow <= -900 else round(flow),
+                "category": obs.get("floodCategory"), "d24": d24, "trend": trend, "levels": lvl,
+                "crest": None if not crest else {"stage": round(crest[1], 2), "time": crest[0].isoformat()},
+                "url": f"https://water.noaa.gov/gauges/{lid.lower()}"}
+    except (AttributeError, TypeError, ValueError, KeyError) as e:
+        log.warning("river gauge %s problem: %s", lid, e)
+        return None
+
+def rivers(now):
+    """All river gauges once per run. Adds a Bonnet Carre spillway watch for the Mississippi."""
+    out = {}
+    for key, r in RIVERS.items():
+        g = river_gauge(r["lid"], now)
+        if not g:
+            continue
+        g["name"] = r["name"]
+        if "also" in r:
+            g2 = river_gauge(r["also"]["lid"], now)
+            if g2:
+                g2["name"] = r["also"]["name"]
+                g["upstream"] = g2
+        if key == "miss":
+            crest = (g.get("crest") or {}).get("stage") or 0
+            g["spillway_watch"] = max(g["stage"], crest) >= SPILLWAY_WATCH_FT
+        out[key] = g
+    return out
+
+def river_index(g):
+    """River level as a share of flood stage (action stage if no flood stage), plus trend."""
+    if not g:
+        return None
+    top = g["levels"].get("minor") or g["levels"].get("action")
+    if not top:
+        return None
+    pct = round(100 * g["stage"] / top)
+    return {"pct": pct, "trend": g.get("trend") or "Steady",
+            "txt": f'{g["stage"]} ft ({pct}% of flood stage), {(g.get("trend") or "steady").lower()}'}
+
+def water_level_anomaly(station, now, cache):
+    """Observed water level minus the predicted tide (ft) at a CO-OPS station: what wind and
+    river are doing to the water right now. Positive = higher than the tide tables."""
+    key = ("wl", station)
+    if key in cache:
+        return cache[key]
+    out = None
+    obs = get_json(COOPS, dict(station=station, product="water_level", datum="MLLW", date="latest",
+                               units="english", time_zone="gmt", format="json", application=APP))
+    try:
+        d = obs["data"][-1]
+        t, v = parse_gmt(d["t"]), fnum(d["v"])
+        if v is not None and now - t <= timedelta(minutes=STALE_MIN):
+            pr = get_json(COOPS, dict(station=station, product="predictions", datum="MLLW", interval="6",
+                                      begin_date=(t - timedelta(hours=1)).strftime("%Y%m%d %H:%M"),
+                                      end_date=(t + timedelta(hours=1)).strftime("%Y%m%d %H:%M"),
+                                      units="english", time_zone="gmt", format="json", application=APP))
+            pts = [(parse_gmt(p["t"]), fnum(p["v"])) for p in (pr or {}).get("predictions", [])]
+            p = nearest([x for x in pts if x[1] is not None], t, timedelta(minutes=10))
+            if p is not None:
+                out = (round(v - p, 2), t)
+    except (TypeError, KeyError, IndexError, ValueError):
+        pass
+    cache[key] = out
+    return out
+
 def get_alerts(lat, lon):
     """Active National Weather Service alerts at a point (land or marine zone). None = unknown."""
     j = get_json("https://api.weather.gov/alerts/active", dict(point=f"{lat:.4f},{lon:.4f}"), tries=2)
@@ -984,6 +1093,14 @@ def collect(spot, now, cache):
     wdir = round(got["wdir"][0]) if "wdir" in got else None
     wcolor = color_label(chl)
 
+    wl = water_level_anomaly(spot["tide"], now, cache) if spot["tide"] else None
+    if wl:
+        src["wl_anom"] = {"source": f"coops:{spot['tide']}", "age_min": round((now - wl[1]).total_seconds() / 60)}
+    rg = (cache.get("rivers") or {}).get(spot.get("river")) if spot.get("river") else None
+    riv = river_index(rg)
+    if riv:
+        src["riv"] = {"source": f"nws:{rg['lid']}", "age_min": round(max(0, (now - parse_iso(rg["time"])).total_seconds()) / 60)}
+
     cond = {"temp": round(got["temp_f"][0]) if "temp_f" in got else None,
             "wind": round(wind) if wind is not None else None,
             "wdir": wdir,
@@ -1001,6 +1118,8 @@ def collect(spot, now, cache):
             "trange": round(trange, 1) if trange is not None else None,
             "wave": round(got["wave"][0], 1) if "wave" in got else None,
             "cur": round(got["cur"][0], 1) if "cur" in got else None,
+            "wl_anom": wl[0] if wl else None,
+            "riv": riv,
             "sbreak": round(got["sbreak"][0], 2) if "sbreak" in got else None,
             "ssat": round(got["ssat"][0]) if "ssat" in got else None}
     na = []
@@ -1014,12 +1133,16 @@ def collect(spot, now, cache):
         na += ["wave", "cur", "sbreak", "ssat"]
     # Optional enrichment fields — don't tank completeness when missing
     na += ["chl", "wcolor", "wdir", "kd490"]
+    if not spot["tide"] or spot.get("marine"):
+        na.append("wl_anom")
+    if not spot.get("river"):
+        na.append("riv")
     na = sorted(set(na))
     missing = [k for k, v in cond.items() if v is None and k not in na]
     applicable = len(cond) - len(na)
     depth_ft, depth_src = bottom_depth(spot, cache)
     return {"id": spot["id"], "name": spot["name"], "lat": spot["lat"], "lon": spot["lon"],
-            "depth_ft": depth_ft, "depth_src": depth_src, "note": spot.get("note"),
+            "depth_ft": depth_ft, "depth_src": depth_src, "note": spot.get("note"), "river": spot.get("river"),
             "updated": now.isoformat(),
             "zone": "offshore" if spot.get("marine") else "inshore",
             "alerts": get_alerts(spot["lat"], spot["lon"]),
@@ -1043,7 +1166,7 @@ def save(results, now):
     con.execute("CREATE INDEX IF NOT EXISTS ix ON readings(spot, metric, fetched_at)")
     for r in results:
         for m, v in r["conditions"].items():
-            if v is None:
+            if v is None or isinstance(v, dict):
                 continue
             s = (r["quality"]["sources"].get(m) or {}).get("source")
             con.execute("INSERT INTO readings(spot,metric,value,text,source,fetched_at) VALUES(?,?,?,?,?,?)",
@@ -1065,6 +1188,11 @@ def run_once():
     # Spots are fetched a few at a time. The shared cache may let two threads fetch the
     # same station once each; that only costs a duplicate request.
     t0 = time.time()
+    try:
+        cache["rivers"] = rivers(now)
+    except Exception:
+        log.exception("river gauges failed")
+        cache["rivers"] = {}
     with ThreadPoolExecutor(max_workers=max(1, WORKERS)) as ex:
         for spot, r in zip(SPOTS, ex.map(one, SPOTS)):
             if r is None:
@@ -1082,7 +1210,7 @@ def run_once():
     os.replace("forecast.json.tmp", "forecast.json")
     tmp = OUT + ".tmp"
     with open(tmp, "w") as f:
-        json.dump({"generated": now.isoformat(), "spots": results}, f, indent=2)
+        json.dump({"generated": now.isoformat(), "rivers": cache.get("rivers") or {}, "spots": results}, f, indent=2)
     os.replace(tmp, OUT)
     # Lightweight health summary for the UI and operators
     status = {
