@@ -1,13 +1,13 @@
 // Caches the app so it opens offline. Data files and the page are network-first with the
 // saved copy as backup; on a weak connection the saved copy is used after a few seconds.
 // The map library and fonts are cached the first time they load.
-const V = "la-fishing-v14";
+const V = "la-fishing-v15";
 const CDN_CACHE = "la-fishing-cdn-v1";          // kept across app versions
 const TILE_CACHE = "la-fishing-tiles";          // map areas saved for offline (kept too)
 const TILE_RE = /^https:\/\/(gis\.charttools\.noaa\.gov|gis\.ngdc\.noaa\.gov)\/.*(\/tile\/|exportImage)/;
-const ASSETS = ["./", "index.html", "manifest.webmanifest", "icon-192.png", "icon-512.png"];
+const ASSETS = ["./", "index.html", "config.js", "manifest.webmanifest", "icon-192.png", "icon-512.png"];
 const DATA_RE = /\/(latest|forecast|status|history|ocean|rigs|reefs|tropical|deadzone)\.json$/;
-const CDN_RE = /^https:\/\/(cdnjs\.cloudflare\.com|fonts\.googleapis\.com|fonts\.gstatic\.com)\//;
+const CDN_RE = /^https:\/\/(cdnjs\.cloudflare\.com|fonts\.googleapis\.com|fonts\.gstatic\.com|cdn\.jsdelivr\.net\/npm\/@supabase)\//;
 const SLOW_MS = 4000;                            // give up waiting on the network after this
 
 self.addEventListener("install", e => {
@@ -59,6 +59,11 @@ self.addEventListener("fetch", e => {
 
   // Data JSON: keyed by pathname so the ?t= cache-buster still finds the saved copy.
   // With nothing saved, answer 503 so the page shows its own "could not load" message.
+  // Site settings (config.js): network first so a change shows up on the next visit
+  if (u.pathname.endsWith("/config.js")) {
+    e.respondWith(networkFirst(req, u.pathname));
+    return;
+  }
   if (DATA_RE.test(u.pathname)) {
     e.respondWith(networkFirst(req, u.pathname, () =>
       new Response('{"error":"offline"}', { status: 503, headers: { "Content-Type": "application/json" } })));
