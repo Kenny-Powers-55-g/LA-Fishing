@@ -15,7 +15,9 @@ permissions:
 # cancels runs with "higher priority waiting request for pages exists".
 concurrency:
   group: la-fishing-update
-  cancel-in-progress: true
+  # Wait for a running update to finish instead of cancelling it (a cancelled run can be
+  # stopped half-way through publishing the site). The next run then starts right after.
+  cancel-in-progress: false
 
 jobs:
   build-and-deploy:
