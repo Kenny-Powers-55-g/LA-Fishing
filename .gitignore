@@ -1,0 +1,16 @@
+# Python cache and local run output (built fresh by the hourly job)
+__pycache__/
+*.pyc
+fishing.db
+latest.json
+forecast.json
+status.json
+history.json
+ocean.json
+rigs.json
+reefs.json
+alerts_state.json
+health.md
+live_latest.json
+stations_cache.json
+*.tmp
