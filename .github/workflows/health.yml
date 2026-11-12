@@ -1,0 +1,54 @@
+name: Check data sources
+
+# Once a day, test every data source the site depends on (tides, weather, USGS, river
+# gauges, satellites, map layers, depth lookup). If anything fails, open or update a
+# GitHub issue with the details; close it again once everything passes.
+on:
+  schedule:
+    - cron: "40 12 * * *"      # 6:40 AM Central (standard time)
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  health:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Check every data source
+        id: check
+        run: python ingest.py health
+        continue-on-error: true
+        env:
+          USGS_API_KEY: ${{ secrets.USGS_API_KEY }}
+
+      - name: Check the live site's data is fresh
+        id: live
+        continue-on-error: true
+        run: |
+          owner="${GITHUB_REPOSITORY%%/*}"; repo="${GITHUB_REPOSITORY#*/}"
+          url="https://$(echo "$owner" | tr 'A-Z' 'a-z').github.io/$repo/latest.json"
+          curl -sfL "$url" -o live_latest.json
+          python ingest.py validate-file live_latest.json | tee -a health.md
+
+      - name: Open, update or close the health issue
+        env:
+          GH_TOKEN: ${{ github.token }}
+          FAILED: ${{ steps.check.outcome == 'failure' || steps.live.outcome == 'failure' }}
+        run: |
+          title="Data source health check failed"
+          num=$(gh issue list --state open --search "\"$title\" in:title" --json number --jq '.[0].number')
+          if [ "$FAILED" = "true" ]; then
+            body="$(printf 'The daily check found a problem. Details:\n\n'; cat health.md; printf '\n\n[Run log](%s/%s/actions/runs/%s)\n' "${{ github.server_url }}" "${{ github.repository }}" "${{ github.run_id }}")"
+            if [ -n "$num" ]; then gh issue comment "$num" --body "$body"; else gh issue create --title "$title" --body "$body"; fi
+          elif [ -n "$num" ]; then
+            gh issue close "$num" --comment "All data sources passed today's check."
+          fi
