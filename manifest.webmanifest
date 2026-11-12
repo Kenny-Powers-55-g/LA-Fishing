@@ -1,14 +1,14 @@
 {
   "id": "./",
-  "name": "Louisiana Fishing Conditions",
-  "short_name": "LA Fishing",
+  "name": "OceanCast: Louisiana fishing conditions",
+  "short_name": "OceanCast",
   "description": "Live fishing scores and conditions for Louisiana inshore and offshore spots.",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
   "orientation": "portrait-primary",
-  "background_color": "#0a181e",
-  "theme_color": "#071c3a",
+  "background_color": "#0b1014",
+  "theme_color": "#0b1014",
   "categories": [
     "sports",
     "weather",

@@ -1,2 +1,2 @@
-# LA-Fishing
-An AI built website for checking fishing conditions 
+# OceanCast
+Live Louisiana fishing conditions and scores, built from public NOAA, USGS and weather data. 
