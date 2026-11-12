@@ -6,6 +6,6 @@
 // The publishable key is meant to be public: the database rules in setup.sql only ever let a
 // signed-in person read and change their own data.
 window.OC_CONFIG = {
-  supabaseUrl: "",   // e.g. "https://abcdefghijklm.supabase.co"
-  supabaseKey: ""    // e.g. "sb_publishable_..."
+  supabaseUrl: "https://kenny-powers-55-g.github.io/LA-Fishing/",   // e.g. "https://abcdefghijklm.supabase.co"
+  supabaseKey: "sb_publishable_8EuhGmHdv5jJ3RaAAxUJAQ_Nc5Y4gdA"    // e.g. "sb_publishable_..."
 };
