@@ -43,6 +43,13 @@ jobs:
           python -m unittest discover -s tests -v
           node tests/check_page.js
 
+      - name: Get the last 14 days of history from the live site
+        continue-on-error: true
+        run: |
+          owner="${GITHUB_REPOSITORY%%/*}"; repo="${GITHUB_REPOSITORY#*/}"
+          curl -sfL "https://$(echo "$owner" | tr 'A-Z' 'a-z').github.io/$repo/history.json" -o history.json \
+            && echo "history: $(wc -c < history.json) bytes" || echo "no history yet; starting a new one"
+
       - name: Pull the latest readings
         run: python ingest.py once
         timeout-minutes: 35
@@ -60,7 +67,7 @@ jobs:
         run: |
           mkdir site
           cp index.html latest.json forecast.json manifest.webmanifest sw.js site/
-          for f in icon-192.png icon-512.png status.json; do
+          for f in icon-192.png icon-512.png status.json history.json; do
             [ -f "$f" ] && cp "$f" site/ || true
           done
           # Fail clearly if core data is missing

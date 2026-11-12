@@ -1179,6 +1179,55 @@ def save(results, now):
                          v if isinstance(v, str) else None, s, now.isoformat()))
     con.commit(); con.close()
 
+# ---------------------------------------------------------------- history
+HISTORY = "history.json"
+HIST_DAYS = 14
+HIST_KEYS = ("temp", "sal", "wind", "vis", "wl_anom")     # per spot, one value per run
+
+def update_history(results, river_data, now, path=HISTORY):
+    """Append this run's readings to history.json and keep the last HIST_DAYS days.
+    The workflow downloads the previous file from the live site first, so history
+    survives between runs without a database."""
+    try:
+        with open(path) as f:
+            h = json.load(f)
+        if not isinstance(h.get("t"), list):
+            raise ValueError("bad history")
+    except (OSError, ValueError, json.JSONDecodeError, AttributeError):
+        h = {"t": [], "spots": {}, "rivers": {}}
+    t = h["t"]
+    n_old = len(t)
+    def series(group, key, name):
+        s = h.setdefault(group, {}).setdefault(key, {}).setdefault(name, [])
+        s.extend([None] * (n_old - len(s)))          # pad a spot or river that's new
+        return s
+    t.append(now.strftime("%Y-%m-%dT%H:%MZ"))
+    for r in results:
+        c = r["conditions"]
+        for k in HIST_KEYS:
+            v = c.get(k)
+            series("spots", r["id"], k).append(None if not isinstance(v, (int, float)) else round(v, 1))
+    for key, g in (river_data or {}).items():
+        series("rivers", key, "stage").append(g.get("stage"))
+    # pad anything not written this run, then trim to the window
+    for group in ("spots", "rivers"):
+        for d in h.get(group, {}).values():
+            for s in d.values():
+                s.extend([None] * (len(t) - len(s)))
+    cutoff = (now - timedelta(days=HIST_DAYS)).strftime("%Y-%m-%dT%H:%MZ")
+    keep = next((i for i, x in enumerate(t) if x >= cutoff), len(t))
+    h["t"] = t[keep:]
+    for group in ("spots", "rivers"):
+        for d in h.get(group, {}).values():
+            for k in d:
+                d[k] = d[k][keep:]
+    h["generated"] = now.isoformat()
+    tmp = path + ".tmp"
+    with open(tmp, "w") as f:
+        json.dump(h, f, separators=(",", ":"))
+    os.replace(tmp, path)
+    return h
+
 def run_once():
     now, cache, results = datetime.now(UTC), {}, []
     disk = load_station_cache()
@@ -1234,6 +1283,10 @@ def run_once():
             for r in results
         },
     }
+    try:
+        update_history(results, cache.get("rivers"), now)
+    except Exception:                          # history is a nice-to-have; never fail the run
+        log.exception("history update failed")
     with open(STATUS_OUT + ".tmp", "w") as f:
         json.dump(status, f, indent=2)
     os.replace(STATUS_OUT + ".tmp", STATUS_OUT)

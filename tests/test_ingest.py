@@ -105,10 +105,33 @@ class FullRun(unittest.TestCase):
         self.assertEqual(self.spots["atch"]["quality"]["vis_method"], "turbidity gauge")
         self.assertTrue(self.spots["barat"]["quality"]["vis_method"].startswith("satellite"))
 
+    def test_history_written(self):
+        with open("history.json") as f:
+            h = json.load(f)
+        self.assertEqual(len(h["t"]), 1)
+        self.assertEqual(len(h["spots"]["barat"]["temp"]), 1)
+        self.assertIn("miss", h["rivers"])
+
     def test_status_file(self):
         with open("status.json") as f:
             st = json.load(f)
         self.assertEqual(st["spots_failed"], [])
+
+
+class History(unittest.TestCase):
+    def test_appends_pads_and_trims(self):
+        tmp = tempfile.mkdtemp()
+        path = os.path.join(tmp, "h.json")
+        t0 = fakes.now - ingest.timedelta(days=20)
+        spot = lambda sid, temp: {"id": sid, "conditions": {"temp": temp, "sal": 10, "wind": 5, "vis": 2.0, "wl_anom": None}}
+        ingest.update_history([spot("a", 60)], {}, t0, path)                     # old, should be trimmed
+        ingest.update_history([spot("a", 61)], {"miss": {"stage": 5.0}}, fakes.now - ingest.timedelta(hours=1), path)
+        h = ingest.update_history([spot("a", 62), spot("b", 70)], {"miss": {"stage": 5.2}}, fakes.now, path)
+        self.assertEqual(len(h["t"]), 2)
+        self.assertEqual(h["spots"]["a"]["temp"], [61, 62])
+        self.assertEqual(h["spots"]["b"]["temp"], [None, 70])                   # new spot padded
+        self.assertEqual(h["rivers"]["miss"]["stage"], [5.0, 5.2])
+        shutil.rmtree(tmp, ignore_errors=True)
 
 
 if __name__ == "__main__":
