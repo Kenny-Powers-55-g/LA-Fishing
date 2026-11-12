@@ -121,6 +121,10 @@ button.t.on{background:var(--ac);color:var(--onac);border-color:var(--ac);font-w
 #health summary::-webkit-details-marker{display:none}
 #health table{width:100%;border-collapse:collapse;font-size:13px;margin-top:8px}
 #health td,#health th{text-align:left;padding:5px 6px;border-top:1px solid var(--bd);vertical-align:top}
+.trends{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;margin:8px 0}
+.trend{background:var(--bg);border-radius:12px;padding:8px 10px;display:grid;gap:2px}
+.trend b{font-size:16px}
+.tuned{display:inline-block;font-size:12px;border:1px solid var(--ac);color:var(--ac);border-radius:99px;padding:1px 8px}
 .wswatch{width:18px;height:18px;border-radius:50%;display:inline-block;vertical-align:middle;margin-right:6px;border:1px solid var(--bd)}
 
 /* Mobile + PWA polish */
@@ -231,6 +235,7 @@ button.t,.pick{min-height:44px}
     </div>
    </form>
    <div class="log-assess" id="logAssess"></div>
+   <div class="log-assess" id="tuneBox"></div>
    <h3 style="margin-top:18px">Your private history</h3>
    <div class="log-list" id="logList"></div>
    <div class="log-actions" style="margin-top:12px">
@@ -511,6 +516,34 @@ function riverPanel(spot){
  if(g.spillway_watch&&(spot.id==="pont"||spot.river==="miss"))h+=`<div class="warn bad" style="margin:8px 0 0"><b>Bonnet Carré Spillway watch.</b> The river at New Orleans is at or forecast near the level where the Corps of Engineers opens the spillway, which pours fresh, muddy river water into Lake Pontchartrain. Check the <a href="https://www.mvn.usace.army.mil/Missions/Mississippi-River-Flood-Control/Bonnet-Carre-Spillway-Overview/" target="_blank" rel="noopener">Corps of Engineers</a> for its status.</div>`;
  return h+`<div class="note"><a href="${esc(g.url)}" target="_blank" rel="noopener">River forecast from the National Weather Service</a></div></div>`;
 }
+// ---- 14-day trends from history.json ----
+let HIST=null;
+const TRENDS=[["temp","Water temp","°F"],["sal","Salinity"," ppt"],["vis","Visibility"," ft"],["wl_anom","Water vs tide table"," ft"],["wind","Wind"," mph"]];
+function spark(vals,times,unit){
+ const pts=vals.map((v,i)=>[times[i],v]).filter(p=>p[1]!=null);
+ if(pts.length<6)return null;
+ const W=180,H=44,t0=pts[0][0],t1=pts[pts.length-1][0],vs=pts.map(p=>p[1]),lo=Math.min(...vs),hi=Math.max(...vs),rg=hi-lo||1;
+ const X=t=>(t-t0)/((t1-t0)||1)*(W-6)+3,Y=v=>H-5-(v-lo)/rg*(H-12);
+ const d=pts.map((p,i)=>`${i?"L":"M"}${X(p[0]).toFixed(1)} ${Y(p[1]).toFixed(1)}`).join("");
+ const last=pts[pts.length-1],wk=pts.find(p=>p[0]>=last[0]-7*864e5),ch=wk?last[1]-wk[1]:null;
+ return{svg:`<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" style="width:100%;height:${H}px;display:block" aria-hidden="true">
+  <path d="${d}L${X(last[0]).toFixed(1)} ${H}L${X(t0).toFixed(1)} ${H}Z" fill="var(--ac)" opacity=".12"/><path d="${d}" fill="none" stroke="var(--ac)" stroke-width="1.8" vector-effect="non-scaling-stroke"/>
+  <circle cx="${X(last[0]).toFixed(1)}" cy="${Y(last[1]).toFixed(1)}" r="3" fill="var(--ac)"/></svg>`,
+  now:last[1],ch,lo,hi,unit};
+}
+function trendsPanel(spot){
+ if(!HIST||!HIST.t||HIST.t.length<6)return"";
+ const times=HIST.t.map(x=>Date.parse(x)),S=(HIST.spots||{})[spot.id]||{},cards=[];
+ for(const[k,l,u]of TRENDS){const r=S[k]&&spark(S[k],times,u);if(r)cards.push([l,r])}
+ const rg=spot.river&&HIST.rivers&&HIST.rivers[spot.river];
+ if(rg&&rg.stage){const r=spark(rg.stage,times," ft");if(r)cards.push(["River stage",r])}
+ if(!cards.length)return"";
+ const days=Math.max(1,Math.round((times[times.length-1]-times[0])/864e5));
+ const fmt=v=>Math.abs(v)>=10?Math.round(v):Math.round(v*10)/10;
+ return`<h3 style="margin-top:12px">Last ${days} day${days>1?"s":""}</h3><div class="trends">`+cards.map(([l,r])=>`<div class="trend"><span class="note">${l}</span>
+  <b>${fmt(r.now)}${r.unit}</b>${r.ch!=null&&Math.abs(r.ch)>=0.05?` <span class="note">${r.ch>0?"+":""}${fmt(r.ch)} in 7 days</span>`:""}${r.svg}
+  <span class="note">${fmt(r.lo)} to ${fmt(r.hi)}${r.unit}</span></div>`).join("")+`</div>`;
+}
 function tipsFor(spot,c){
  const t=[],inshore=spot.zone!=="offshore",v=c.vis,na=(spot.quality&&spot.quality.not_applicable)||[];
  if(v!=null){
@@ -605,8 +638,9 @@ function scoreC(spId,c,q,ts=Date.now()){
  const have=usable.filter(F=>c[F.k]!=null);
  if(!have.length)return{gate:"Not enough data right now"};
  let sw=0,s=0;
- const rows=have.map(F=>{const v=F.f(c[F.k]);sw+=F.w;s+=F.w*v;return{...F,v,txt:F.t(c[F.k])}});
- const tw=usable.reduce((a,F)=>a+F.w,0);
+ const wOf=F=>F.w*(TUNE_ON&&TUNE[F.k]||1);          // personal tuning from the catch log, if on
+ const rows=have.map(F=>{const v=F.f(c[F.k]),w=wOf(F);sw+=w;s+=w*v;return{...F,w:Math.round(w*10)/10,v,txt:F.t(c[F.k])}});
+ const tw=usable.reduce((a,F)=>a+wOf(F),0);
  // one-sentence reason from the strongest positive or negative factor
  const sorted=[...rows].sort((a,b)=>Math.abs(b.v-0.5)*b.w-Math.abs(a.v-0.5)*a.w);
  const top=sorted[0];
@@ -844,7 +878,7 @@ function render(){
   ${r.gate?`<span class="pill" style="background:var(--mu)">Not applicable</span> <span class="note">${esc(r.gate)}</span>`
   :`<span class="pill" style="background:${col(r.total)}">${lab(r.total)}</span>
      <span class="conf ${confClass(r.coverage)}" title="Data coverage"><span class="dot"></span>${confLabel(r.coverage)}</span>
-     <span class="moon" title="Moon">${mi.txt}</span>`}</div></div>`;
+     <span class="moon" title="Moon">${mi.txt}</span>${TUNE_ON?` <span class="tuned" title="Weights adjusted from your catch log. Turn off under My catches.">Tuned to your catches</span>`:""}`}</div></div>`;
  // Best 3-hour daylight window in the next 36 hours, from the forecast
  let bestToday="";
  if(!r.gate&&FC&&FC.spots&&FC.spots[sel]){
@@ -874,6 +908,7 @@ function render(){
  const wcolorHtml=c.wcolor?`<span class="wswatch" style="background:${chlColor(c.chl)}"></span>${c.wcolor}${c.chl!=null?` · ${c.chl} mg/m³`:""}`:null;
  if(spot.note)h+=`<div class="spotnote">${esc(spot.note)}</div>`;
  h+=riverPanel(spot);
+ h+=trendsPanel(spot);
  const depthTxt=spot.depth_ft!=null?`${spot.depth_ft.toLocaleString()} ft <span class="note">(${spot.depth_src==="published"?"published":"model"})</span>`:null;
  h+=`<div class="grid">${depthTxt?cell("Depth here",depthTxt):""}${cell("Water temp",c.temp,"°F")}${cell("Wind",c.wind," mph")}${cell("Wind dir",wdirTxt)}${cell("Pressure",c.pres)}
   ${(q.not_applicable||[]).includes("tide")?"":cell("Tide",c.tide)}${(q.not_applicable||[]).includes("sal")?"":cell("Salinity",c.sal," ppt")}
@@ -935,11 +970,42 @@ function render(){
  mapUpdate(list);outlook();seaState();renderHealth();
 }
 
+// ---- Personal tuning: learn from the catch log which factors matched good days ----
+// Each log saved on the day you fish keeps the 0-1 sub-score of every factor. A factor that
+// scored higher on days you caught fish than on slow days gets more weight (up to 1.5x);
+// one that scored higher on slow days gets less (down to 0.5x). Stays on this device.
+let TUNE={},TUNE_ON=false,TUNE_INFO=null;
+const TUNE_MIN_GOOD=5,TUNE_MIN_SLOW=3;
+function computeTune(){
+ const logs=getLogs().filter(L=>L.factors),good=logs.filter(L=>L.result==="caught"),slow=logs.filter(L=>L.result!=="caught");
+ TUNE={};TUNE_INFO={good:good.length,slow:slow.length,changes:[]};
+ let on=true;try{on=localStorage.getItem("la-fish-tune")!=="off"}catch(e){}
+ if(good.length<TUNE_MIN_GOOD||slow.length<TUNE_MIN_SLOW){TUNE_ON=false;return}
+ const keys=new Set(logs.flatMap(L=>Object.keys(L.factors)));
+ const mean=(arr,k)=>{const v=arr.map(L=>L.factors[k]).filter(x=>typeof x==="number");return v.length?{m:v.reduce((a,b)=>a+b,0)/v.length,n:v.length}:null};
+ for(const k of keys){const g=mean(good,k),b=mean(slow,k);
+  if(!g||!b||g.n<3||b.n<2)continue;
+  const mult=Math.max(.5,Math.min(1.5,1+2*(g.m-b.m)));
+  if(Math.abs(mult-1)>=.05){TUNE[k]=Math.round(mult*100)/100;TUNE_INFO.changes.push({k,mult:TUNE[k]})}}
+ TUNE_INFO.changes.sort((a,b)=>Math.abs(b.mult-1)-Math.abs(a.mult-1));
+ TUNE_ON=on&&TUNE_INFO.changes.length>0;
+}
+const FLAB=k=>{for(const p of Object.values(SP))for(const F of p.factors)if(F.k===k)return F.l;return k};
+function renderTune(){
+ const el=$("tuneBox");if(!el)return;const I=TUNE_INFO||{good:0,slow:0,changes:[]};
+ if(I.good<TUNE_MIN_GOOD||I.slow<TUNE_MIN_SLOW){
+  el.innerHTML=`<b>Personal tuning</b><div class="note">Log trips on the day you fish and the scores will adjust to what matched your good days. Needs ${Math.max(0,TUNE_MIN_GOOD-I.good)} more “caught” and ${Math.max(0,TUNE_MIN_SLOW-I.slow)} more slow or empty trips.</div>`;return}
+ if(!I.changes.length){el.innerHTML=`<b>Personal tuning</b><div class="note">So far your good and slow days look alike to every factor, so the scores are unchanged.</div>`;return}
+ el.innerHTML=`<label style="display:flex;gap:8px;align-items:center"><input type="checkbox" id="tuneOn" ${TUNE_ON?"checked":""}> <b>Use my tuning in scores</b></label>
+  <div class="note">Based on ${I.good} good and ${I.slow} slow trips:</div><ul class="tips">${I.changes.slice(0,6).map(c=>`<li>${esc(FLAB(c.k))} counts ${c.mult>1?"more":"less"} (${c.mult>1?"+":""}${Math.round((c.mult-1)*100)}%)</li>`).join("")}</ul>`;
+ $("tuneOn").onchange=e=>{try{localStorage.setItem("la-fish-tune",e.target.checked?"on":"off")}catch(_){}computeTune();render();renderTune()};
+}
 const LOG_KEY="la-fish-catches-v1";
 function getLogs(){try{return JSON.parse(localStorage.getItem(LOG_KEY)||"[]")}catch(e){return[]}}
 function saveLogs(arr){try{localStorage.setItem(LOG_KEY,JSON.stringify(arr))}catch(e){}}
 function renderLog(){
  if(!DATA)return;
+ computeTune();renderTune();
  const spSel=$("logSp"),spotSel=$("logSpot");
  if(spSel&&!spSel.options.length){
   for(const [k,v] of Object.entries(SP)){const o=document.createElement("option");o.value=k;o.textContent=v.name+(v.zone==="offshore"?" (offshore)":"");spSel.appendChild(o)}
@@ -1049,7 +1115,7 @@ async function load(isRefresh){
     document.querySelectorAll(".panel-tabs [data-panel]").forEach(b=>b.classList.toggle("on",b===btn));
     const log=btn.dataset.panel==="log";
     $("panel-fish").hidden=log; $("panel-log").hidden=!log;
-    if(log)renderLog();
+    if(log)renderLog();else render();      // scores may have changed with personal tuning
    };
   });
   // Depth preference
@@ -1069,14 +1135,16 @@ async function load(isRefresh){
    const depthV=$("logDepth").value===""?null:+$("logDepth").value;
    // Only today's conditions are known, so a score and snapshot are stored only for today's date
    const isToday=$("logDate").value===localDate();
-   let scoreAtLog=null,snap=null;
+   let scoreAtLog=null,snap=null,factors=null;
    if(spot&&isToday){
-    const r=score(spv,spot,Date.now(),depthV??userDepth()); if(!r.gate)scoreAtLog=r.total;
+    const was=TUNE_ON;TUNE_ON=false;                    // store the plain model, not the tuned one
+    const r=score(spv,spot,Date.now(),depthV??userDepth());TUNE_ON=was;
+    if(!r.gate){scoreAtLog=r.total;factors=Object.fromEntries(r.rows.map(x=>[x.k,Math.round(x.v*100)/100]))}
     const C=spot.conditions||{};snap={temp:C.temp,sal:C.sal,wind:C.wind,tide:C.tide,pres:C.pres,clar:C.clar,wave:C.wave,moon:moonLabel(moonPhase())};
    }
    const entry={id:Date.now(),sp:spv,spot:spotId,date:$("logDate").value,depth:depthV,
     result:$("logResult").value,amount:($("logAmt").value||"").slice(0,80),
-    notes:($("logNotes").value||"").slice(0,240),scoreAtLog,snap,savedAt:new Date().toISOString()};
+    notes:($("logNotes").value||"").slice(0,240),scoreAtLog,snap,factors,savedAt:new Date().toISOString()};
    const arr=getLogs();arr.push(entry);saveLogs(arr);
    $("logMsg").textContent=isToday?"Saved on this device only.":"Saved on this device only. No model score is stored for past dates.";
    $("logAmt").value=""; $("logNotes").value="";
@@ -1084,6 +1152,8 @@ async function load(isRefresh){
   };
  }
  try{const fr=await fetch("forecast.json?t="+Date.now());if(fr.ok)FC=await fr.json()}catch(e){}
+ fetch("history.json?t="+Date.now()).then(r=>r.ok?r.json():null).then(h=>{if(h&&h.t){HIST=h;if(DATA&&sel)render()}}).catch(()=>{});
+ computeTune();
  LAST_LOAD=Date.now();
  if(!isRefresh)readHash();
  if(!sel||!DATA.spots.some(s=>s.id===sel))sel=DATA.spots[0].id;
