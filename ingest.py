@@ -65,8 +65,8 @@ def save_station_cache(cache):
         if isinstance(k, tuple) and k and k[0] in ("sites", "buoys", "depth", "mzone"):
             # JSON keys must be strings
             out["|".join(str(x) for x in k)] = v
-        elif k == "buoys":
-            out["buoys"] = v
+        elif k in ("buoys", "deadbuoys"):
+            out[k] = v
     try:
         with open(STATION_CACHE + ".tmp", "w") as f:
             json.dump(out, f)
@@ -76,8 +76,8 @@ def save_station_cache(cache):
 
 def hydrate_station_cache(cache, disk):
     for k, v in (disk or {}).items():
-        if k == "buoys":
-            cache.setdefault("buoys", v)
+        if k in ("buoys", "deadbuoys"):
+            cache.setdefault(k, v)
             continue
         if "|" in k:
             parts = k.split("|")
@@ -168,6 +168,20 @@ SPOTS = [
 ]
 
 # ---------------------------------------------------------------- HTTP
+# Hosts that time out when hit by several workers at once get a small concurrency limit.
+_HOST_GATES = {"open-meteo.com": threading.Semaphore(2)}
+
+# NOAA ERD's ERDDAP is sometimes busy (HTTP 503); upwell is its sister server with the same datasets.
+ERDDAP_MIRRORS = ("https://coastwatch.pfeg.noaa.gov/erddap", "https://upwell.pfeg.noaa.gov/erddap")
+
+def erddap_json(path, tries=1, timeout=12):
+    """GET an ERDDAP path (e.g. 'griddap/jplMURSST41.json?...') from the first mirror that answers."""
+    for base in ERDDAP_MIRRORS:
+        j = get_json(f"{base}/{path}", tries=tries, timeout=timeout)
+        if j is not None:
+            return j
+    return None
+
 def get_json(url, params=None, tries=3, timeout=15, headers=None):
     if params:
         url += "?" + urlencode(params)
@@ -176,27 +190,41 @@ def get_json(url, params=None, tries=3, timeout=15, headers=None):
         timeout = min(timeout, 12)
         tries = min(tries, 1)
     hdr = {"User-Agent": f"{APP} ({CONTACT})", **(headers or {})}
+    gate = next((g for host, g in _HOST_GATES.items() if host in url), None)
     for i in range(tries):
         try:
             req = Request(url, headers=hdr)
-            with urlopen(req, timeout=timeout) as r:
-                return json.load(r)
+            if gate:
+                gate.acquire()
+            try:
+                with urlopen(req, timeout=timeout) as r:
+                    body = r.read()
+                try:
+                    return json.loads(body)
+                except UnicodeDecodeError:                # some ArcGIS servers send Windows-1252 text
+                    return json.loads(body.decode("cp1252", "replace"))
+            finally:
+                if gate:
+                    gate.release()
         except HTTPError as e:
             log.warning("HTTP %s for %s", e.code, url)
             if e.code < 500:
                 return None
-        except (URLError, TimeoutError, json.JSONDecodeError) as e:
-            log.warning("fetch failed (%s): %s", e, url)
+        except (URLError, TimeoutError, OSError, ValueError) as e:      # ValueError: not JSON / bad bytes
+            log.warning("fetch failed (%s): %s", str(e)[:120], url)
         time.sleep(2 ** i)
     return None
 
-def get_text(url, params=None):
+def get_text(url, params=None, quiet_404=False):
     if params:
         url += "?" + urlencode(params)
     try:
         with urlopen(Request(url, headers={"User-Agent": f"{APP} ({CONTACT})"}), timeout=20) as r:
             return r.read().decode("utf-8", "replace")
-    except (URLError, TimeoutError) as e:
+    except HTTPError as e:
+        if not (quiet_404 and e.code == 404):
+            log.warning("fetch failed (HTTP %s): %s", e.code, url)
+    except (URLError, TimeoutError, OSError) as e:
         log.warning("fetch failed (%s): %s", e, url)
         return None
 
@@ -514,9 +542,8 @@ def sat_sst(lat, lon, cache):
     if key in cache:
         return cache[key]
     d, out = 0.25, None
-    url = ("https://coastwatch.pfeg.noaa.gov/erddap/griddap/jplMURSST41.json"
-           f"?analysed_sst[(last)][({lat-d:.2f}):3:({lat+d:.2f})][({lon-d:.2f}):3:({lon+d:.2f})]")
-    j = get_json(url, tries=1)
+    j = erddap_json("griddap/jplMURSST41.json"
+                    f"?analysed_sst[(last)][({lat-d:.2f}):3:({lat+d:.2f})][({lon-d:.2f}):3:({lon+d:.2f})]")
     if j is None:                              # server didn't answer; get_json already logged it
         cache[key] = None
         return None
@@ -684,12 +711,13 @@ def marine(lat, lon, now):
                   "wave": at("wave", nh), "cur": at("cur", nh)}
     return out
 
-def near_buoys(spot, cache, radius_mi=75, limit=3):
+def near_buoys(spot, cache, radius_mi=75, limit=6):
     """Nearest active NDBC stations with weather sensors (buoys and platforms)."""
     with _BUOY_LOCK:                          # one download of the station list per run
         if "buoys" not in cache:
             cache["buoys"] = buoy_list()
-    near = [(i, round(miles(spot["lat"], spot["lon"], la, lo))) for i, la, lo in cache["buoys"]]
+    dead = set(cache.get("deadbuoys") or [])          # stations with no realtime data file
+    near = [(i, round(miles(spot["lat"], spot["lon"], la, lo))) for i, la, lo in cache["buoys"] if i not in dead]
     return sorted([x for x in near if x[1] <= radius_mi], key=lambda x: x[1])[:limit]
 
 _BUOY_LOCK = threading.Lock()
@@ -706,8 +734,10 @@ def buoy_list():
 
 def buoy_obs(sid):
     """Latest sea temp, waves, wind and pressure trend from an NDBC realtime2 file."""
-    txt = get_text(f"https://www.ndbc.noaa.gov/data/realtime2/{sid}.txt")
-    lines = [l.split() for l in (txt or "").splitlines() if l.strip()]
+    txt = get_text(f"https://www.ndbc.noaa.gov/data/realtime2/{sid}.txt", quiet_404=True)
+    if txt is None:
+        return None                                   # station has no realtime file
+    lines = [l.split() for l in txt.splitlines() if l.strip()]
     if len(lines) < 3 or not lines[0][0].startswith("#"):
         return {}
     cols, rows, out = [c.lstrip("#") for c in lines[0]], lines[2:], {}     # newest row first
@@ -1030,6 +1060,12 @@ def collect(spot, now, cache):
         for sid, dist in near_buoys(spot, cache):
             if ("ndbc", sid) not in cache:
                 cache[("ndbc", sid)] = buoy_obs(sid)
+                if cache[("ndbc", sid)] is None:          # no realtime file: skip it in future runs
+                    with _BUOY_LOCK:
+                        cache.setdefault("deadbuoys", [])
+                        if sid not in cache["deadbuoys"]:
+                            cache["deadbuoys"].append(sid)
+                    cache[("ndbc", sid)] = {}
             for m, rec in cache[("ndbc", sid)].items():
                 age = (now - rec[1]).total_seconds() / 60
                 if m not in done and age <= STALE_MIN:
@@ -1190,8 +1226,11 @@ def griddap_box(base, ds, var, lat0, lat1, lon0, lon1, stride=1, lat_desc=False,
     """(time, lats, lons, grid) from an ERDDAP griddap dataset for the newest time step.
     grid[i][j] is None where there's no data (land, clouds)."""
     la = f"[({lat1}):{stride}:({lat0})]" if lat_desc else f"[({lat0}):{stride}:({lat1})]"
-    url = f"{base}/griddap/{ds}.json?{var}[(last)]{extra}{la}[({lon0}):{stride}:({lon1})]"
-    j = get_json(url, tries=1, timeout=60)
+    path = f"griddap/{ds}.json?{var}[(last)]{extra}{la}[({lon0}):{stride}:({lon1})]"
+    if base == ERDDAP_MIRRORS[0]:
+        j = erddap_json(path, timeout=60)
+    else:
+        j = get_json(f"{base}/{path}", tries=1, timeout=60)
     try:
         rows = j["table"]["rows"]
         names = j["table"]["columnNames"]
@@ -1389,6 +1428,16 @@ def static_layers(now, rigs_path=RIGS, reefs_path=REEFS):
         except (OSError, KeyError, ValueError, TypeError, json.JSONDecodeError):
             return True
     bbox = (-94.5, 26.4, -87.5, 30.6)
+    try:
+        _rigs(now, rigs_path, bbox, stale)
+    except Exception:
+        log.exception("rigs.json update failed")
+    try:
+        _reefs(now, reefs_path, stale)
+    except Exception:
+        log.exception("reefs.json update failed")
+
+def _rigs(now, rigs_path, bbox, stale):
     if stale(rigs_path):
         feats = None
         for url in ("https://gis.boem.gov/arcgis/rest/services/BOEM_BSEE/GOM_Layers/MapServer/0",
@@ -1412,6 +1461,10 @@ def static_layers(now, rigs_path=RIGS, reefs_path=REEFS):
                 json.dump({"generated": now.isoformat(), "source": "BOEM/BSEE OCS platforms", "rigs": pts}, fh,
                           separators=(",", ":"))
             log.info("rigs.json: %d platforms", len(pts))
+        else:
+            log.warning("rigs.json: no platform source answered; will retry next run")
+
+def _reefs(now, reefs_path, stale):
     if stale(reefs_path):
         feats = arcgis_geojson("https://gis.ngdc.noaa.gov/arcgis/rest/services/NMSP/FGB/MapServer/23")
         if feats:
@@ -1716,6 +1769,16 @@ def health(out_md="health.md"):
     add("Satellite water clarity (Kd490)", kd, f"{kd[2]}, {kd[1]:%Y-%m-%d}" if kd else "no dataset answered")
     b = buoy_obs("42040")
     add("NDBC buoy 42040", b, ", ".join(sorted(b)) or "no data")
+    now_y = datetime.now(UTC).year
+    ssh = griddap_box("https://gcoos5.geos.tamu.edu/erddap", f"SSH_GoA_{now_y}", "adt", 28.0, 29.0, -90.0, -89.0, extra="")
+    add("Sea surface height (Loop Current)", ssh, f"newest {ssh[0]}" if ssh else "no answer")
+    rigs = arcgis_geojson("https://gis.boem.gov/arcgis/rest/services/BOEM_BSEE/GOM_Layers/MapServer/0",
+                          bbox=(-90.5, 28.5, -90.0, 29.0), max_pages=1, page=50)
+    add("Offshore platforms (BOEM)", rigs, f"{len(rigs)} near Grand Isle" if rigs else "no answer")
+    reefs = arcgis_geojson("https://gis.ngdc.noaa.gov/arcgis/rest/services/NMSP/FGB/MapServer/23", max_pages=1, page=5)
+    add("Artificial reefs (LDWF via NOAA)", reefs, f"{len(reefs)} returned" if reefs else "no answer")
+    mf = marine_forecast("GMZ550", {})
+    add("NWS marine forecast text", mf, (mf["periods"][0]["name"] + ": " + mf["periods"][0]["text"][:60]) if mf and mf["periods"] else "no answer")
     for name, ok, detail in map_checks():
         add(name, ok, detail)
     fails = [r for r in res if not r[1]]

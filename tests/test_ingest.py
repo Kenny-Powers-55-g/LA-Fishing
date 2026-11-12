@@ -151,6 +151,11 @@ class FullRun(unittest.TestCase):
         with open("alerts_state.json") as f:
             self.assertEqual(len(json.load(f)["sent"]), 2)
 
+    def test_stations_without_data_are_skipped_next_time(self):
+        with open("stations_cache.json") as f:
+            self.assertIn("kvaf", json.load(f).get("deadbuoys", []))
+        self.assertEqual(fakes.CALLS.get("ndbc-404"), 1)          # asked once, then remembered
+
     def test_status_file(self):
         with open("status.json") as f:
             st = json.load(f)
