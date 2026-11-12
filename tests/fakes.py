@@ -16,6 +16,27 @@ def bump(k):
 def fake_json(url, params=None, tries=3, timeout=15, headers=None):
     p=dict(params or {})
     if "?" in url: p.update({k:v[0] for k,v in parse_qs(urlparse(url).query).items()})
+    if "mdapi" in url and "stations.json" in url:
+        bump("cstations")
+        return {"stations": [{"id": "ACT0001", "name": "Barataria Pass", "lat": 29.27, "lng": -89.94, "currbin": 1},
+                             {"id": "ACT9999", "name": "Far away", "lat": 27.0, "lng": -80.0, "currbin": 1}]}
+    if "datagetter" in url and p.get("product") == "currents_predictions":
+        bump("currents"); assert p["interval"] == "MAX_SLACK"
+        t0 = datetime.strptime(p["begin_date"], "%Y%m%d %H:%M").replace(tzinfo=UTC); rows = []
+        for k in range(60):                    # slack, max flood, slack, max ebb ... every ~3.1 h
+            typ = ["slack", "flood", "slack", "ebb"][k % 4]
+            rows.append({"Time": f(t0 + timedelta(minutes=186 * k)), "Type": typ,
+                         "Velocity_Major": {"slack": 0, "flood": 1.8, "ebb": -2.2}[typ]})
+        return {"current_predictions": {"cp": rows}}
+    if "radar_base_reflectivity" in url:
+        bump("radar"); return {"layers": [{"id": 0, "name": "RIDGE 1x1 km Base Reflectivity"}]}
+    if "Hypoxia/MapServer" in url:
+        bump("hypoxia")
+        if "/query" not in url:
+            return {"layers": [{"id": 1, "name": "Stations 2026", "geometryType": "esriGeometryPoint"},
+                               {"id": 3, "name": f"Bottom Dissolved Oxygen Contours {now.year}", "geometryType": "esriGeometryPolygon"},
+                               {"id": 4, "name": "Bottom Dissolved Oxygen Contours 2019", "geometryType": "esriGeometryPolygon"}]}
+        return {"features": [{"geometry": {"type": "Polygon", "coordinates": [[[-91.0, 28.3], [-90.2, 28.3], [-90.2, 28.8], [-91.0, 28.8], [-91.0, 28.3]]]}, "properties": {}}]}
     if "datagetter" in url:
         bump("coops"); pr=p["product"]
         if pr=="water_temperature":
@@ -147,7 +168,14 @@ Coastal waters from Port Fourchon LA to Lower Atchafalaya River LA out 20 NM-
 $$
 """
 
+BEACH_HTML = """<table><tr><th>Monitoring Site</th><th>Most Recent<br>Sample Date</th><th>Advisory Status</th></tr>
+<tr><td>Grand Isle Beach Site #1</td><td>10/26/2026</td><td><strong>ADVISORY</strong></td></tr>
+<tr><td>Holly Beach Site #1</td><td>10/20/2026</td><td>No Advisory</td></tr>
+<tr><td>Martin (Mae&#39;s) Beach</td><td>10/20/2026</td><td>No Advisory</td></tr></table>"""
+
 def fake_text(url, params=None, quiet_404=False):
+    if "ldh.la.gov/beach" in url:
+        bump("ldh"); return BEACH_HTML
     if "tgftp" in url:
         bump("tgftp")
         return MARINE_TXT if "/coastal/" in url and "gmz550" in url else None
