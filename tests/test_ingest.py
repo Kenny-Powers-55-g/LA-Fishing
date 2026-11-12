@@ -200,7 +200,47 @@ class FullRun(unittest.TestCase):
         self.assertIn("| NDBC buoy 42040 | **FAIL** | no data |", rep)
         self.assertIn("| NHC tropical storms | OK |", rep)
         self.assertIn("| Artificial reefs | OK |", rep)
+        self.assertIn("| NWS radar map | OK |", rep)
+        self.assertIn("| Beach water quality (LDH) | OK | 3 beaches, 1 with advisories |", rep)
         self.assertGreaterEqual(fails, 1)
+
+    def test_tidal_currents(self):
+        c = self.spots["barat"]["current"]
+        self.assertEqual(c["station"], "ACT0001")
+        self.assertIn(c["dir"], ("Flood", "Ebb", "Slack"))
+        self.assertLessEqual(abs(c["now"]), 2.2)
+        self.assertTrue(any(e["type"] == "slack" for e in c["events"]))
+        self.assertEqual(self.spots["barat"]["conditions"]["tcur"], round(abs(c["now"]), 1))
+        self.assertEqual(len(self.forecast["spots"]["barat"]["tcur"]), 168)
+        self.assertIsNone(self.spots["calc"]["current"])                 # no station within 12 mi
+        self.assertIn("tcur", self.spots["calc"]["quality"]["not_applicable"])
+        with open("stations_cache.json") as f:
+            sc = json.load(f)
+        self.assertEqual(sc["cstations"][0][0], "ACT0001")                 # kept for next run
+        self.assertEqual(sc["cstn|calc"], [])                              # "none nearby" remembered too
+
+    def test_diversions_and_beaches(self):
+        dv = self.latest["diversions"]
+        self.assertEqual(dv["bonnet"]["status"], "Open")
+        self.assertEqual(dv["davis"]["status"], "Flowing")
+        self.assertEqual(self.spots["barat"]["beach_adv"], ["Grand Isle Beach Site #1"])
+        self.assertEqual(self.spots["calc"]["beach_adv"], [])
+        mae = next(b for b in self.latest["beaches"] if b["name"].startswith("Martin"))
+        self.assertEqual(mae["name"], "Martin (Mae's) Beach")
+        self.assertIsNotNone(mae["lat"])
+
+    def test_dead_zone(self):
+        with open("deadzone.json") as f:
+            dz = json.load(f)
+        self.assertEqual(dz["year"], fakes.now.year)                     # newest year's layer chosen
+        self.assertTrue(dz["areas"])
+        july = fakes.now.replace(month=7, day=15)
+        off40 = next(s for s in ingest.SPOTS if s["id"] == "off40")
+        off90 = next(s for s in ingest.SPOTS if s["id"] == "off90")
+        self.assertEqual(ingest.hypoxia_flag(off40, dz, july), "Low")
+        self.assertEqual(ingest.hypoxia_flag(off90, dz, july), "OK")
+        self.assertIsNone(ingest.hypoxia_flag(off40, dz, july.replace(month=12)))   # out of season
+        self.assertIsNone(ingest.hypoxia_flag(off40, dict(dz, year=2019), july))   # old survey
 
     def test_stations_without_data_are_skipped_next_time(self):
         with open("stations_cache.json") as f:

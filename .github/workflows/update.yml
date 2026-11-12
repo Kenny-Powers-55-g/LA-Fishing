@@ -48,7 +48,7 @@ jobs:
         run: |
           owner="${GITHUB_REPOSITORY%%/*}"; repo="${GITHUB_REPOSITORY#*/}"
           site="https://$(echo "$owner" | tr 'A-Z' 'a-z').github.io/$repo"
-          for f in history.json rigs.json reefs.json alerts_state.json tropical.json; do
+          for f in history.json rigs.json reefs.json alerts_state.json tropical.json deadzone.json; do
             curl -sfL "$site/$f" -o "$f" && echo "$f: $(wc -c < "$f") bytes" || echo "no $f yet; it will be built"
           done
 
@@ -79,7 +79,7 @@ jobs:
         run: |
           mkdir site
           cp index.html latest.json forecast.json manifest.webmanifest sw.js site/
-          for f in icon-192.png icon-512.png status.json history.json ocean.json rigs.json reefs.json tropical.json alerts_state.json; do
+          for f in icon-192.png icon-512.png status.json history.json ocean.json rigs.json reefs.json tropical.json deadzone.json alerts_state.json; do
             [ -f "$f" ] && cp "$f" site/ || true
           done
           # Fail clearly if core data is missing

@@ -32,7 +32,7 @@ variable USGS_API_KEY (in GitHub: a repository secret of the same name).
 Set CONTACT below. Check each API's terms (Open-Meteo's free tier is for
 non-commercial use).
 """
-import json, logging, math, os, sqlite3, sys, threading, time
+import json, logging, math, os, re, sqlite3, sys, threading, time
 import xml.etree.ElementTree as ET
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta, timezone
@@ -62,10 +62,10 @@ def save_station_cache(cache):
     # only persist the discovery keys (sites / buoys), not live readings
     out = {}
     for k, v in cache.items():
-        if isinstance(k, tuple) and k and k[0] in ("sites", "buoys", "depth", "mzone"):
+        if isinstance(k, tuple) and k and k[0] in ("sites", "buoys", "depth", "mzone", "cstn"):
             # JSON keys must be strings
             out["|".join(str(x) for x in k)] = v
-        elif k in ("buoys", "deadbuoys"):
+        elif k in ("buoys", "deadbuoys", "cstations"):
             out[k] = v
     try:
         with open(STATION_CACHE + ".tmp", "w") as f:
@@ -76,7 +76,7 @@ def save_station_cache(cache):
 
 def hydrate_station_cache(cache, disk):
     for k, v in (disk or {}).items():
-        if k in ("buoys", "deadbuoys"):
+        if k in ("buoys", "deadbuoys", "cstations"):
             cache.setdefault(k, v)
             continue
         if "|" in k:
@@ -918,7 +918,7 @@ def stage_at(pts, t):
         return "Slack", rng
     return ("Incoming" if nx[2] == "H" else "Outgoing"), rng
 
-def build_forecast(cond, wx, pts, now, mar=None, bias=None):
+def build_forecast(cond, wx, pts, now, mar=None, bias=None, cev=None):
     """Hourly conditions for the next 168 h. Wind, cloud, rain, pressure and tide are forecasts;
     water temp is a damped guess from forecast air temp; salinity and level are held at today's value."""
     S = wx["series"]
@@ -965,6 +965,9 @@ def build_forecast(cond, wx, pts, now, mar=None, bias=None):
         o["tide"].append(st)
         o["trange"].append(None if rg is None else round(rg, 1))
         o["clar"].append(clarity_label(None, wind, cond["sal"], rain)[0])
+        if cev:                                   # predicted tidal current (knots, either direction)
+            cv = current_at(cev, t)
+            o.setdefault("tcur", []).append(None if cv is None else round(abs(cv), 1))
     o["start"] = start.isoformat()
     return o
 
@@ -1142,6 +1145,13 @@ def collect(spot, now, cache):
     if riv:
         src["riv"] = {"source": f"nws:{rg['lid']}", "age_min": round(max(0, (now - parse_iso(rg["time"])).total_seconds()) / 60)}
 
+    tcur = tidal_current(spot, now, cache)
+    if tcur:
+        src["tcur"] = {"source": f"coops-currents:{tcur['station']}", "age_min": 0, "distance_mi": tcur["mi"]}
+    oxy = hypoxia_flag(spot, cache.get("deadzone"), now)
+    if oxy:
+        src["oxy"] = {"source": "NOAA Hypoxia Watch", "age_min": 0}
+
     cond = {"temp": round(got["temp_f"][0]) if "temp_f" in got else None,
             "wind": round(wind) if wind is not None else None,
             "wdir": wdir,
@@ -1162,7 +1172,10 @@ def collect(spot, now, cache):
             "wl_anom": wl[0] if wl else None,
             "riv": riv,
             "sbreak": round(got["sbreak"][0], 2) if "sbreak" in got else None,
-            "ssat": round(got["ssat"][0]) if "ssat" in got else None}
+            "ssat": round(got["ssat"][0]) if "ssat" in got else None,
+            "tcur": round(abs(tcur["now"]), 1) if tcur else None,
+            "tdir": tcur["dir"] if tcur else None,
+            "oxy": oxy}
     na = []
     if not spot["tide"]:
         na += ["tide", "trange"]
@@ -1178,6 +1191,10 @@ def collect(spot, now, cache):
         na.append("wl_anom")
     if not spot.get("river"):
         na.append("riv")
+    if not tcur:
+        na += ["tcur", "tdir"]
+    if not oxy:
+        na.append("oxy")
     na = sorted(set(na))
     missing = [k for k, v in cond.items() if v is None and k not in na]
     applicable = len(cond) - len(na)
@@ -1189,7 +1206,9 @@ def collect(spot, now, cache):
             "zone": "offshore" if spot.get("marine") else "inshore",
             "alerts": get_alerts(spot["lat"], spot["lon"]),
             "tides": tides,
-            "forecast": build_forecast(cond, wx, pts, now, mar, sbias) if wx and wx.get("series") else None,
+            "current": {k: v for k, v in tcur.items() if k != "_ev"} if tcur else None,
+            "beach_adv": beach_advisories(spot, cache.get("beaches")),
+            "forecast": build_forecast(cond, wx, pts, now, mar, sbias, tcur["_ev"] if tcur else None) if wx and wx.get("series") else None,
             "conditions": cond,
             "quality": {"missing": missing, "sources": src,
                         "estimated": ["clar"] if clar_kind in ("estimated", "satellite") else [],
@@ -1702,6 +1721,258 @@ def previous_tropical(now, path=TROPICAL, max_h=12):
     except (OSError, KeyError, ValueError, TypeError):
         return None
 
+# ---------------------------------------------------------------- tidal currents (CO-OPS)
+# Predicted flood/ebb speed and slack times at NOAA current stations near tidal spots. Moving
+# water at the passes matters more to many fish than how high the tide is.
+CUR_RADIUS_MI = 12
+_CST_LOCK = threading.Lock()
+
+def current_stations(cache):
+    """All CO-OPS current-prediction stations along the Louisiana coast (looked up once, kept)."""
+    with _CST_LOCK:
+        if cache.get("cstations") is None:
+            j = get_json(MDAPI.replace("/%s/products.json", ".json"), dict(type="currentpredictions", units="english"), tries=2)
+            out = []
+            for st in (j or {}).get("stations") or []:
+                la, lo = fnum(st.get("lat")), fnum(st.get("lng"))
+                if la is None or lo is None or not (28.4 <= la <= 30.6 and -94.0 <= lo <= -88.7):
+                    continue
+                out.append([str(st.get("id")), str(st.get("name") or st.get("id")), la, lo, st.get("currbin")])
+            if j is not None:
+                cache["cstations"] = out
+            else:
+                return []
+        return cache["cstations"]
+
+def current_station(spot, cache):
+    """Nearest current-prediction station within CUR_RADIUS_MI of a tidal inshore spot, or None."""
+    key = ("cstn", spot["id"])
+    if key in cache:
+        v = cache[key]
+        return v if v else None
+    st = current_stations(cache)
+    if not st:
+        return None
+    best = min(([miles(spot["lat"], spot["lon"], la, lo), sid, nm, b] for sid, nm, la, lo, b in st), default=None)
+    cache[key] = [best[1], best[2], round(best[0], 1), best[3]] if best and best[0] <= CUR_RADIUS_MI else []
+    return cache[key] or None
+
+def _cp_rows(j):
+    """Prediction rows from a currents_predictions answer (the layout differs by interval)."""
+    cp = (j or {}).get("current_predictions")
+    if isinstance(cp, dict):
+        cp = cp.get("cp")
+    return cp if isinstance(cp, list) else []
+
+def current_events(station, now, cache):
+    """Max flood (+), max ebb (-) and slack (0) events for the next week, as [(time, knots, type)]."""
+    sid, _, _, b = station
+    key = ("cur", sid)
+    if key in cache:
+        return cache[key]
+    params = dict(station=sid, product="currents_predictions", interval="MAX_SLACK", units="english",
+                  time_zone="gmt", format="json", application=APP,
+                  begin_date=(now - timedelta(hours=8)).strftime("%Y%m%d %H:%M"), range=180)
+    if b not in (None, ""):
+        params["bin"] = b
+    out = []
+    for r in _cp_rows(get_json(COOPS, params, tries=2)):
+        try:
+            t = datetime.strptime(str(r.get("Time")), "%Y-%m-%d %H:%M").replace(tzinfo=UTC)
+        except ValueError:
+            continue
+        typ = str(r.get("Type") or "").lower()
+        v = fnum(r.get("Velocity_Major"))
+        if v is None:
+            v = 0.0
+        if typ.startswith("slack"):
+            v, typ = 0.0, "slack"
+        elif typ.startswith("ebb"):
+            v, typ = -abs(v), "ebb"
+        elif typ.startswith("flood"):
+            v, typ = abs(v), "flood"
+        else:
+            typ = "flood" if v > 0 else "ebb" if v < 0 else "slack"
+        out.append((t, round(v, 2), typ))
+    out.sort()
+    cache[key] = out
+    return out
+
+def current_at(events, t):
+    """Signed current speed (knots, + flood) at time t, eased between the predicted events."""
+    for (t0, v0, _), (t1, v1, _) in zip(events, events[1:]):
+        if t0 <= t <= t1:
+            f = (t - t0).total_seconds() / max((t1 - t0).total_seconds(), 1)
+            return v0 + (v1 - v0) * (1 - math.cos(math.pi * f)) / 2
+    return None
+
+def tidal_current(spot, now, cache):
+    """Current now plus the next events for the page, or None."""
+    if spot.get("marine") or not spot.get("tide"):
+        return None
+    st = current_station(spot, cache)
+    if not st:
+        return None
+    ev = current_events(st, now, cache)
+    v = current_at(ev, now) if ev else None
+    if v is None:
+        return None
+    return {"station": st[0], "name": st[1], "mi": st[2], "now": round(v, 2),
+            "dir": "Flood" if v > 0.15 else "Ebb" if v < -0.15 else "Slack",
+            "events": [{"t": t.isoformat(), "v": x, "type": k} for t, x, k in ev
+                       if now - timedelta(hours=2) <= t <= now + timedelta(hours=36)][:12],
+            "_ev": ev}
+
+# ---------------------------------------------------------------- freshwater diversions
+# Mississippi River water let into the estuaries. Each one freshens and muddies its basin.
+DIVERSIONS = (
+    {"id": "bonnet", "name": "Bonnet Carré Spillway", "affects": "Lake Pontchartrain and western Mississippi Sound",
+     "spots": ["pont"], "sites": [], "bbox": (-90.52, 29.98, -90.30, 30.12), "open_cfs": 5000,
+     "url": "https://www.mvn.usace.army.mil/Missions/Mississippi-River-Flood-Control/Bonnet-Carre-Spillway-Overview/"},
+    {"id": "davis", "name": "Davis Pond Freshwater Diversion", "affects": "Lake Cataouatche, Lake Salvador and upper Barataria",
+     "spots": ["barat"], "sites": ["295501090190400"], "open_cfs": 1000, "url": "https://coastal.la.gov/diversion-operations/"},
+    {"id": "caern", "name": "Caernarvon Freshwater Diversion", "affects": "Breton Sound, Lake Lery and Black Bay",
+     "spots": ["venice"], "sites": ["295124089542100"], "open_cfs": 1000, "url": "https://coastal.la.gov/diversion-operations/"},
+)
+
+def _flow(feats):
+    best = None
+    for f in feats or []:
+        p = f.get("properties") or {}
+        v = fnum(p.get("value"))
+        try:
+            t = parse_iso(p.get("time"))
+        except (TypeError, ValueError):
+            continue
+        if v is not None and (best is None or t > best[1]):
+            best = (v, t, str(p.get("monitoring_location_id") or ""))
+    return best
+
+def diversions(now):
+    """Latest discharge through each diversion from USGS (parameter 00060, cubic feet per second)."""
+    out = {}
+    for d in DIVERSIONS:
+        best = None
+        for site in d["sites"]:
+            best = _flow(wd_items("latest-continuous", dict(monitoring_location_id=f"USGS-{site}", parameter_code="00060")))
+            if best:
+                break
+        if not best and d.get("bbox"):
+            b = d["bbox"]
+            best = _flow(wd_items("latest-continuous", dict(bbox=",".join(map(str, b)), parameter_code="00060", limit=50)))
+        rec = {"name": d["name"], "affects": d["affects"], "spots": d["spots"], "url": d["url"]}
+        if best and now - best[1] <= timedelta(days=3):
+            q = best[0]
+            rec.update(cfs=round(q), time=best[1].isoformat(),
+                       status="Open" if d["id"] == "bonnet" and q >= d["open_cfs"] else
+                              "Flowing" if q >= d["open_cfs"] else "Low flow" if q > 50 else "Closed")
+        else:
+            rec.update(cfs=None, status="Unknown")
+        out[d["id"]] = rec
+    return out
+
+# ---------------------------------------------------------------- dead zone (hypoxia)
+DEADZONE = "deadzone.json"
+HYPOXIA_SERVICES = ("https://gis.ngdc.noaa.gov/arcgis/rest/services/Hypoxia/MapServer",
+                    "https://gis.ncdc.noaa.gov/arcgis/rest/services/ms/hypoxia/MapServer")
+
+def _layer_year(name):
+    ys = [int(y) for y in re.findall(r"(?:19|20)\d\d", name or "")]
+    return max(ys) if ys else None
+
+def deadzone(now, path=DEADZONE):
+    """Newest bottom-oxygen (hypoxia) contours or areas from NOAA's Gulf Hypoxia Watch.
+    Refreshed weekly. Returns the parsed file (new or kept) or None."""
+    try:
+        with open(path) as f:
+            old = json.load(f)
+        if (now - parse_iso(old["generated"])).days < STATIC_DAYS:
+            return old
+    except (OSError, KeyError, ValueError, TypeError):
+        old = None
+    for svc in HYPOXIA_SERVICES:
+        info = get_json(svc, dict(f="json"), tries=2)
+        layers = (info or {}).get("layers") or []
+        cand = []
+        for L in layers:
+            nm = str(L.get("name") or "")
+            gt = str(L.get("geometryType") or "")
+            if L.get("subLayerIds") or not re.search(r"oxygen|contour|hypox|DO\b", nm, re.I):
+                continue
+            if gt and not any(k in gt for k in ("Polygon", "Polyline")):
+                continue
+            cand.append((_layer_year(nm) or 0, "Polygon" in gt, L.get("id"), nm))
+        for yr, _poly, lid, nm in sorted(cand, reverse=True):
+            feats = arcgis_geojson(f"{svc}/{lid}", bbox=(-95.0, 27.5, -88.0, 30.5), max_pages=3)
+            if not feats:
+                continue
+            areas, lines = [], []
+            for f in feats:
+                g = f.get("geometry") or {}
+                areas += _rings(g)
+                lines += _paths(g)
+            if not areas and not lines:
+                continue
+            out = {"generated": now.isoformat(), "layer": nm, "year": yr or None, "areas": areas, "lines": lines,
+                   "source": "NOAA Gulf of Mexico Hypoxia Watch (summer survey)"}
+            with open(path + ".tmp", "w") as fh:
+                json.dump(out, fh, separators=(",", ":"))
+            os.replace(path + ".tmp", path)
+            log.info("deadzone.json: %s (%d areas, %d lines)", nm, len(areas), len(lines))
+            return out
+    log.warning("deadzone.json: no hypoxia layer answered")
+    return old
+
+def hypoxia_flag(spot, dz, now):
+    """'Low' if an offshore spot sits inside this summer's measured low-oxygen area, 'OK' if
+    outside it, None when there is no current-season survey to go by."""
+    if not spot.get("marine") or not dz or not dz.get("areas"):
+        return None
+    if dz.get("year") != now.year or not 5 <= now.month <= 10:
+        return None
+    return "Low" if any(_inside(spot["lat"], spot["lon"], r) for r in dz["areas"]) else "OK"
+
+# ---------------------------------------------------------------- beach water quality (LDH)
+LDH_BEACH = "https://ldh.la.gov/beach"
+RADAR_MS = "https://mapservices.weather.noaa.gov/eventdriven/rest/services/radar/radar_base_reflectivity/MapServer"
+# Approximate positions of the monitored beaches, to match them to spots
+BEACHES = {
+    "constance": (29.755, -93.590), "holly": (29.770, -93.460), "martin": (29.766, -93.360),
+    "mae": (29.766, -93.360), "gulf breeze": (29.766, -93.410), "little florida": (29.770, -93.385),
+    "rutherford": (29.766, -93.120), "dung": (29.770, -93.230), "long beach": (29.770, -93.230),
+    "cypremort": (29.733, -91.860), "elmer": (29.180, -90.075), "fontainebleau": (30.335, -90.040),
+    "grand isle state park": (29.255, -89.960), "grand isle": (29.230, -90.000),
+    "lake charles": (30.240, -93.230),
+}
+
+def _beach_pos(name):
+    n = name.lower()
+    for k in sorted(BEACHES, key=len, reverse=True):
+        if k in n:
+            return BEACHES[k]
+    return None
+
+def beaches():
+    """Swimming advisories from the LDH Beach Monitoring Program table, or None if unreadable."""
+    html = get_text(LDH_BEACH)
+    if not html:
+        return None
+    out = []
+    for row in re.findall(r"<tr[^>]*>(.*?)</tr>", html, re.S | re.I):
+        cells = [re.sub(r"\s+", " ", re.sub(r"<[^>]+>", " ", c)).strip()
+                 for c in re.findall(r"<t[dh][^>]*>(.*?)</t[dh]>", row, re.S | re.I)]
+        if len(cells) < 3 or not re.search(r"\d{1,2}/\d{1,2}/\d{4}", cells[1]):
+            continue
+        name = cells[0].replace("&#39;", "'").replace("&amp;", "&")
+        pos = _beach_pos(name)
+        out.append({"name": name, "date": cells[1], "advisory": "ADVISORY" in cells[2].upper() and "NO ADVISORY" not in cells[2].upper(),
+                    "lat": pos[0] if pos else None, "lon": pos[1] if pos else None})
+    return out or None
+
+def beach_advisories(spot, bl, radius_mi=30):
+    return sorted({b["name"] for b in bl or [] if b["advisory"] and b["lat"] is not None
+                   and miles(spot["lat"], spot["lon"], b["lat"], b["lon"]) <= radius_mi})
+
 # ---------------------------------------------------------------- NWS marine forecasts
 def marine_zone(spot, cache):
     """NWS coastal or offshore marine zone id covering a spot (looked up once, cached)."""
@@ -1828,6 +2099,12 @@ def run_once():
     except Exception:
         log.exception("river gauges failed")
         cache["rivers"] = {}
+    for key, fn in (("deadzone", lambda: deadzone(now)), ("beaches", beaches), ("diversions", lambda: diversions(now))):
+        try:
+            cache[key] = fn()
+        except Exception:                       # extras must never stop the run
+            log.exception("%s failed", key)
+            cache[key] = None
     with ThreadPoolExecutor(max_workers=max(1, WORKERS)) as ex:
         for spot, r in zip(SPOTS, ex.map(one, SPOTS)):
             if r is None:
@@ -1870,7 +2147,8 @@ def run_once():
     tmp = OUT + ".tmp"
     with open(tmp, "w") as f:
         json.dump({"generated": now.isoformat(), "rivers": cache.get("rivers") or {}, "marine": cache.get("marine") or {},
-                   "tropical": cache.get("tropical"), "spots": results}, f, indent=2)
+                   "tropical": cache.get("tropical"), "diversions": cache.get("diversions") or {},
+                   "beaches": cache.get("beaches"), "spots": results}, f, indent=2)
     os.replace(tmp, OUT)
     # Lightweight health summary for the UI and operators
     status = {
@@ -2039,6 +2317,23 @@ def health(out_md="health.md"):
     check("Artificial reefs", layer([u for u, _, _ in REEF_SOURCES], (-90.5, 28.5, -89.5, 29.2)))
     check("NHC tropical storms", nhc)
     check("NWS marine forecast text", marine)
+    def cur():
+        st = current_stations({})
+        return bool(st), f"{len(st)} current stations on the Louisiana coast" if st else "no answer"
+    def div():
+        d = diversions(now)
+        known = [f"{v['name'].split()[0]} {v['status'].lower()}" for v in d.values() if v["status"] != "Unknown"]
+        return bool(known), ", ".join(known) or "no diversion flow readings"
+    def beach():
+        b = beaches()
+        return b, f"{len(b)} beaches, {sum(x['advisory'] for x in b)} with advisories" if b else "table not readable"
+    def radar():
+        j = get_json(RADAR_MS, dict(f="json"), tries=2)
+        return j is not None and "layers" in j, "map service answered" if j else "no answer"
+    check("NOAA tidal current predictions", cur)
+    check("Freshwater diversions (USGS flow)", div)
+    check("Beach water quality (LDH)", beach)
+    check("NWS radar map", radar)
     try:
         checks = map_checks()
     except Exception as e:                           # noqa: BLE001

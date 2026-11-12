@@ -1,10 +1,12 @@
 // Caches the app so it opens offline. Data files and the page are network-first with the
 // saved copy as backup; on a weak connection the saved copy is used after a few seconds.
 // The map library and fonts are cached the first time they load.
-const V = "la-fishing-v10";
+const V = "la-fishing-v11";
 const CDN_CACHE = "la-fishing-cdn-v1";          // kept across app versions
+const TILE_CACHE = "la-fishing-tiles";          // map areas saved for offline (kept too)
+const TILE_RE = /^https:\/\/(gis\.charttools\.noaa\.gov|gis\.ngdc\.noaa\.gov)\/.*(\/tile\/|exportImage)/;
 const ASSETS = ["./", "index.html", "manifest.webmanifest", "icon-192.png", "icon-512.png"];
-const DATA_RE = /\/(latest|forecast|status|history|ocean|rigs|reefs|tropical)\.json$/;
+const DATA_RE = /\/(latest|forecast|status|history|ocean|rigs|reefs|tropical|deadzone)\.json$/;
 const CDN_RE = /^https:\/\/(cdnjs\.cloudflare\.com|fonts\.googleapis\.com|fonts\.gstatic\.com)\//;
 const SLOW_MS = 4000;                            // give up waiting on the network after this
 
@@ -17,7 +19,7 @@ self.addEventListener("install", e => {
 self.addEventListener("activate", e => {
   e.waitUntil(
     caches.keys().then(keys =>
-      Promise.all(keys.filter(k => k !== V && k !== CDN_CACHE).map(k => caches.delete(k)))
+      Promise.all(keys.filter(k => k !== V && k !== CDN_CACHE && k !== TILE_CACHE).map(k => caches.delete(k)))
     ).then(() => self.clients.claim())
   );
 });
@@ -46,6 +48,11 @@ self.addEventListener("fetch", e => {
       const net = fetch(req).then(r => { if (r.ok || r.type === "opaque") c.put(req, r.clone()); return r; });
       return m || net;
     })));
+    return;
+  }
+  // Chart and depth tiles: a saved copy (from "Save this area for offline") first, else the network
+  if (TILE_RE.test(req.url)) {
+    e.respondWith(caches.open(TILE_CACHE).then(c => c.match(req.url)).then(m => m || fetch(req)));
     return;
   }
   if (u.origin !== location.origin) return;
