@@ -114,6 +114,8 @@ button.t.on{background:var(--ac);color:var(--onac);border-color:var(--ac);font-w
 .mapbar select{font:inherit;font-size:13px;border:1px solid var(--bd);background:var(--card);color:var(--tx);border-radius:99px;padding:3px 10px}
 .mapbtn{font-size:13px;padding:4px 12px;min-height:32px}
 .depthpin{background:var(--ac);border:2px solid #fff;border-radius:50%}
+.spotnote.river{display:grid;gap:4px}
+.spotnote a{color:var(--ac)}
 .spotnote{background:var(--bg);border-radius:12px;padding:10px 14px;margin:12px 0;font-size:14px}
 .wswatch{width:18px;height:18px;border-radius:50%;display:inline-block;vertical-align:middle;margin-right:6px;border:1px solid var(--bd)}
 
@@ -358,7 +360,12 @@ const SP={
   {k:"temp",l:"Sea temp",w:2,f:v=>trap(v,[64,70,84,90]),t:v=>v+"°F"},
   wave(3),windO(2),cur(2,2.5),presO(1),depth(2,[40,60,180,300])]}
 };
-const SRC={vis:"vis",sbreak:"sbreak",wave:"wave",cur:"cur",temp:"temp_f",wind:"wind_mph",pres:"pres",tide:"tide",trange:"tide",sal:"sal",cloud:"cloud",dtemp:"temp_d24",rain:"rain",front:"front",level:"level_d6"};
+// River level (share of flood stage, and trend) for spots fed by the Mississippi or Atchafalaya.
+// High or rising river means fresh, muddy water for most fish; catfish don't mind rising water.
+const RIVTR={Falling:1,Steady:.95,Rising:.8};
+const riv=(w,rise=.8)=>({k:"riv",l:"River level",w,f:v=>trap(v.pct,[-1,0,60,110])*(v.trend==="Rising"?rise:RIVTR[v.trend]??.95),t:v=>v.txt});
+for(const[k,p]of Object.entries(SP))if((p.zone||"inshore")==="inshore")p.factors.push(riv(1.5,k==="catfish"?1:.8));
+const SRC={riv:"riv",wl_anom:"wl_anom",vis:"vis",sbreak:"sbreak",wave:"wave",cur:"cur",temp:"temp_f",wind:"wind_mph",pres:"pres",tide:"tide",trange:"tide",sal:"sal",cloud:"cloud",dtemp:"temp_d24",rain:"rain",front:"front",level:"level_d6"};
 
 // Sunrise/sunset from lat/lon (NOAA approximation), good to a few minutes
 function sunMins(lat,lon,dayUTC){
@@ -488,6 +495,17 @@ function visText(c,q){
  return`about ${c.vis} ft <span class="note">(${tag})</span>`;
 }
 // Short, specific tips from the current conditions
+// River gauge summary for spots fed by the Mississippi or Atchafalaya
+function riverPanel(spot){
+ const g=spot.river&&DATA.rivers&&DATA.rivers[spot.river];if(!g)return"";
+ const fs=g.levels&&(g.levels.minor||g.levels.action),wd=t=>new Date(t).toLocaleDateString([],{weekday:"short",month:"short",day:"numeric"});
+ const line=x=>`<b>${esc(x.name)}</b>: ${x.stage} ft${x.d24!=null?`, ${x.d24>0?"up":"down"} ${Math.abs(x.d24).toFixed(1)} ft in 24 h`:""}${x.flow_kcfs?` · ${x.flow_kcfs.toLocaleString()}k cfs`:""}`;
+ let h=`<div class="spotnote river"><div>${line(g)}${fs?` · flood stage ${fs} ft`:""}</div>`;
+ if(g.crest)h+=`<div class="note">Forecast high ${(+g.crest.stage).toFixed(1)} ft on ${wd(g.crest.time)}.</div>`;
+ if(g.upstream)h+=`<div class="note">Upstream: ${line(g.upstream)}</div>`;
+ if(g.spillway_watch&&(spot.id==="pont"||spot.river==="miss"))h+=`<div class="warn bad" style="margin:8px 0 0"><b>Bonnet Carré Spillway watch.</b> The river at New Orleans is at or forecast near the level where the Corps of Engineers opens the spillway, which pours fresh, muddy river water into Lake Pontchartrain. Check the <a href="https://www.mvn.usace.army.mil/Missions/Mississippi-River-Flood-Control/Bonnet-Carre-Spillway-Overview/" target="_blank" rel="noopener">Corps of Engineers</a> for its status.</div>`;
+ return h+`<div class="note"><a href="${esc(g.url)}" target="_blank" rel="noopener">River forecast from the National Weather Service</a></div></div>`;
+}
 function tipsFor(spot,c){
  const t=[],inshore=spot.zone!=="offshore",v=c.vis,na=(spot.quality&&spot.quality.not_applicable)||[];
  if(v!=null){
@@ -502,7 +520,10 @@ function tipsFor(spot,c){
   }
  }
  const wd=c.wdir,ws=c.wind??0;
- if(inshore&&wd!=null&&ws>=12&&!na.includes("tide")){
+ if(inshore&&c.wl_anom!=null&&Math.abs(c.wl_anom)>=0.4){
+  t.push(c.wl_anom<0?`Water is running ${Math.abs(c.wl_anom).toFixed(1)} ft below the tide tables. Fish deeper drains, bayou mouths and channel edges; shallow flats may be dry.`
+   :`Water is running ${c.wl_anom.toFixed(1)} ft above the tide tables. Fish flooded grass edges and the backs of ponds where bait pushes in.`);
+ }else if(inshore&&wd!=null&&ws>=12&&!na.includes("tide")){
   if(wd>=300||wd<=60)t.push(`${windCompass(wd)} wind at ${ws} mph pushes water out of the marsh, so tides can run lower than predicted. Fish deeper drains, bayou mouths and channel edges.`);
   else if(wd>=110&&wd<=220)t.push(`${windCompass(wd)} wind at ${ws} mph pushes Gulf water in, so tides can run higher than predicted. Fish flooded grass edges and the backs of ponds.`);
  }
@@ -510,6 +531,8 @@ function tipsFor(spot,c){
  if(c.front!=null&&c.front<=-10)t.push(`Air temperature dropped ${-c.front}°F in 24 hours. After a front, fish slower and deeper; the afternoon warm-up is often best.`);
  else if(c.pres==="Falling")t.push(`Pressure is falling: fish often feed ahead of a front. Go early and keep an eye on the weather.`);
  if(inshore&&c.rain!=null&&c.rain>=1.5)t.push(`${c.rain} in of rain in 48 hours: fresh runoff can push trout and reds toward saltier water nearer the Gulf.`);
+ if(c.riv&&c.riv.pct>=80)t.push(`The river is high (${c.riv.pct}% of flood stage): expect fresh, muddy water near the river. Look for cleaner, saltier water farther from the outflow.`);
+ else if(c.riv&&c.riv.trend==="Falling"&&c.riv.pct>=40)t.push(`The river is falling: fish often stack at cuts and drains where water pulls out of the flooded marsh and swamp.`);
  if(c.dtemp!=null&&c.dtemp<=-4)t.push(`Water cooled ${-c.dtemp}°F in a day: fish slide to deeper, slower water until it settles.`);
  return t.slice(0,4);
 }
@@ -829,13 +852,14 @@ function render(){
  const clarTxt=c.clar==null?null:(c.clar+(q.clarity_method==="satellite"?" (sat)":(q.estimated||[]).includes("clar")?" (est.)":""));
  const wcolorHtml=c.wcolor?`<span class="wswatch" style="background:${chlColor(c.chl)}"></span>${c.wcolor}${c.chl!=null?` · ${c.chl} mg/m³`:""}`:null;
  if(spot.note)h+=`<div class="spotnote">${esc(spot.note)}</div>`;
+ h+=riverPanel(spot);
  const depthTxt=spot.depth_ft!=null?`${spot.depth_ft.toLocaleString()} ft <span class="note">(${spot.depth_src==="published"?"published":"model"})</span>`:null;
  h+=`<div class="grid">${depthTxt?cell("Depth here",depthTxt):""}${cell("Water temp",c.temp,"°F")}${cell("Wind",c.wind," mph")}${cell("Wind dir",wdirTxt)}${cell("Pressure",c.pres)}
   ${(q.not_applicable||[]).includes("tide")?"":cell("Tide",c.tide)}${(q.not_applicable||[]).includes("sal")?"":cell("Salinity",c.sal," ppt")}
   ${(q.not_applicable||[]).includes("clar")?"":cell("Clarity",clarTxt)}
   ${c.vis!==undefined?cell("Visibility",visText(c,q)):cell("Water color",wcolorHtml)}${c.sbreak!=null?cell("Temp break",c.sbreak+" °F/mi")+cell("Satellite SST",c.ssat,"°F"):""}${cell("Clouds",c.cloud,"%")}
   ${cell("Water temp 24h",c.dtemp==null?null:T(c.dtemp,"°F"))}${cell("Rain 48h",c.rain," in")}${cell("Air temp 24h",c.front==null?null:T(c.front,"°F"))}
-  ${(q.not_applicable||[]).includes("level")?"":cell("Water level",c.level)}${(q.not_applicable||[]).includes("trange")?"":cell("Tide swing",c.trange," ft")}${c.wave!=null?cell("Waves",c.wave," ft")+cell("Current",c.cur," kt"):""}${cell("Light",c.light)}${cell("Moon",moonLabel(moonPhase()))}${c.depth!=null?cell("Your depth",c.depth," ft"):""}</div>`;
+  ${(q.not_applicable||[]).includes("level")?"":cell("Water level",c.level)}${(q.not_applicable||[]).includes("trange")?"":cell("Tide swing",c.trange," ft")}${c.wl_anom!=null?cell("Water vs tide table",(c.wl_anom>0?"+":"")+c.wl_anom.toFixed(1)+" ft"):""}${c.riv?cell("River",c.riv.pct+"% of flood"):""}${c.wave!=null?cell("Waves",c.wave," ft")+cell("Current",c.cur," kt"):""}${cell("Light",c.light)}${cell("Moon",moonLabel(moonPhase()))}${c.depth!=null?cell("Your depth",c.depth," ft"):""}</div>`;
  // Next highs and lows
  const tt=tideTimes(spot);
  if(tt.length){
