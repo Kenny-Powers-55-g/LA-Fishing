@@ -43,12 +43,14 @@ jobs:
           python -m unittest discover -s tests -v
           node tests/check_page.js
 
-      - name: Get the last 14 days of history from the live site
+      - name: Get history and the weekly map layers from the live site
         continue-on-error: true
         run: |
           owner="${GITHUB_REPOSITORY%%/*}"; repo="${GITHUB_REPOSITORY#*/}"
-          curl -sfL "https://$(echo "$owner" | tr 'A-Z' 'a-z').github.io/$repo/history.json" -o history.json \
-            && echo "history: $(wc -c < history.json) bytes" || echo "no history yet; starting a new one"
+          site="https://$(echo "$owner" | tr 'A-Z' 'a-z').github.io/$repo"
+          for f in history.json rigs.json reefs.json; do
+            curl -sfL "$site/$f" -o "$f" && echo "$f: $(wc -c < "$f") bytes" || echo "no $f yet; it will be built"
+          done
 
       - name: Pull the latest readings
         run: python ingest.py once
@@ -67,7 +69,7 @@ jobs:
         run: |
           mkdir site
           cp index.html latest.json forecast.json manifest.webmanifest sw.js site/
-          for f in icon-192.png icon-512.png status.json history.json; do
+          for f in icon-192.png icon-512.png status.json history.json ocean.json rigs.json reefs.json; do
             [ -f "$f" ] && cp "$f" site/ || true
           done
           # Fail clearly if core data is missing

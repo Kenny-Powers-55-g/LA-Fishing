@@ -41,6 +41,23 @@ def fake_json(url, params=None, tries=3, timeout=15, headers=None):
           "hourly":{"time":[t.strftime("%Y-%m-%dT%H:%M") for t in times],"wind_speed_10m":[8+4*math.sin(i/5) for i in range(n)],
            "wind_direction_10m":[180]*n,"cloud_cover":[50]*n,"surface_pressure":[1016-i*0.02 for i in range(n)],
            "precipitation":[0.0]*n,"temperature_2m":[65+5*math.sin(i/24*6.28) for i in range(n)]}}
+    if "api.weather.gov/zones" in url:
+        bump("zones"); lat = float(p["point"].split(",")[0])
+        if p["type"] == "coastal" and lat > 28.6:
+            return {"features": [{"properties": {"id": "GMZ550"}}]}
+        if p["type"] == "offshore":
+            return {"features": [{"properties": {"id": "GMZ089"}}]}
+        return {"features": []}
+    if "/griddap/" in url and ("(26.4)" in url or "(30.5)" in url or "SSH_GoA" in url):   # ocean_features boxes only
+        bump("griddap"); return fake_grid(url)
+    if "/query" in url and ("arcgis" in url or "mapping" in url):
+        bump("arcgis")
+        if "NMSP/FGB" in url:
+            return {"features": [{"geometry": {"type": "Polygon", "coordinates": [[[-90.1, 28.5], [-90.0, 28.5], [-90.0, 28.6], [-90.1, 28.5]]]},
+                                  "properties": {"multilabel": "South Timbalier 128"}}]}
+        return {"features": [{"geometry": {"type": "Point", "coordinates": [-90.2 + k * 0.01, 28.4]},
+                              "properties": {"STRUCTURE_NAME": f"A-{k}", "REMOVAL_DATE": None if k % 5 else 1600000000000}}
+                             for k in range(20)]}
     if "weather.gov" in url: bump("nws"); return {"features":[{"properties":{"event":"Small Craft Advisory","severity":"Minor","ends":None}}]}
     if "api.waterdata.usgs.gov" in url:
         bump("wd:"+url.split("/collections/")[1].split("/")[0]); STATE["usgs_key_sent"] = "X-Api-Key" in (headers or {})
@@ -85,7 +102,51 @@ def fake_json(url, params=None, tries=3, timeout=15, headers=None):
         return None
     if "erddap" in url: bump("erddap"); return None
     return None
+def fake_grid(url):
+    """A small grid with a warm eddy and a temperature front for any griddap box request."""
+    import re
+    var = url.split(".json?")[1].split("[")[0]
+    nums = [float(x) for x in re.findall(r"\((-?\d+\.?\d*)\)", url.split("(last)")[1])]
+    la0, la1, lo0, lo1 = (nums[-4], nums[-3], nums[-2], nums[-1])
+    la0, la1 = min(la0, la1), max(la0, la1)
+    rows, t = [], (now - timedelta(days=1)).strftime("%Y-%m-%dT00:00:00Z")
+    n = 30
+    for i in range(n):
+        la = la0 + (la1 - la0) * i / (n - 1)
+        for j in range(n):
+            lo = lo0 + (lo1 - lo0) * j / (n - 1)
+            if var == "adt":
+                v = 0.3 + 0.5 * math.exp(-(((la - 26) / 1.5) ** 2 + ((lo + 88) / 1.5) ** 2))
+            elif var == "chlor_a":
+                v = 0.1 * math.exp((la - la0) * 1.5)
+            else:                                  # analysed_sst, deg C
+                v = 22 + 3 / (1 + math.exp(-(la - (la0 + la1) / 2) / 0.1))
+            rows.append([t, la, lo, v] if var != "chlor_a" else [t, 0.0, la, lo, v])
+    names = ["time", "latitude", "longitude", var] if var != "chlor_a" else ["time", "altitude", "latitude", "longitude", var]
+    return {"table": {"columnNames": names, "rows": rows}}
+
+MARINE_TXT = """FZUS54 KLIX 120900
+CWFLIX
+
+Coastal Waters Forecast
+National Weather Service New Orleans LA
+300 AM CST Thu Nov 12 2026
+
+GMZ550-122200-
+Coastal waters from Port Fourchon LA to Lower Atchafalaya River LA out 20 NM-
+300 AM CST Thu Nov 12 2026
+
+...SMALL CRAFT EXERCISE CAUTION...
+.TODAY...Northeast winds 15 to 20 knots. Seas 3 to 5 feet.
+.TONIGHT...Northeast winds 10 to 15 knots. Seas 2 to 4 feet.
+.FRIDAY...East winds 10 knots. Seas 2 feet.
+$$
+"""
+
 def fake_text(url, params=None):
+    if "tgftp" in url:
+        bump("tgftp")
+        return MARINE_TXT if "/coastal/" in url and "gmz550" in url else None
     if "activestations" in url:
         bump("ndbc-list"); return '<stations><station id="42040" lat="29.2" lon="-88.2" met="y"/><station id="42001" lat="25.9" lon="-89.7" met="y"/></stations>'
     if "realtime2" in url:

@@ -125,6 +125,12 @@ button.t.on{background:var(--ac);color:var(--onac);border-color:var(--ac);font-w
 .trend{background:var(--bg);border-radius:12px;padding:8px 10px;display:grid;gap:2px}
 .trend b{font-size:16px}
 .tuned{display:inline-block;font-size:12px;border:1px solid var(--ac);color:var(--ac);border-radius:99px;padding:1px 8px}
+.overlays{display:flex;gap:4px 12px;flex-wrap:wrap}
+.overlays label{display:inline-flex;gap:4px;align-items:center;cursor:pointer;white-space:nowrap}
+#ovnote{flex-basis:100%}
+.legendline{display:inline-block;width:18px;height:0;border-top:3px solid;vertical-align:middle;margin:0 4px 0 8px}
+.marinefc{background:var(--bg);border-radius:12px;padding:10px 14px;margin:12px 0;font-size:14px;display:grid;gap:6px}
+.marinefc .head{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap}
 .wswatch{width:18px;height:18px;border-radius:50%;display:inline-block;vertical-align:middle;margin-right:6px;border:1px solid var(--bd)}
 
 /* Mobile + PWA polish */
@@ -188,6 +194,14 @@ button.t,.pick{min-height:44px}
    <label>Map <select id="basesel"><option value="street">Street map</option><option value="chart">Nautical chart (depths)</option><option value="shade">Depth shading</option></select></label>
    <label>Satellite layer <select id="satsel"><option value="">None</option><option value="sst">Sea temperature</option><option value="chl">Chlorophyll (water color)</option></select></label>
    <button type="button" class="t mapbtn" id="mapsize" aria-pressed="false">Bigger map</button>
+   <span class="overlays" id="overlays" role="group" aria-label="Show on map">
+    <label><input type="checkbox" data-ov="breaks"> Temp breaks</label>
+    <label><input type="checkbox" data-ov="color"> Color lines</label>
+    <label><input type="checkbox" data-ov="ssh"> Loop Current &amp; eddies</label>
+    <label><input type="checkbox" data-ov="rigs"> Rigs</label>
+    <label><input type="checkbox" data-ov="reefs"> Reefs</label>
+   </span>
+   <span id="ovnote"></span>
    <span id="basenote"></span><span id="satnote"></span>
   </div>
   <div class="note" id="depthinfo" role="status" style="padding:0 14px 10px">Tap the map anywhere for the water depth and GPS position.</div></section>
@@ -775,6 +789,47 @@ async function depthAt(ll){
  else if(m>=0)el.textContent=`${pos} · land or marsh`;
  else el.textContent=`${pos} · about ${Math.round(-m*3.28084).toLocaleString()} ft deep (${DEPTH_SRC}; check your depth finder)`;
 }
+// ---- Map overlays: temperature breaks, color lines, Loop Current/eddies, rigs, reefs ----
+const OVF={breaks:"ocean.json",color:"ocean.json",ssh:"ocean.json",rigs:"rigs.json",reefs:"reefs.json"},OVDATA={},OVLAYER={};
+const OVCOL={breaks:"#ff4d2e",color03:"#1aa5c8",color1:"#3c9a3c",warm:"#ff2d7a",cold:"#3d6bff",rig:"#ffb400",reef:"#2bd4c4"};
+async function ovData(f){if(!(f in OVDATA))OVDATA[f]=fetch(f+"?t="+Math.floor(Date.now()/36e5)).then(r=>r.ok?r.json():null).catch(()=>null);return OVDATA[f]}
+const ovDate=t=>{const d=new Date(t);return isNaN(d)?"":d.toLocaleDateString([],{month:"short",day:"numeric"})};
+async function buildOverlay(k){
+ const d=await ovData(OVF[k]);if(!d)return{layer:null,note:"isn't available yet (it's added by the next data update)"};
+ const R=L.canvas({padding:.5}),line=(lines,color,w,dash)=>L.polyline(lines,{renderer:R,color,weight:w,opacity:.95,dashArray:dash,interactive:false});
+ if(k==="breaks"){const b=d.sst_breaks;if(!b||!b.lines.length)return{layer:null,note:"no strong temperature breaks found in the latest image"};
+  return{layer:line(b.lines,OVCOL.breaks,2.5),note:`<span class="legendline" style="border-color:${OVCOL.breaks}"></span>temperature breaks, ${ovDate(b.time)}`}}
+ if(k==="color"){const c=d.color_lines;if(!c)return{layer:null,note:"no recent chlorophyll image (clouds)"};
+  return{layer:L.layerGroup([line(c.levels["0.3"]||[],OVCOL.color03,2.2,"6 4"),line(c.levels["1"]||[],OVCOL.color1,2.2)]),
+   note:`<span class="legendline" style="border-color:${OVCOL.color03};border-top-style:dashed"></span>blue water edge <span class="legendline" style="border-color:${OVCOL.color1}"></span>green water edge, ${ovDate(c.time)}`}}
+ if(k==="ssh"){const h=d.ssh;if(!h)return{layer:null,note:"no recent sea height data"};
+  return{layer:L.layerGroup([line(h.warm||[],OVCOL.warm,3),line(h.cold||[],OVCOL.cold,2,"4 4")]),
+   note:`<span class="legendline" style="border-color:${OVCOL.warm}"></span>Loop Current and warm eddies <span class="legendline" style="border-color:${OVCOL.cold};border-top-style:dashed"></span>cold eddies, ${ovDate(h.time)}`}}
+ const list=k==="rigs"?d.rigs:d.reefs,col=k==="rigs"?OVCOL.rig:OVCOL.reef,R2=L.canvas();
+ if(!list||!list.length)return{layer:null,note:"no locations loaded"};
+ return{layer:L.layerGroup(list.map(([la,lo,n])=>L.circleMarker([la,lo],{renderer:R2,radius:k==="rigs"?3:5,color:"#000",weight:k==="rigs"?.5:1,fillColor:col,fillOpacity:.95,bubblingMouseEvents:false})
+   .bindTooltip(`${k==="rigs"?"Platform":"LDWF reef"}${n?": "+esc(n):""}`))),
+  note:`<span class="legendline" style="border-color:${col}"></span>${list.length.toLocaleString()} ${k==="rigs"?"active platforms (BOEM)":"LDWF artificial reefs"}`};
+}
+async function setOverlay(k,on){
+ if(!MAP)return;
+ if(OVLAYER[k]){MAP.removeLayer(OVLAYER[k].layer);delete OVLAYER[k]}
+ if(on){const o=await buildOverlay(k);if(o.layer){o.layer.addTo(MAP);OVLAYER[k]=o}else OVLAYER[k]={layer:L.layerGroup(),note:`${{breaks:"Temp breaks",color:"Color lines",ssh:"Loop Current",rigs:"Rigs",reefs:"Reefs"}[k]}: ${o.note}`}}
+ $("ovnote").innerHTML=Object.values(OVLAYER).map(o=>o.note).join(" · ")+(Object.keys(OVLAYER).some(x=>x==="breaks"||x==="color"||x==="ssh")?" · Satellite analysis; lines move daily.":"");
+ try{localStorage.setItem("la-fish-overlays",JSON.stringify(Object.keys(OVLAYER)))}catch(e){}
+}
+function initOverlays(){
+ let saved=[];try{saved=JSON.parse(localStorage.getItem("la-fish-overlays")||"[]")}catch(e){}
+ document.querySelectorAll("#overlays [data-ov]").forEach(cb=>{cb.checked=saved.includes(cb.dataset.ov);cb.onchange=()=>setOverlay(cb.dataset.ov,cb.checked);if(cb.checked)setOverlay(cb.dataset.ov,true)});
+}
+// ---- NWS marine forecast for the spot's zone ----
+function marinePanel(spot){
+ const m=spot.mzone&&DATA.marine&&DATA.marine[spot.mzone];if(!m||!m.periods||!m.periods.length)return"";
+ return`<div class="marinefc"><div class="head"><b>NWS marine forecast</b><span class="note">${esc(m.issued)}</span></div>
+  <div class="note">${esc(m.name)}</div>${m.headline?`<div class="warn" style="margin:0"><b>${esc(m.headline)}</b></div>`:""}
+  ${m.periods.slice(0,3).map(p=>`<div><b>${esc(p.name)}:</b> ${esc(p.text)}</div>`).join("")}
+  <a class="note" href="${esc(m.url)}" target="_blank" rel="noopener" style="color:var(--ac)">Full forecast from the National Weather Service</a></div>`;
+}
 function mapInit(){
  if(typeof L==="undefined"||MAP){if(typeof L==="undefined")$("mapcard").hidden=true;return}
  try{MAP=L.map("map",{scrollWheelZoom:false,tapTolerance:15,touchZoom:true,dragging:true});
@@ -786,6 +841,7 @@ function mapInit(){
    $("mapsize").textContent=big?"Smaller map":"Bigger map";$("mapsize").setAttribute("aria-pressed",big);
    MAP.scrollWheelZoom[big?"enable":"disable"]();setTimeout(()=>MAP.invalidateSize(),50)};
   MAP.on("click",e=>depthAt(e.latlng));
+  initOverlays();
   DATA.spots.forEach(s=>{if(s.lat==null)return;
    MK[s.id]=L.circleMarker([s.lat,s.lon],{radius:13,color:"#fff",weight:2,fillOpacity:.95,bubblingMouseEvents:false}).addTo(MAP).on("click",()=>{sel=s.id;pick()})});
   MAP.fitBounds(DATA.spots.filter(s=>s.lat!=null).map(s=>[s.lat,s.lon]),{padding:[30,30]});
@@ -908,6 +964,7 @@ function render(){
  const wcolorHtml=c.wcolor?`<span class="wswatch" style="background:${chlColor(c.chl)}"></span>${c.wcolor}${c.chl!=null?` · ${c.chl} mg/m³`:""}`:null;
  if(spot.note)h+=`<div class="spotnote">${esc(spot.note)}</div>`;
  h+=riverPanel(spot);
+ h+=marinePanel(spot);
  h+=trendsPanel(spot);
  const depthTxt=spot.depth_ft!=null?`${spot.depth_ft.toLocaleString()} ft <span class="note">(${spot.depth_src==="published"?"published":"model"})</span>`:null;
  h+=`<div class="grid">${depthTxt?cell("Depth here",depthTxt):""}${cell("Water temp",c.temp,"°F")}${cell("Wind",c.wind," mph")}${cell("Wind dir",wdirTxt)}${cell("Pressure",c.pres)}
