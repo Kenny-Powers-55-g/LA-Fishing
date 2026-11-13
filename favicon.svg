@@ -38,8 +38,8 @@
 <path d="M153 26 h6 l-3 4 z" fill="#0f2a3d" stroke="none"></path>
 <path d="M134 50 L 172 22 M136 54 L 174 26" stroke-width="1.2"></path>
 <path d="M136.0 50.0 L139.0 46.5" stroke-width="0.7"></path><path d="M141.0 46.4 L144.0 42.9" stroke-width="0.7"></path><path d="M146.0 42.8 L149.0 39.3" stroke-width="0.7"></path><path d="M151.0 39.2 L154.0 35.7" stroke-width="0.7"></path><path d="M156.0 35.6 L159.0 32.1" stroke-width="0.7"></path><path d="M161.0 32.0 L164.0 28.5" stroke-width="0.7"></path><path d="M166.0 28.4 L169.0 24.9" stroke-width="0.7"></path>
-<path d="M174 24 q -7 -10 2 -20 q 1 9 6 11 q 2 -7 0 -12 q 10 9 2 21 z" fill="#1670b3" stroke="none"></path>
-<g stroke="none" fill="#1670b3"><circle cx="44" cy="-9" r="2.2"></circle><circle cx="4" cy="53" r="2"></circle><circle cx="136" cy="53" r="2"></circle><circle cx="2" cy="144" r="1.8"></circle><circle cx="138" cy="144" r="1.8"></circle></g>
+<path d="M174 24 q -7 -10 2 -20 q 1 9 6 11 q 2 -7 0 -12 q 10 9 2 21 z" fill="#e07b00" stroke="none"></path>
+<g stroke="none" fill="#e07b00"><circle cx="44" cy="-9" r="2.2"></circle><circle cx="4" cy="53" r="2"></circle><circle cx="136" cy="53" r="2"></circle><circle cx="2" cy="144" r="1.8"></circle><circle cx="138" cy="144" r="1.8"></circle></g>
 </g><path d="M10 232 C 200 190, 420 206, 620 212 C 420 218, 200 202, 10 232 Z" fill="#0b3d6b" opacity="1"></path>
 <path d="M40 250 C 230 226, 420 226, 580 226 C 420 234, 230 234, 40 250 Z" fill="#3a9fd8" opacity="1"></path>
 <path d="M90 264 C 260 246, 420 240, 540 240 C 420 245, 260 251, 90 264 Z" fill="#79c2ec" opacity="1"></path>
@@ -47,12 +47,12 @@
 <path d="M60 236 q 7.0 -4 14 0" fill="none" stroke="#ffffff" stroke-width="1.8" stroke-linecap="round"></path><path d="M118 230 q 9.0 -4 18 0" fill="none" stroke="#ffffff" stroke-width="1.8" stroke-linecap="round"></path><path d="M176 224 q 6.0 -4 12 0" fill="none" stroke="#ffffff" stroke-width="1.8" stroke-linecap="round"></path><path d="M240 220 q 8.0 -4 16 0" fill="none" stroke="#ffffff" stroke-width="1.8" stroke-linecap="round"></path><path d="M300 218 q 6.0 -4 12 0" fill="none" stroke="#ffffff" stroke-width="1.8" stroke-linecap="round"></path><path d="M360 216 q 7.0 -4 14 0" fill="none" stroke="#ffffff" stroke-width="1.8" stroke-linecap="round"></path><path d="M96 252 q 6.0 -4 12 0" fill="none" stroke="#ffffff" stroke-width="1.8" stroke-linecap="round"></path><path d="M160 248 q 7.0 -4 14 0" fill="none" stroke="#ffffff" stroke-width="1.8" stroke-linecap="round"></path><path d="M226 242 q 5.0 -4 10 0" fill="none" stroke="#ffffff" stroke-width="1.8" stroke-linecap="round"></path><path d="M290 238 q 6.0 -4 12 0" fill="none" stroke="#ffffff" stroke-width="1.8" stroke-linecap="round"></path>
 <g fill="#0b3d6b"><path d="M226 208 c -16 -6 -30 -2 -40 8 c 14 -4 26 -4 40 -2 z M220 196 c -14 -12 -30 -14 -44 -6 c 14 0 28 4 42 12 z M232 222 c -18 0 -32 8 -38 20 c 12 -8 24 -12 38 -14 z"></path>
 <circle cx="168" cy="196" r="3.4"></circle><circle cx="150" cy="210" r="2.2"></circle><circle cx="140" cy="186" r="1.8"></circle></g>
-<circle cx="180" cy="178" r="2.6" fill="#1670b3"></circle>
+<circle cx="180" cy="178" r="2.6" fill="#e07b00"></circle>
 <g transform="translate(250 160) rotate(-5) scale(1.0)">
 <path d="M-6 16 h -22 v 34 l 9 14 h 7 l 6 -18 z" fill="#ffffff" stroke="#0f2a3d" stroke-width="3" stroke-linejoin="round"></path>
-<path d="M-26 22 h 18" stroke="#1670b3" stroke-width="3"></path>
+<path d="M-26 22 h 18" stroke="#e07b00" stroke-width="3"></path>
 <path d="M0 18 L 286 2 L 304 0 C 296 14, 276 30, 240 42 L 18 52 C 8 52, 2 44, 0 18 Z" fill="#ffffff" stroke="#0f2a3d" stroke-width="3.5" stroke-linejoin="round"></path>
-<path d="M16 36 C 110 32, 210 26, 282 12 C 210 32, 110 38, 16 36 Z" fill="#1670b3" opacity="1"></path>
+<path d="M16 36 C 110 32, 210 26, 282 12 C 210 32, 110 38, 16 36 Z" fill="#e07b00" opacity="1"></path>
 <path d="M24 46 C 110 44, 190 40, 236 36" fill="none" stroke="#0f2a3d" stroke-width="1.4"></path>
 <path d="M118 14 L 126 -18 H 160 L 166 12" fill="#ffffff" stroke="#0f2a3d" stroke-width="3" stroke-linejoin="round"></path>
 <path d="M160 -18 L 176 -4 L 172 10" fill="none" stroke="#0f2a3d" stroke-width="2.4" stroke-linejoin="round"></path>

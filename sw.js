@@ -1,7 +1,7 @@
 // Caches the app so it opens offline. Data files and the page are network-first with the
 // saved copy as backup; on a weak connection the saved copy is used after a few seconds.
 // The map library and fonts are cached the first time they load.
-const V = "la-fishing-v18";
+const V = "la-fishing-v19";
 const CDN_CACHE = "la-fishing-cdn-v1";          // kept across app versions
 const TILE_CACHE = "la-fishing-tiles";          // map areas saved for offline (kept too)
 const TILE_RE = /^https:\/\/(gis\.charttools\.noaa\.gov|gis\.ngdc\.noaa\.gov)\/.*(\/tile\/|exportImage)/;
