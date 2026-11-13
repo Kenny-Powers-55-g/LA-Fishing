@@ -441,7 +441,7 @@ body.nomap #mapcard{display:none!important}
 #acctbody p{margin:0 0 12px;font-size:14px}
 #acctbody .why{display:grid;gap:6px;margin:0 0 14px;padding:0;list-style:none;font-size:14px}
 #acctbody .why li::before{content:"✓ ";color:var(--g);font-weight:800}
-#acctbody input[type=email]{width:100%;padding:12px 14px;border-radius:12px;border:1px solid var(--bd);background:var(--s2);color:var(--tx);font:inherit;font-size:16px;margin-bottom:10px}
+#acctbody input[type=email],#acctbody input[type=password],#acctbody input:not([type]){width:100%;padding:12px 14px;border-radius:12px;border:1px solid var(--bd);background:var(--s2);color:var(--tx);font:inherit;font-size:16px;margin-bottom:10px}
 #acctbody .primary{width:100%;min-height:46px;background:var(--ac);border-color:var(--ac);color:var(--onac);font-weight:700}
 #acctbody .row3{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
 #acctbody .msg{font-size:13px;color:var(--mu);margin-top:8px}
@@ -449,6 +449,24 @@ body.nomap #mapcard{display:none!important}
 #acctbody .danger{color:var(--r);border-color:color-mix(in srgb,var(--r) 45%,var(--bd))}
 #acctbody .danger.confirm{background:var(--r);color:#fff}
 #acctbody .who{background:var(--s2);border:1px solid var(--bd);border-radius:12px;padding:10px 12px;margin-bottom:12px;font-size:14px;word-break:break-all}
+#acctdlg{max-height:92vh;overflow:auto}
+#acctbody .atabs{display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap}
+#acctbody .atabs .t.on{background:var(--ac);border-color:var(--ac);color:var(--onac);font-weight:700}
+#acctbody .sec{border-top:1px solid var(--bd);padding-top:12px;margin-top:12px}
+#acctbody .sec h4{margin:0 0 8px;font-size:15px}
+#acctbody details.sec>summary{cursor:pointer;margin-bottom:8px}
+#acctbody form.inline{display:flex;gap:8px;align-items:flex-start}
+#acctbody form.inline input{flex:1;min-width:0;margin-bottom:0}
+#acctbody form.inline+form.inline{margin-top:8px}
+#acctbody .sw{display:flex;gap:8px;align-items:flex-start;font-size:14px;margin:6px 0}
+#acctbody .sw input{margin-top:3px}
+#acctbody .frow{display:flex;justify-content:space-between;gap:8px;align-items:center;font-size:14px;padding:8px 0;border-bottom:1px solid var(--bd);flex-wrap:wrap}
+#acctbody details.friend{border:1px solid var(--bd);border-radius:12px;padding:8px 12px;margin-top:8px;font-size:14px}
+#acctbody details.friend summary{cursor:pointer}
+#acctbody .fcatch{padding:6px 0;border-bottom:1px solid var(--bd)}
+#acctbody .fcatch .note{display:block}
+.fpin{background:#b36bff;border:2px solid #fff;transform:rotate(45deg);border-radius:3px;box-shadow:0 1px 4px rgba(0,0,0,.4)}
+.fpop .t{margin-top:8px}
 @media(max-width:600px){#acctdlg{width:100vw;max-width:100vw;margin:auto 0 0;border-radius:20px 20px 0 0;padding-bottom:calc(18px + env(safe-area-inset-bottom,0px))}}
 </style></head><body>
 <header class="appbar">
@@ -485,6 +503,7 @@ body.nomap #mapcard{display:none!important}
     <label><input type="checkbox" data-ov="tropical"> Tropical storms</label>
     <label><input type="checkbox" data-ov="radar"> Radar (live)</label>
     <label><input type="checkbox" data-ov="deadzone"> Dead zone</label>
+    <label hidden><input type="checkbox" data-ov="friends"> Friends' spots</label>
    </span>
    <span id="basenote"></span><span id="satnote"></span>
   </div>
@@ -1238,6 +1257,7 @@ async function ovData(f){if(!(f in OVDATA))OVDATA[f]=fetch(f+"?t="+Math.floor(Da
 const ovDate=t=>{const d=new Date(t);return isNaN(d)?"":d.toLocaleDateString([],{month:"short",day:"numeric"})};
 async function buildOverlay(k){
  if(k==="radar")return radarOverlay();
+ if(k==="friends")return friendOverlay();
  const d=await ovData(OVF[k]);if(!d)return{layer:null,note:k==="deadzone"
   ?"not available: NOAA has taken its Gulf Hypoxia Watch map offline. The layer comes back on its own if NOAA restores it."
   :"isn't available yet (it's added by the next data update)"};
@@ -1424,7 +1444,7 @@ function showTropical(){
 async function setOverlay(k,on){
  if(!MAP)return;
  if(OVLAYER[k]){MAP.removeLayer(OVLAYER[k].layer);delete OVLAYER[k]}
- if(on){const o=await buildOverlay(k);if(o.layer){o.layer.addTo(MAP);OVLAYER[k]=o}else OVLAYER[k]={layer:L.layerGroup(),note:`${{breaks:"Temp breaks",color:"Color lines",ssh:"Loop Current",rigs:"Rigs",reefs:"Reefs",tropical:"Tropical storms",radar:"Radar",deadzone:"Dead zone"}[k]}: ${o.note}`}}
+ if(on){const o=await buildOverlay(k);if(o.layer){o.layer.addTo(MAP);OVLAYER[k]=o}else OVLAYER[k]={layer:L.layerGroup(),note:`${{breaks:"Temp breaks",color:"Color lines",ssh:"Loop Current",rigs:"Rigs",reefs:"Reefs",tropical:"Tropical storms",radar:"Radar",deadzone:"Dead zone",friends:"Friends' spots"}[k]}: ${o.note}`}}
  $("ovnote").innerHTML=Object.values(OVLAYER).map(o=>o.note).join(" · ")+(Object.keys(OVLAYER).some(x=>x==="breaks"||x==="color"||x==="ssh"||x==="weeds")?" · Satellite analysis; lines move daily.":"");
  try{localStorage.setItem("la-fish-overlays",JSON.stringify(Object.keys(OVLAYER)))}catch(e){}
 }
@@ -1998,8 +2018,11 @@ async function initAccounts(){
  if(!window.supabase||!window.supabase.createClient){ACCT.state="err";ACCT.msg="Accounts can't load right now (offline?). Your data is still on this device.";acctUI();return}
  ACCT.sb=window.supabase.createClient(c.supabaseUrl,c.supabaseKey,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true,flowType:"implicit"}});
  ACCT.sb.auth.onAuthStateChange((ev,session)=>{
-  const u=session&&session.user||null,changed=(u&&u.id)!==(ACCT.user&&ACCT.user.id);ACCT.user=u;acctUI();
-  if(u&&changed)setTimeout(acctPull,0);              // don't call Supabase inside this callback
+  const u=session&&session.user||null,changed=(u&&u.id)!==(ACCT.user&&ACCT.user.id);ACCT.user=u;
+  if(ev==="PASSWORD_RECOVERY"){ACCT.recovery=true;setTimeout(openAcct,0)}
+  if(!u&&changed){clearSocial();ACCT.mode="signin"}
+  acctUI();
+  if(u&&changed)setTimeout(async()=>{await acctPull();await loadSocial();if($("acctdlg").open)renderAcct()},0);   // don't call Supabase inside this callback
   if(ev==="SIGNED_IN"&&$("acctdlg").open)renderAcct();
  });
  addEventListener("online",()=>{if(ACCT.user&&ACCT.state==="err")acctPush()});
@@ -2007,47 +2030,230 @@ async function initAccounts(){
 function acctUI(){
  const b=$("acctbtn");if(!b||b.hidden)return;
  const u=ACCT.user;
- if(u){const ch=(u.email||"?")[0].toUpperCase();
+ if(u){const ch=((ACCT.profile&&ACCT.profile.username)||u.email||"?")[0].toUpperCase();
   b.innerHTML=`<span class="av">${esc(ch)}</span><span class="dot ${ACCT.state==="busy"?"busy":ACCT.state==="err"?"err":""}"></span>`;
   const t=ACCT.state==="busy"?"Saving to your account…":ACCT.state==="err"?"Account sync problem":"Signed in: saved to your account";b.title=t;b.setAttribute("aria-label",t)}
  else{b.innerHTML=`<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg><span class="lbl">Sign in</span>`;
   b.title="Sign in to save your spots and catches to an account";b.setAttribute("aria-label","Sign in")}
  const pt=$("privtop"),pb=$("privbackup");
- if(pt)pt.textContent=u?"Saved to your account and this device. Only you can see your catches, counts and locations. Use this to see how the score matched days you actually caught fish."
+ if(pt)pt.textContent=u&&ACCT.profile&&ACCT.profile.share_catches?"Saved to your account and this device. You share this log with your friends (species, spot, date and result; never your notes). Turn that off under your account. Use this to see how the score matched days you actually caught fish."
+  :u?"Saved to your account and this device. Only you can see your catches, counts and locations. Use this to see how the score matched days you actually caught fish."
   :"Stored only on this device. Other visitors never see your catches, counts, or locations. Sign in to keep them across devices. Use this to see how the score matched days you actually caught fish.";
  if(pb)pb.textContent=u?"Your log is backed up in your account. You can still download a copy.":"Clearing browser data for this site will erase the log, so download a backup now and then (or sign in). Nothing is uploaded unless you sign in.";
  if($("acctdlg")&&$("acctdlg").open)renderAcct();
 }
-function openAcct(){const d=$("acctdlg");renderAcct();$("acctclose").onclick=()=>d.close();d.onclick=e=>{if(e.target===d)d.close()};if(d.showModal)d.showModal();else d.setAttribute("open","")}
+function openAcct(){const d=$("acctdlg");renderAcct();if(ACCT.user&&ACCT.social!=="busy")loadSocial().then(()=>{if(d.open)renderAcct()});$("acctclose").onclick=()=>d.close();d.onclick=e=>{if(e.target===d)d.close()};if(d.showModal)d.showModal();else d.setAttribute("open","")}
+// ---- Usernames, passwords and friends ----
+// A username + password account is a Supabase email/password account behind the scenes, using a
+// made-up address <username>@<usernameEmailDomain> that never receives mail. Adding a real email
+// later replaces it (needed for "forgot password").
+const UNAME_RE=/^[a-z0-9_]{3,20}$/;
+const uDomain=()=>((window.OC_CONFIG||{}).usernameEmailDomain||"users.oceancast.invalid").toLowerCase();
+const isSynthEmail=e=>!!e&&e.toLowerCase().endsWith("@"+uDomain());
+const loginEmail=id=>id.includes("@")?id.trim():`${id.trim().toLowerCase()}@${uDomain()}`;
+Object.assign(ACCT,{mode:"signin",recovery:false,profile:null,links:[],names:{},fdata:[],social:"idle",smsg:""});
+const meId=()=>ACCT.user&&ACCT.user.id;
+async function loadSocial(){
+ if(!ACCT.user)return;ACCT.social="busy";
+ const me=meId();
+ const [p,f,d]=await Promise.all([
+  ACCT.sb.from("oc_profiles").select("username,share_spots,share_catches").eq("user_id",me).maybeSingle(),
+  ACCT.sb.from("oc_friends").select("requester,addressee,status,created_at"),
+  ACCT.sb.rpc("oc_friend_data")]);
+ if(p.error||f.error||d.error){ACCT.social="err";
+  ACCT.smsg="Friends aren't available yet. The site owner needs to run the newest supabase/setup.sql (see README).";
+  if($("acctdlg").open)renderAcct();return}
+ ACCT.profile=p.data||null;ACCT.links=f.data||[];ACCT.fdata=d.data||[];
+ const ids=[...new Set(ACCT.links.map(r=>r.requester===me?r.addressee:r.requester))].filter(id=>!ACCT.names[id]);
+ if(ids.length){const r=await ACCT.sb.from("oc_profiles").select("user_id,username").in("user_id",ids);
+  for(const x of r.data||[])ACCT.names[x.user_id]=x.username}
+ for(const x of ACCT.fdata)ACCT.names[x.user_id]=x.username;
+ ACCT.social="ok";ACCT.smsg="";
+ refreshFriendLayer();acctUI();
+}
+function clearSocial(){ACCT.profile=null;ACCT.links=[];ACCT.fdata=[];ACCT.names={};ACCT.social="idle";refreshFriendLayer()}
+// Friends' shared spots on the map (read-only; tap one to copy it to your own spots)
+function friendSpots(){const out=[];for(const f of ACCT.fdata)for(const m of Array.isArray(f.spots)?f.spots:[])
+ if(m&&isFinite(m.lat)&&isFinite(m.lon))out.push({...m,who:f.username});return out}
+function friendOverlay(){
+ const list=friendSpots();if(!list.length)return{layer:null,note:"no friends are sharing spots yet"};
+ return{layer:L.layerGroup(list.map(m=>L.marker([m.lat,m.lon],{icon:L.divIcon({className:"fpin",iconSize:[14,14]}),keyboard:false,title:`${m.name} (${m.who})`})
+   .bindPopup(()=>{const d=document.createElement("div");d.className="fpop";
+    d.innerHTML=`<b>${esc(m.name||"Spot")}</b><div class="note">Shared by ${esc(m.who)}${m.depth_ft!=null?` · about ${esc(m.depth_ft)} ft`:""}</div><button type="button" class="t">Save to my spots</button>`;
+    d.querySelector("button").onclick=e=>{const a=getMy();if(a.some(x=>Math.abs(x.lat-m.lat)<1e-5&&Math.abs(x.lon-m.lon)<1e-5)){e.target.textContent="Already in your spots";return}
+     const id="u"+Date.now().toString(36);a.push({id,name:String(m.name||"Friend's spot").slice(0,40),lat:+m.lat,lon:+m.lon,depth_ft:m.depth_ft??null});saveMy(a);
+     addMySpots();const s=DATA&&DATA.spots.find(x=>x.id===id);if(s)addMarker(s);e.target.textContent="Saved to your spots";e.target.disabled=true};
+    return d}))),
+  note:`<span class="legendline" style="border-color:#b36bff"></span>${list.length} spot${list.length>1?"s":""} shared by friends`};
+}
+function refreshFriendLayer(){
+ const cb=document.querySelector('#overlays [data-ov="friends"]');if(!cb)return;
+ const has=friendSpots().length>0;cb.closest("label").hidden=!has;
+ cb.onchange=()=>{try{localStorage.setItem("oc-friendlayer",cb.checked?"1":"0")}catch(e){}setOverlay("friends",cb.checked)};
+ let off=false;try{off=localStorage.getItem("oc-friendlayer")==="0"}catch(e){}
+ if(has&&!off){cb.checked=true;setOverlay("friends",true)}
+ else{cb.checked=false;if(OVLAYER.friends)setOverlay("friends",false)}
+}
+async function friendRequest(name){
+ const n=name.trim().replace(/^@/,"").toLowerCase(),m=$("frmsg");m.className="msg";
+ if(!UNAME_RE.test(n)){m.className="msg err";m.textContent="Usernames are 3 to 20 letters, numbers or _.";return}
+ if(ACCT.profile&&n===ACCT.profile.username){m.className="msg err";m.textContent="That's you.";return}
+ m.textContent="Sending…";
+ const {data:p}=await ACCT.sb.from("oc_profiles").select("user_id,username").eq("username",n).maybeSingle();
+ if(!p){m.className="msg err";m.textContent=`No one is called ${n}.`;return}
+ const old=ACCT.links.find(r=>r.requester===p.user_id||r.addressee===p.user_id);
+ if(old){m.className="msg err";m.textContent=old.status==="accepted"?`You're already friends with ${n}.`:old.requester===meId()?`You already asked ${n}.`:`${n} already asked you: accept it below.`;return}
+ const {error}=await ACCT.sb.from("oc_friends").insert({requester:meId(),addressee:p.user_id});
+ if(error){m.className="msg err";m.textContent="Couldn't send the request: "+error.message;return}
+ ACCT.names[p.user_id]=p.username;await loadSocial();renderAcct();
+ const m2=$("frmsg");if(m2)m2.textContent=`Request sent. You'll be friends once ${n} accepts.`;
+}
+function socialHTML(){
+ if(ACCT.social==="err")return`<div class="sec"><h4>Friends</h4><p class="msg err">${esc(ACCT.smsg)}</p></div>`;
+ if(ACCT.social!=="ok")return`<div class="sec"><h4>Friends</h4><p class="msg">Loading…</p></div>`;
+ if(!ACCT.profile)return`<div class="sec"><h4>Choose a username</h4><p class="note">Friends find you by your username. It's the only thing other people see.</p>
+  <form id="unameform" class="inline"><input id="unamein" autocomplete="username" maxlength="20" placeholder="username" aria-label="Username" required><button class="t" type="submit">Save</button></form>
+  <div class="msg" id="unamemsg">3 to 20 letters, numbers or _.</div></div>`;
+ const me=meId(),P=ACCT.profile,nm=id=>esc(ACCT.names[id]||"someone");
+ const inc=ACCT.links.filter(r=>r.status==="pending"&&r.addressee===me),out=ACCT.links.filter(r=>r.status==="pending"&&r.requester===me);
+ const fr=ACCT.links.filter(r=>r.status==="accepted").map(r=>r.requester===me?r.addressee:r.requester);
+ const fd=id=>ACCT.fdata.find(x=>x.user_id===id)||{};
+ const spotName=(L,f)=>{const s=DATA&&DATA.spots.find(x=>x.id===L.spot&&!x.user);if(s)return s.name;
+  const m=(Array.isArray(f.spots)?f.spots:[]).find(x=>x.id===L.spot);return m?m.name:"one of their own spots"};
+ const catches=(f)=>{const c=(Array.isArray(f.catches)?f.catches:[]).filter(x=>x&&x.date).sort((a,b)=>String(b.date).localeCompare(String(a.date))).slice(0,15);
+  if(!c.length)return`<div class="note">No catches logged yet.</div>`;
+  return c.map(L=>`<div class="fcatch"><b>${esc(SP[L.sp]?.name||L.sp||"")}</b> @ ${esc(spotName(L,f))} · ${esc(L.date)}${L.depth!=null?` · ${esc(L.depth)} ft`:""}
+   <span class="note">${L.result==="caught"?"Caught":L.result==="slow"?"Slow":"Nothing"}${L.scoreAtLog!=null?` · score ${esc(L.scoreAtLog)}`:""}</span></div>`).join("")};
+ return`<div class="sec"><h4>Share with friends</h4>
+  <label class="sw"><input type="checkbox" id="shspots" ${P.share_spots?"checked":""}> My pinned spots (names and positions)</label>
+  <label class="sw"><input type="checkbox" id="shcatch" ${P.share_catches?"checked":""}> My catch log (species, spot, date, result; never your notes)</label>
+  <div class="msg" id="shmsg">Only friends you've accepted can see what you share. Turn it off any time.</div></div>
+ <div class="sec"><h4>Friends</h4>
+  <form id="frform" class="inline"><input id="frin" autocomplete="off" autocapitalize="none" maxlength="21" placeholder="Friend's username" aria-label="Friend's username" required><button class="t" type="submit">Add friend</button></form>
+  <div class="msg" id="frmsg"></div>
+  ${inc.map(r=>`<div class="frow"><span><b>${nm(r.requester)}</b> wants to be friends</span><span><button class="t" data-acc="${r.requester}">Accept</button> <button class="t" data-del="${r.requester}">Decline</button></span></div>`).join("")}
+  ${out.map(r=>`<div class="frow"><span>Waiting for <b>${nm(r.addressee)}</b></span><button class="t" data-del="${r.addressee}">Cancel</button></div>`).join("")}
+  ${fr.length?fr.map(id=>{const f=fd(id),ns=Array.isArray(f.spots)?f.spots.length:null,nc=Array.isArray(f.catches)?f.catches.length:null;
+   return`<details class="friend"><summary><b>${nm(id)}</b> <span class="note">${ns!=null?`${ns} spot${ns===1?"":"s"}`:"spots private"} · ${nc!=null?`${nc} catch${nc===1?"":"es"}`:"catches private"}</span></summary>
+    ${ns?`<div class="note">Their spots are on the map (purple diamonds). Tap one to save it to your spots.</div>`:""}
+    ${nc!=null?catches(f):""}<button class="t danger" data-del="${id}" style="margin-top:8px">Remove friend</button></details>`}).join("")
+   :(!inc.length&&!out.length?`<p class="note">No friends yet. Ask yours for their username.</p>`:"")}
+ </div>`;
+}
+function signinOptsHTML(u){
+ const synth=isSynthEmail(u.email);
+ return`<details class="sec"><summary><h4 style="display:inline">Password and email</h4></summary>
+  ${synth?`<p class="note">Add an email so you can reset a forgotten password. After that you sign in with the email (and your password).</p>
+   <form id="emform" class="inline"><input type="email" id="emin" autocomplete="email" placeholder="you@example.com" aria-label="Email" required><button class="t" type="submit">Add email</button></form>`
+   :`<p class="note">Email on this account: <b>${esc(u.email||"")}</b></p>`}
+  <form id="pwform" class="inline"><input type="password" id="pwin" autocomplete="new-password" minlength="8" placeholder="New password (8+ characters)" aria-label="New password" required><button class="t" type="submit">${synth?"Change":"Set"} password</button></form>
+  <div class="msg" id="pwmsg"></div></details>`;
+}
+function wireSignedIn(){
+ const f=$("unameform");if(f)f.onsubmit=async e=>{e.preventDefault();const n=$("unamein").value.trim().toLowerCase(),m=$("unamemsg");
+  if(!UNAME_RE.test(n)){m.className="msg err";m.textContent="Use 3 to 20 letters, numbers or _.";return}
+  const {error}=await ACCT.sb.from("oc_profiles").insert({user_id:meId(),username:n});
+  if(error){m.className="msg err";m.textContent=/duplicate|unique/i.test(error.message)?`${n} is taken. Try another.`:"Couldn't save: "+error.message;return}
+  await loadSocial();renderAcct()};
+ const sh=async()=>{const m=$("shmsg"),v={share_spots:$("shspots").checked,share_catches:$("shcatch").checked};m.className="msg";m.textContent="Saving…";
+  const {error}=await ACCT.sb.from("oc_profiles").update(v).eq("user_id",meId());
+  if(error){m.className="msg err";m.textContent="Couldn't save: "+error.message;return}
+  Object.assign(ACCT.profile,v);acctUI();
+  const m2=$("shmsg");if(m2)m2.textContent=v.share_spots||v.share_catches?"Saved. Your friends can see what's ticked.":"Saved. Nothing is shared."};
+ if($("shspots")){$("shspots").onchange=sh;$("shcatch").onchange=sh}
+ const ff=$("frform");if(ff)ff.onsubmit=e=>{e.preventDefault();friendRequest($("frin").value)};
+ const body=$("acctbody");body.querySelectorAll("[data-acc]").forEach(b=>b.onclick=async()=>{b.disabled=true;
+  const {error}=await ACCT.sb.from("oc_friends").update({status:"accepted"}).eq("requester",b.dataset.acc).eq("addressee",meId());
+  if(error){b.disabled=false;$("frmsg").className="msg err";$("frmsg").textContent="Couldn't accept: "+error.message;return}
+  await loadSocial();renderAcct()});
+ body.querySelectorAll("[data-del]").forEach(b=>b.onclick=async()=>{
+  if(b.classList.contains("danger")&&!b.classList.contains("confirm")){b.classList.add("confirm");b.textContent="Remove?";return}
+  b.disabled=true;const o=b.dataset.del,me=meId();
+  const {error}=await ACCT.sb.from("oc_friends").delete().or(`and(requester.eq.${me},addressee.eq.${o}),and(requester.eq.${o},addressee.eq.${me})`);
+  if(error){b.disabled=false;$("frmsg").className="msg err";$("frmsg").textContent="Couldn't change that: "+error.message;return}
+  await loadSocial();renderAcct()});
+ const ef=$("emform");if(ef)ef.onsubmit=async e=>{e.preventDefault();const m=$("pwmsg"),em=$("emin").value.trim();m.className="msg";m.textContent="Sending…";
+  const {error}=await ACCT.sb.auth.updateUser({email:em},{emailRedirectTo:location.origin+location.pathname});
+  if(error){m.className="msg err";m.textContent="Couldn't add the email: "+error.message;return}
+  m.textContent=`Check ${em} for a confirmation link. Until you open it, keep signing in with your username.`};
+ $("pwform").onsubmit=async e=>{e.preventDefault();const m=$("pwmsg"),pw=$("pwin").value;m.className="msg";m.textContent="Saving…";
+  const {error}=await ACCT.sb.auth.updateUser({password:pw});
+  if(error){m.className="msg err";m.textContent="Couldn't change the password: "+error.message;return}
+  $("pwin").value="";m.textContent="Password saved."};
+}
+function signedOutHTML(){
+ const tab=(k,l)=>`<button type="button" class="t${ACCT.mode===k?" on":""}" data-mode="${k}" aria-pressed="${ACCT.mode===k}">${l}</button>`;
+ const tabs=`<div class="atabs" role="group" aria-label="How to sign in">${tab("signin","Sign in")}${tab("signup","Create account")}${tab("link","Email link")}</div>`;
+ const why=`<ul class="why"><li>Your saved spots, pins and catch log on every device</li><li>Friends: share spots and catches with people you choose</li><li>Your settings: theme, map, boat size</li></ul>`;
+ if(ACCT.mode==="signup")return tabs+why+`<form id="upform" autocomplete="on">
+  <input id="upname" autocomplete="username" autocapitalize="none" maxlength="20" placeholder="Username" aria-label="Username" required>
+  <input type="password" id="uppw" autocomplete="new-password" minlength="8" placeholder="Password (8+ characters)" aria-label="Password" required>
+  <button class="t primary" type="submit">Create account</button></form>
+  <div class="msg" id="acctmsg">No email needed. You can add one later for password resets. Anything already saved on this device is added to your account.</div>`;
+ if(ACCT.mode==="link")return tabs+`<p>We email you a sign-in link. No password.</p><form id="acctform"><input type="email" id="acctemail" required autocomplete="email" placeholder="you@example.com" aria-label="Email address">
+  <button class="t primary" type="submit">Email me a sign-in link</button></form>
+  <div class="msg" id="acctmsg">Anything already saved on this device is added to your account when you sign in.</div>`;
+ return tabs+why+`<form id="inform" autocomplete="on">
+  <input id="inid" autocomplete="username" autocapitalize="none" placeholder="Username or email" aria-label="Username or email" required>
+  <input type="password" id="inpw" autocomplete="current-password" placeholder="Password" aria-label="Password" required>
+  <button class="t primary" type="submit">Sign in</button></form>
+  <div class="row3"><button type="button" class="t" id="forgot">Forgot password?</button></div>
+  <div class="msg" id="acctmsg"></div>`;
+}
+function wireSignedOut(){
+ const body=$("acctbody"),msg=(t,err)=>{const m=$("acctmsg");if(m){m.className="msg"+(err?" err":"");m.textContent=t}};
+ body.querySelectorAll("[data-mode]").forEach(b=>b.onclick=()=>{ACCT.mode=b.dataset.mode;renderAcct()});
+ const inf=$("inform");if(inf)inf.onsubmit=async e=>{e.preventDefault();const id=$("inid").value.trim(),pw=$("inpw").value;msg("Signing in…");
+  const {error}=await ACCT.sb.auth.signInWithPassword({email:loginEmail(id),password:pw});
+  if(error)msg(/confirm/i.test(error.message)?"This account isn't confirmed yet. Open the link in the confirmation email first."
+   :`Wrong ${id.includes("@")?"email":"username"} or password.${id.includes("@")?"":" If you've added an email to your account, sign in with that email."}`,true)};
+ const fg=$("forgot");if(fg)fg.onclick=async()=>{const id=($("inid").value||"").trim();
+  if(!id.includes("@")){msg("Type the email you added to your account above, then press Forgot password again. Accounts without an email can't reset a password; make a new account instead.",true);return}
+  msg("Sending…");const {error}=await ACCT.sb.auth.resetPasswordForEmail(id,{redirectTo:location.origin+location.pathname});
+  msg(error?"Couldn't send the reset email: "+error.message:`If ${id} has an account, a reset link is on its way. Open it on this device.`,!!error)};
+ const upf=$("upform");if(upf)upf.onsubmit=async e=>{e.preventDefault();const n=$("upname").value.trim().toLowerCase(),pw=$("uppw").value;
+  if(!UNAME_RE.test(n)){msg("Usernames are 3 to 20 letters, numbers or _ (no spaces).",true);return}
+  msg("Creating your account…");
+  const free=await ACCT.sb.rpc("oc_username_free",{name:n});
+  if(free.error){msg("Accounts with usernames aren't set up yet: the site owner needs to run the newest supabase/setup.sql.",true);return}
+  if(free.data===false){msg(`${n} is taken. Try another.`,true);return}
+  const {data,error}=await ACCT.sb.auth.signUp({email:loginEmail(n),password:pw,options:{data:{username:n}}});
+  if(error){msg(/registered|exists/i.test(error.message)?`${n} is taken. Try another.`:/password/i.test(error.message)?error.message:"Couldn't create the account: "+error.message,true);return}
+  if(!data.session)msg("The account was made but can't sign in yet: in Supabase, turn off Authentication → Sign In / Providers → Email → Confirm email (see README).",true)};
+ const lf=$("acctform");if(lf)lf.onsubmit=async e=>{e.preventDefault();const em=$("acctemail").value.trim();msg("Sending…");
+  const {error}=await ACCT.sb.auth.signInWithOtp({email:em,options:{emailRedirectTo:location.origin+location.pathname}});
+  if(error)msg(/rate|limit|seconds/i.test(error.message)?"Too many sign-in emails right now. Wait a minute and try again.":"Couldn't send the link: "+error.message,true);
+  else msg(`Check ${em} for a link from OceanCast (look in spam too) and open it on this device.`)};
+}
 function renderAcct(){
  const el=$("acctbody"),u=ACCT.user;if(!el)return;
  if(!ACCT.sb){el.innerHTML=`<p>${esc(ACCT.msg||"Loading…")}</p>`;return}
- if(!u){
-  el.innerHTML=`<p>Sign in with your email. No password: we send you a link.</p>
-   <ul class="why"><li>Your saved spots and your own pins on every phone and computer</li><li>Your catch log backed up, so the accuracy report and tuning follow you</li><li>Your settings: theme, map, boat size</li></ul>
-   <form id="acctform"><input type="email" id="acctemail" required autocomplete="email" placeholder="you@example.com" aria-label="Email address">
-   <button class="t primary" type="submit">Email me a sign-in link</button></form>
-   <div class="msg" id="acctmsg">Anything already saved on this device is added to your account when you sign in.</div>`;
-  $("acctform").onsubmit=async e=>{e.preventDefault();const em=$("acctemail").value.trim(),m=$("acctmsg");m.className="msg";m.textContent="Sending…";
-   const {error}=await ACCT.sb.auth.signInWithOtp({email:em,options:{emailRedirectTo:location.origin+location.pathname}});
-   if(error){m.className="msg err";m.textContent=/rate|limit|seconds/i.test(error.message)?"Too many sign-in emails right now. Wait a minute and try again.":"Couldn't send the link: "+error.message}
-   else m.textContent=`Check ${em} for a link from OceanCast (look in spam too) and open it on this device.`};
+ if(u&&ACCT.recovery){
+  el.innerHTML=`<p>Choose a new password.</p><form id="rcform"><input type="password" id="rcpw" autocomplete="new-password" minlength="8" placeholder="New password (8+ characters)" aria-label="New password" required>
+   <button class="t primary" type="submit">Save new password</button></form><div class="msg" id="acctmsg"></div>`;
+  $("rcform").onsubmit=async e=>{e.preventDefault();const {error}=await ACCT.sb.auth.updateUser({password:$("rcpw").value}),m=$("acctmsg");
+   if(error){m.className="msg err";m.textContent="Couldn't save: "+error.message;return}
+   ACCT.recovery=false;renderAcct()};
   return;
  }
+ if(!u){el.innerHTML=signedOutHTML();wireSignedOut();return}
  const when=ACCT.last?new Date(ACCT.last).toLocaleTimeString([],{hour:"numeric",minute:"2-digit"}):null;
- el.innerHTML=`<div class="who">Signed in as <b>${esc(u.email||"")}</b></div>
+ const who=ACCT.profile?ACCT.profile.username:isSynthEmail(u.email)?u.email.split("@")[0]:(u.email||"");
+ el.innerHTML=`<div class="who">Signed in as <b>${esc(who)}</b>${ACCT.profile&&u.email&&!isSynthEmail(u.email)?` <span class="note">(${esc(u.email)})</span>`:""}</div>
   <p>${ACCT.state==="err"?`<span style="color:var(--r)">${esc(ACCT.msg)}</span>`:ACCT.state==="busy"?"Saving…":when?`Everything is saved to your account (last saved ${when}).`:"Everything is saved to your account."}</p>
+  ${socialHTML()}${signinOptsHTML(u)}
   <p class="note">Saved spots, your own pins, the catch log and settings sync automatically. If two devices change the same thing at once, the last one saved wins.</p>
   <div class="row3"><button class="t" type="button" id="acctsync">Sync now</button><button class="t" type="button" id="acctout">Sign out</button><button class="t danger" type="button" id="acctdel">Delete account</button></div>
   <div class="msg">Signing out removes your spots and catches from this device. They stay in your account.</div>`;
- $("acctsync").onclick=async()=>{await acctPush();await acctPull()};
- $("acctout").onclick=async()=>{clearTimeout(ACCT.timer);if(ACCT.state==="busy")await acctPush();await ACCT.sb.auth.signOut();ACCT.user=null;applyBlob({},PERSONAL_KEYS);acctUI();renderAcct()};
+ wireSignedIn();
+ $("acctsync").onclick=async()=>{await acctPush();await acctPull();await loadSocial();renderAcct()};
+ $("acctout").onclick=async()=>{clearTimeout(ACCT.timer);if(ACCT.state==="busy")await acctPush();await ACCT.sb.auth.signOut();ACCT.user=null;clearSocial();applyBlob({},PERSONAL_KEYS);acctUI();renderAcct()};
  $("acctdel").onclick=async e=>{const b=e.currentTarget;
   if(!b.classList.contains("confirm")){b.classList.add("confirm");b.textContent="Delete everything?";setTimeout(()=>{if(b.isConnected){b.classList.remove("confirm");b.textContent="Delete account"}},5000);return}
   b.disabled=true;const {error}=await ACCT.sb.rpc("oc_delete_me");
   if(error){b.disabled=false;b.textContent="Delete account";ACCT.msg="Couldn't delete the account: "+error.message;ACCT.state="err";renderAcct();return}
   try{localStorage.removeItem("oc-merged-"+ACCT.user.id)}catch(x){}
-  await ACCT.sb.auth.signOut();ACCT.user=null;applyBlob({},PERSONAL_KEYS);acctUI();
+  await ACCT.sb.auth.signOut();ACCT.user=null;clearSocial();applyBlob({},PERSONAL_KEYS);acctUI();
   $("acctbody").innerHTML=`<p>Your account and everything saved in it have been deleted.</p>`};
 }
 initAccounts();

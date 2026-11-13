@@ -23,5 +23,22 @@ works as before and saves everything on each device only.
 5. In GitHub, edit `config.js` and paste them into `supabaseUrl` and `supabaseKey`. Commit. The **Sign in** button appears
    after the next update.
 
+### Usernames, passwords and friends
+
+People can also make an account with just a username and password (email optional, for password resets),
+add friends by username, and choose whether friends see their pinned spots and/or their catch log
+(catch notes always stay private). To turn this on in an existing project:
+
+1. In Supabase, open **SQL Editor → New query**, paste everything from `supabase/setup.sql` again, and press **Run**.
+   It's safe to run more than once; it only adds the new tables (`oc_profiles`, `oc_friends`) and rules.
+2. Open **Authentication → Sign In / Providers → Email** and:
+   - turn **off** "Confirm email" (username accounts have no inbox to confirm from), and
+   - turn **off** "Secure email change" (otherwise adding a real email asks for a confirmation from the
+     made-up username address too, which can never arrive).
+   Email-link sign-in keeps working as before.
+
+Usernames are visible to any signed-in person (that's how friends find each other). Nothing else is:
+spots and catches are only readable by accepted friends, and only while sharing is switched on.
+
 Supabase's built-in email sender only allows a few sign-in emails per hour. Once more people use the site, add your own
 email service under **Authentication → Emails → SMTP Settings** (Resend, SendGrid, Amazon SES and others have free tiers).

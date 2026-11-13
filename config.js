@@ -7,5 +7,8 @@
 // signed-in person read and change their own data.
 window.OC_CONFIG = {
   supabaseUrl: "https://qpbqepzdxkadmulkmfbj.supabase.co",   // e.g. "https://abcdefghijklm.supabase.co"
-  supabaseKey: "sb_publishable_8EuhGmHdv5jJ3RaAAxUJAQ_Nc5Y4gdA"    // e.g. "sb_publishable_..."
+  supabaseKey: "sb_publishable_8EuhGmHdv5jJ3RaAAxUJAQ_Nc5Y4gdA",    // e.g. "sb_publishable_..."
+  // Username + password accounts are stored as <username>@<this domain>. It never receives mail.
+  // Leave it as is; changing it later stops existing username accounts from signing in.
+  usernameEmailDomain: "users.oceancast.invalid"
 };
