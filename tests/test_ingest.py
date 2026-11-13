@@ -141,6 +141,15 @@ class FullRun(unittest.TestCase):
         with open("reefs.json") as f:
             self.assertEqual(json.load(f)["reefs"][0][2], "South Timbalier 128")
 
+    def test_boem_platform_files(self):
+        fakes.STATE["boem_files"] = True
+        try:
+            pts = ingest.boem_platforms((-94.5, 26.4, -87.5, 30.6))
+        finally:
+            fakes.STATE["boem_files"] = False
+        # 10003 is outside the box and 10004 has a removal date
+        self.assertEqual(pts, [[28.75, -90.25, "ST 128 A"], [28.2, -91.6, "EI 330 B"]])
+
     def test_marine_forecast(self):
         m = self.latest["marine"]["GMZ550"]
         self.assertEqual(m["periods"][0]["name"], "Today")
@@ -212,7 +221,7 @@ class FullRun(unittest.TestCase):
             ingest.buoy_obs, ingest.map_checks = saved
         with open("health.md") as f:
             rep = f.read()
-        self.assertIn("| NDBC buoy 42040 | **FAIL** | no data |", rep)
+        self.assertIn("| NDBC buoy 42001 | **FAIL** | no data |", rep)
         self.assertIn("| NHC tropical storms | OK |", rep)
         self.assertIn("| Artificial reefs | OK |", rep)
         self.assertIn("| NWS radar map | OK |", rep)

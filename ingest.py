@@ -32,7 +32,7 @@ variable USGS_API_KEY (in GitHub: a repository secret of the same name).
 Set CONTACT below. Check each API's terms (Open-Meteo's free tier is for
 non-commercial use).
 """
-import json, logging, math, os, re, sqlite3, sys, threading, time
+import io, json, logging, math, os, re, sqlite3, sys, threading, time, zipfile
 import xml.etree.ElementTree as ET
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta, timezone
@@ -213,6 +213,17 @@ def get_json(url, params=None, tries=3, timeout=15, headers=None):
         except (URLError, TimeoutError, OSError, ValueError) as e:      # ValueError: not JSON / bad bytes
             log.warning("fetch failed (%s): %s", str(e)[:120], url)
         time.sleep(2 ** i)
+    return None
+
+def get_bytes(url, timeout=60):
+    """Raw bytes of a download (zip files), or None."""
+    try:
+        with urlopen(Request(url, headers={"User-Agent": f"{APP} ({CONTACT})"}), timeout=timeout) as r:
+            return r.read()
+    except HTTPError as e:
+        log.warning("fetch failed (HTTP %s): %s", e.code, url)
+    except (URLError, TimeoutError, OSError) as e:
+        log.warning("fetch failed (%s): %s", e, url)
     return None
 
 def get_text(url, params=None, quiet_404=False):
@@ -1549,11 +1560,50 @@ def weed_near(spot, sg, now, radius_mi=100):
 RIGS, REEFS = "rigs.json", "reefs.json"
 STATIC_DAYS = 7
 # Tried in order until one answers
-RIG_SOURCES = (
+# BOEM's own download files come first: its map service (gis.boem.gov) only returns a
+# "Service Unavailable" page now, and the two mirrors below no longer answer at all.
+BOEM_PLATFORM_FILES = ("https://www.data.boem.gov/Platform/Files/platlocfixed.zip",
+                       "https://www.data.boem.gov/Platform/Files/platstrufixed.zip")
+RIG_SOURCES = (   # ArcGIS fallbacks, tried in order if the download files fail
     "https://gis.boem.gov/arcgis/rest/services/BOEM_BSEE/GOM_Layers/MapServer/0",
     "https://services2.coastalresilience.org/arcgis/rest/services/Gulf_of_Mexico/Conservation_Blueways/MapServer/18",
     "https://maps.nccs.nasa.gov/mapping/rest/services/hifld_open/energy/FeatureServer/12",
 )
+
+def _unzip_text(data):
+    with zipfile.ZipFile(io.BytesIO(data)) as z:
+        name = next(n for n in z.namelist() if not n.endswith("/"))
+        return z.read(name).decode("latin-1")
+
+def boem_platforms(bbox):
+    """Platforms still standing, from BOEM's fixed-width Platform Locations and Platform
+    Structures files (column positions from BOEM's field definition pages). Returns
+    [[lat, lon, name], ...] inside bbox, or None if the files couldn't be read."""
+    try:
+        raw = [get_bytes(u) for u in BOEM_PLATFORM_FILES]
+        if not all(raw):
+            return None
+        loc_txt, stru_txt = (_unzip_text(b) for b in raw)
+    except (zipfile.BadZipFile, StopIteration, OSError) as e:
+        log.warning("BOEM platform files unreadable: %s", e)
+        return None
+    loc = {}
+    for l in loc_txt.splitlines():   # complex id 4-11, structure no. 12-14, area 15-16, block 17-22, name 23-37, lon 86-99, lat 100-112
+        lon, lat = fnum(l[85:99].strip()), fnum(l[99:112].strip())
+        if lon is None or lat is None:
+            continue
+        loc[(l[3:11].strip(), l[11:14].strip())] = (lat, lon, f"{l[14:16].strip()} {l[16:22].strip()}".strip(), l[22:37].strip())
+    pts = []
+    for l in stru_txt.splitlines():  # complex id 9-16, removal date 44-54, structure no. 82-84
+        if len(l) < 84 or l[43:54].strip():
+            continue                                               # removed structures
+        hit = loc.pop((l[8:16].strip(), l[81:84].strip()), None)
+        if not hit:
+            continue
+        lat, lon, block, name = hit
+        if bbox[0] <= lon <= bbox[2] and bbox[1] <= lat <= bbox[3]:
+            pts.append([round(lat, 4), round(lon, 4), f"{block} {name}".strip()])
+    return pts or None
 REEF_SOURCES = (   # (url, label, filter to the Louisiana box?)
     ("https://gis.ngdc.noaa.gov/arcgis/rest/services/NMSP/FGB/MapServer/23", "LDWF artificial reefs (via NOAA)", False),
     ("https://coast.noaa.gov/arcgis/rest/services/Hosted/ArtificialReefs/FeatureServer/0", "Artificial reefs (NOAA Office for Coastal Management)", True),
@@ -1629,7 +1679,16 @@ def static_layers(now, rigs_path=RIGS, reefs_path=REEFS):
         log.exception("reefs.json update failed")
 
 def _rigs(now, rigs_path, bbox, stale):
-    if stale(rigs_path):
+    if not stale(rigs_path):
+        return
+    pts = boem_platforms(bbox)
+    if pts:
+        with open(rigs_path, "w") as fh:
+            json.dump({"generated": now.isoformat(), "source": "BOEM platform structures (data.boem.gov)", "rigs": pts}, fh,
+                      separators=(",", ":"))
+        log.info("rigs.json: %d platforms from BOEM download files", len(pts))
+        return
+    if True:                                                       # fallback: ArcGIS map services
         feats = None
         for url in RIG_SOURCES:
             feats = arcgis_geojson(url, bbox=bbox)
@@ -2431,8 +2490,8 @@ def health(out_md="health.md"):
     def kd490():
         kd = sat_kd490(29.27, -89.95, {}, now)
         return kd, f"{kd[2]}, {kd[1]:%Y-%m-%d}" if kd else "no dataset answered"
-    def buoy():
-        b = buoy_obs("42040") or {}
+    def buoy():   # 42001, south of Southwest Pass. 42040 no longer reports weather (NDBC lists it met="n").
+        b = buoy_obs("42001") or {}
         return b, ", ".join(sorted(b)) or "no data"
     def ssh():
         r = griddap_box("https://gcoos5.geos.tamu.edu/erddap", f"SSH_GoA_{now.year}", "adt", 28.0, 29.0, -90.0, -89.0, extra="")
@@ -2457,9 +2516,14 @@ def health(out_md="health.md"):
     check("USGS Water Data API (new)", usgs)
     check("NWS river gauges", river)
     check("Satellite water clarity (Kd490)", kd490)
-    check("NDBC buoy 42040", buoy)
+    check("NDBC buoy 42001", buoy)
     check("Sea surface height (Loop Current)", ssh)
-    check("Offshore platforms", layer(RIG_SOURCES, (-90.5, 28.5, -90.0, 29.0)))
+    def rigs():
+        pts = boem_platforms((-94.5, 26.4, -87.5, 30.6))
+        if pts:
+            return True, f"{len(pts)} standing platforms from BOEM download files"
+        return layer(RIG_SOURCES, (-90.5, 28.5, -90.0, 29.0))()
+    check("Offshore platforms", rigs)
     check("Artificial reefs", layer([u for u, _, _ in REEF_SOURCES], (-90.5, 28.5, -89.5, 29.2)))
     check("NHC tropical storms", nhc)
     check("NWS marine forecast text", marine)

@@ -215,8 +215,40 @@ def fake_nhc(url, p):
     return {"features": [{"geometry": {"type": "Polygon", "coordinates": [[[-94, 26], [-92, 26], [-92, 27.5], [-94, 27.5], [-94, 26]]]},
                           "properties": {"prob2day": "10%", "prob7day": "30%", "risk7day": "Low"}}]}
 
+def _fixed(width, **cols):
+    """One fixed-width line: cols maps 1-based start position -> text."""
+    line = [" "] * width
+    for start, txt in cols.values():
+        line[start - 1:start - 1 + len(txt)] = txt
+    return "".join(line)
+
+def boem_zip(kind):
+    """Small copies of BOEM's platloc / platstru fixed-width files, zipped like the real ones."""
+    import io, zipfile
+    if kind == "loc":
+        rows = [("  10001", "1", "ST", "   128", "A", "  -90.2500", " 28.7500"),
+                ("  10002", "1", "EI", "   330", "B", "  -91.6000", " 28.2000"),
+                ("  10003", "1", "MC", "   777", "C", "  -88.0000", " 25.0000"),   # outside the Louisiana box
+                ("  10004", "1", "WD", "    73", "D", "  -89.8000", " 28.9000")]   # removed (see below)
+        txt = "\r\n".join(_fixed(112, a=(4, c), b=(12, n), c=(15, ar), d=(17, bl), e=(23, nm), f=(86, lo), g=(100, la))
+                          for c, n, ar, bl, nm, lo, la in rows)
+    else:
+        rows = [("   10001", "  1", ""), ("   10002", "  1", ""), ("   10003", "  1", ""), ("   10004", "  1", "01-JAN-2020")]
+        txt = "\r\n".join(_fixed(148, a=(9, c), b=(82, n), c=(44, rm)) for c, n, rm in rows)
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, "w") as z:
+        z.writestr("platloc.DAT" if kind == "loc" else "platstru.DAT", txt)
+    return buf.getvalue()
+
+def fake_bytes(url, timeout=60):
+    bump("bytes")
+    if not STATE.get("boem_files"):
+        return None                                  # default: BOEM files "down", ArcGIS fallback is used
+    return boem_zip("loc" if "platloc" in url else "stru")
+
 def install(ingest):
     ingest.get_json = fake_json
     ingest.get_text = fake_text
+    ingest.get_bytes = fake_bytes
     ingest.USGS_KEY = "test-key"
     CALLS.clear()

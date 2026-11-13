@@ -1238,7 +1238,9 @@ async function ovData(f){if(!(f in OVDATA))OVDATA[f]=fetch(f+"?t="+Math.floor(Da
 const ovDate=t=>{const d=new Date(t);return isNaN(d)?"":d.toLocaleDateString([],{month:"short",day:"numeric"})};
 async function buildOverlay(k){
  if(k==="radar")return radarOverlay();
- const d=await ovData(OVF[k]);if(!d)return{layer:null,note:"isn't available yet (it's added by the next data update)"};
+ const d=await ovData(OVF[k]);if(!d)return{layer:null,note:k==="deadzone"
+  ?"not available: NOAA has taken its Gulf Hypoxia Watch map offline. The layer comes back on its own if NOAA restores it."
+  :"isn't available yet (it's added by the next data update)"};
  const R=L.canvas({padding:.5}),line=(lines,color,w,dash)=>L.polyline(lines,{renderer:R,color,weight:w,opacity:.95,dashArray:dash,interactive:false});
  if(k==="breaks"){const b=d.sst_breaks;if(!b||!b.lines.length)return{layer:null,note:"no strong temperature breaks found in the latest image"};
   return{layer:line(b.lines,OVCOL.breaks,2.5),note:`<span class="legendline" style="border-color:${OVCOL.breaks}"></span>temperature breaks, ${ovDate(b.time)}`}}
