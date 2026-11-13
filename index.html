@@ -105,6 +105,7 @@ button.t.on{background:var(--ac);color:var(--onac);border-color:var(--ac);font-w
 .log-assess{background:var(--bg);border-radius:12px;padding:12px 14px;margin-top:12px;font-size:14px}
 .log-assess .bigish{font-size:22px;font-weight:800;font-family:"Bricolage Grotesque",system-ui,sans-serif}
 .priv{font-size:12px;color:var(--mu);margin-top:6px}
+.frontw{font-size:13px;margin:0 0 6px;padding:6px 10px;border-radius:10px;background:var(--s2,rgba(127,127,127,.12));border-left:3px solid #3d6bff}
 .gono{display:inline-block;padding:4px 14px;border-radius:99px;font-weight:700;font-size:13px;color:#fff}
 .gono.go{background:var(--g)}.gono.caution{background:var(--y);color:#1a1200}.gono.nogo{background:var(--r)}
 .solunar{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0}
@@ -478,6 +479,7 @@ body.nomap #mapcard{display:none!important}
     <label><input type="checkbox" data-ov="breaks"> Temp breaks</label>
     <label><input type="checkbox" data-ov="color"> Color lines</label>
     <label><input type="checkbox" data-ov="ssh"> Loop Current &amp; eddies</label>
+    <label><input type="checkbox" data-ov="weeds"> Weedlines</label>
     <label><input type="checkbox" data-ov="rigs"> Rigs</label>
     <label><input type="checkbox" data-ov="reefs"> Reefs</label>
     <label><input type="checkbox" data-ov="tropical"> Tropical storms</label>
@@ -578,6 +580,9 @@ const rain=(w,hi)=>({k:"rain",l:"Recent rain (48h)",w,f:v=>trap(v,[-1,0,0.4,hi])
 const NIGHT=E({Night:1,Dusk:1,Dawn:.9,Daytime:.7});
 const light=(w,m=LIGHT)=>({k:"light",l:"Light (now)",w,f:m,t:v=>v});
 const moon=w=>({k:"moon",l:"Moon (phase and solunar)",w,f:v=>v.s,t:v=>v.txt});
+// Where we are in the cold-front cycle, and what the shrimp are doing this time of year
+const fphase=w=>({k:"fphase",l:"Cold front timing",w,f:v=>v.s,t:v=>v.txt});
+const shrimp=w=>({k:"shrimp",l:"Shrimp migration",w,f:v=>v.s,t:v=>v.txt});
 // Time of year: 12 monthly weights, January first (fish that come and go with the seasons)
 const MON=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 const seas=(w,m)=>({k:"mon",l:"Time of year",w,f:v=>m[v-1]??0,t:v=>MON[v-1]});
@@ -733,6 +738,12 @@ const TCUR={bullred:[2,[.1,.8,2.6,4]],redfish:[1,[0,.4,2,3.5]],trout:[1,[0,.4,1.
  sheepshead:[1,[0,.3,1.5,3]],drum:[.7,[0,.3,1.8,3.2]],spanish:[1,[.1,.5,2.5,4]],pompano:[.5,[0,.3,1.8,3]]};
 for(const[k,[w,band]]of Object.entries(TCUR))SP[k].factors.push({k:"tcur",l:"Tidal current",w,f:v=>trap(v,band),t:v=>v+" kt"});
 // Bottom oxygen: inside this summer's measured dead zone, bottom fish move off or shut down
+// Floating sargassum (satellite): weedlines hold bait, mahi and tripletail. No weed nearby isn't a
+// bad day (rigs and color changes still hold fish), so the floor is 0.5.
+for(const[k,w]of[["mahi",1.5],["tripletail",1.5],["wahoo",.7],["cobia",.5]])SP[k].factors.push({k:"weed",l:"Weedlines (satellite)",w,f:v=>.5+.5*trap(v,[-1,0,8,40]),t:v=>v>=100?"none within 100 mi":v<=1?"right here":`about ${v} mi away`});
+// Cold-front timing for every inshore fish; shrimp runs for the fish that chase shrimp
+for(const[k,p]of Object.entries(SP))if((p.zone||"inshore")==="inshore")p.factors.push(fphase(k==="crab"?.6:k==="catfish"?.8:1.2));
+for(const[k,w]of[["trout",1.5],["redfish",1],["flounder",1],["bullred",.7],["drum",.5]])SP[k].factors.push(shrimp(w));
 for(const k of["snapper","grouper","mangrove","cubera","amberjack"])SP[k].factors.push({k:"oxy",l:"Bottom oxygen",w:2,f:E({OK:1,Low:.15}),t:v=>v==="Low"?"Low (dead zone)":"OK"});
 // Season guide (12 monthly weights, January first). Species with a time-of-year factor use its
 // weights; the rest are a rough guide from general Louisiana fishing patterns, not a survey.
@@ -745,7 +756,50 @@ const SEASON={redfish:[.6,.6,.7,.8,.8,.8,.8,.8,.9,1,1,.8],trout:[.6,.6,.7,.9,1,1
  mangrove:[.3,.3,.4,.6,.8,1,1,1,.9,.7,.5,.3],cubera:[.3,.3,.4,.5,.7,1,1,1,.8,.6,.4,.3],blackfin:[.8,.8,.8,.8,.7,.6,.6,.6,.7,.8,.9,.9],
  grouper:[.7,.7,.7,.7,.7,.7,.7,.7,.7,.8,.8,.7]};
 const seasonOf=k=>{const f=SP[k].factors.find(F=>F.k==="mon");return f?MON.map((_,i)=>f.f(i+1)):SEASON[k]||null};
-const SRC={tcur:"tcur",oxy:"oxy",riv:"riv",wl_anom:"wl_anom",vis:"vis",sbreak:"sbreak",wave:"wave",cur:"cur",temp:"temp_f",wind:"wind_mph",pres:"pres",tide:"tide",trange:"tide",sal:"sal",cloud:"cloud",dtemp:"temp_d24",rain:"rain",front:"front",level:"level_d6"};
+const SRC={weed:"weed",tcur:"tcur",oxy:"oxy",riv:"riv",wl_anom:"wl_anom",vis:"vis",sbreak:"sbreak",wave:"wave",cur:"cur",temp:"temp_f",wind:"wind_mph",pres:"pres",tide:"tide",trange:"tide",sal:"sal",cloud:"cloud",dtemp:"temp_d24",rain:"rain",front:"front",level:"level_d6"};
+
+// ---- Cold fronts (found by the data update in the hourly forecast: wind swings north, pressure
+// climbs, the daily-average temperature drops). Fish feed ahead of a front and shut down for a day
+// or two after it, while north wind drains the marsh.
+const whenTxt=ts=>new Date(ts).toLocaleString([],{weekday:"short",hour:"numeric"});
+function frontInfo(spot,ts=Date.now()){
+ const fr=spot&&spot.fronts;if(!Array.isArray(fr))return null;
+ const H=f=>(ts-Date.parse(f.t))/36e5;
+ const next=fr.filter(f=>H(f)<-3).sort((a,b)=>H(b)-H(a))[0],                  // soonest ahead
+       last=fr.filter(f=>H(f)>=-3).sort((a,b)=>H(a)-H(b))[0];                   // most recent
+ const strong=f=>(f.drop_f||0)>=12||(f.nwind||0)>=18;
+ if(last&&H(last)<4)return{s:.35,ph:"passing",f:last,txt:"Front passing now: wind shift, possible storms"};
+ if(next&&H(next)>=-24)return{s:1,ph:"pre",f:next,txt:`Ahead of the front due ${whenTxt(Date.parse(next.t))}: fish feed`};
+ if(last&&H(last)<30)return{s:strong(last)?.25:.45,ph:"post1",f:last,txt:`Day after the front (about ${last.drop_f}°F cooler${last.nwind?`, north wind to ${last.nwind} mph`:""})`};
+ if(last&&H(last)<54)return{s:.5,ph:"post2",f:last,txt:"Second day after the front: fish settling"};
+ if(last&&H(last)<78)return{s:.7,ph:"post3",f:last,txt:"Third day after the front: warming back up"};
+ if(next&&H(next)>=-48)return{s:.8,ph:"due",f:next,txt:`Front due ${whenTxt(Date.parse(next.t))}`};
+ return{s:.75,ph:"none",txt:next?`Settled; next front ${whenTxt(Date.parse(next.t))}`:"Settled weather, no front in the forecast"};
+}
+// ---- Shrimp migration in Louisiana estuaries. Brown shrimp come into the marsh Feb–Apr and leave
+// for the Gulf in May–June; white shrimp come in May–Sep and flush out Sep–Dec, pushed by cold
+// fronts and falling water temperature. Shrimp ride falling tides out, and trout, reds and
+// flounder stack where the marsh drains into bays and passes. Dates move with temperature and
+// river water each year; this is a seasonal guide, not a survey.
+const DOY=ts=>{const d=new Date(ts);return Math.floor((d-new Date(d.getFullYear(),0,0))/864e5)};
+const ramp=(d,pts)=>{if(d<=pts[0][0]||d>=pts[pts.length-1][0])return 0;for(let i=1;i<pts.length;i++)if(d<=pts[i][0]){const[a,va]=pts[i-1],[b,vb]=pts[i];return va+(vb-va)*(d-a)/(b-a)}return 0};
+const SHRIMP={brownIn:[[41,0],[74,1],[105,1],[130,0]],brownOut:[[121,0],[145,1],[176,1],[206,0]],
+ whiteIn:[[135,0],[171,1],[232,1],[273,0]],whiteOut:[[237,0],[283,1],[335,1],[366,0]]};
+const SHRIMP_RES=[.2,.2,.4,.7,.9,.8,.7,.8,.9,1,.9,.5];    // how many shrimp are in the marsh, by month
+function shrimpInfo(c,ts=Date.now()){
+ const d=DOY(ts),m=new Date(ts).getMonth(),g=k=>ramp(d,SHRIMP[k]);
+ let bo=g("brownOut"),wo=g("whiteOut");const bi=g("brownIn"),wi=g("whiteIn");
+ const cold=(c.fphase&&/^post/.test(c.fphase.ph))||(c.dtemp!=null&&c.dtemp<=-2)||(c.temp!=null&&c.temp<=72);
+ if(wo>0)wo*=cold?1:.75;                                   // fronts and cooling water push white shrimp out
+ const out=Math.max(bo,wo),tide=c.tide,where=c.sal==null?1:c.sal>=10?1:c.sal>=4?.8:.6;
+ const move=out*(tide==="Outgoing"?1:tide==="Slack"?.5:.7)*where+.3*Math.max(bi,wi);
+ const s=Math.min(1,.2+.5*SHRIMP_RES[m]+.3*move);
+ const ph=[[wo,"White shrimp moving out to the Gulf (fall run)"],[bo,"Brown shrimp moving out to the Gulf"],
+  [wi,"Young white shrimp moving into the marsh"],[bi,"Young brown shrimp moving into the marsh"]].sort((a,b)=>b[0]-a[0])[0];
+ const txt=ph[0]>=.2?ph[1]+(/out/.test(ph[1])&&tide==="Outgoing"?", falling tide":""):SHRIMP_RES[m]<=.3?"Few shrimp in the marsh (winter)":"Shrimp in the marsh, not running";
+ return{s:Math.round(s*100)/100,txt,out,ph:ph[0]>=.2?ph[1]:null,wo,bo,bi,wi};
+}
+function addCtx(c,spot,ts){c.fphase=frontInfo(spot,ts);c.shrimp=spot.zone==="offshore"?null:shrimpInfo(c,ts);return c}
 
 // Sunrise/sunset from lat/lon (NOAA approximation), good to a few minutes
 function sunMins(lat,lon,dayUTC){
@@ -936,13 +990,31 @@ function tipsFor(spot,c){
   else if(wd>=110&&wd<=220)t.push(`${windCompass(wd)} wind at ${ws} mph pushes Gulf water in, so tides can run higher than predicted. Fish flooded grass edges and the backs of ponds.`);
  }
  if(inshore&&ws>=15)t.push(`Breezy: fish a protected shoreline where you can hold the boat and the water is usually cleaner.`);
- if(c.front!=null&&c.front<=-10)t.push(`Air temperature dropped ${-c.front}°F in 24 hours. After a front, fish slower and deeper; the afternoon warm-up is often best.`);
+ const fp=c.fphase;
+ if(fp&&fp.ph==="pre")t.push(`Cold front due ${whenTxt(Date.parse(fp.f.t))}${fp.f.drop_f?` (about ${fp.f.drop_f}°F cooler behind it)`:""}. Fish usually feed hard in the day before a front: go early, and be off the water before the wind shift and storms.`);
+ else if(fp&&fp.ph==="passing")t.push(`A cold front is passing: expect a sudden wind shift to the north, gusts and possible storms. Watch the radar.`);
+ else if(fp&&/^post[12]/.test(fp.ph)){
+  t.push(`The front came through ${whenTxt(Date.parse(fp.f.t))}${fp.f.drop_f?`, about ${fp.f.drop_f}°F cooler`:""}. Clear skies and a cold north wind slow fish down: fish slower and deeper, and the afternoon warm-up is often best.`);
+  if(inshore&&(fp.f.nwind||0)>=15)t.push(`North wind${fp.f.nwind?` up to ${fp.f.nwind} mph`:""} behind the front pushes water out of the marsh, so tides run low and shallow ponds drain. Fish the deeper bayous, drains and channel edges where shrimp and bait get flushed out.`);
+ }
+ else if(c.front!=null&&c.front<=-10)t.push(`Air temperature dropped ${-c.front}°F in 24 hours. After a front, fish slower and deeper; the afternoon warm-up is often best.`);
  else if(c.pres==="Falling")t.push(`Pressure is falling: fish often feed ahead of a front. Go early and keep an eye on the weather.`);
+ const sh=c.shrimp;
+ if(inshore&&sh&&sh.ph){
+  if(sh.wo>=.5)t.push(`Fall shrimp run: white shrimp are flushing out of the marsh, most on falling tides right after fronts. Look for birds diving over open bays, and fish the outflow at bayou mouths, cuts and passes.`);
+  else if(sh.bo>=.5)t.push(`Brown shrimp are leaving the marsh for the Gulf. Trout and reds stack at passes, islands and beachfronts on falling tides, often at night under lights.`);
+  else if(sh.bi>=.5)t.push(`Young brown shrimp are moving into the marsh. Reds and trout follow them back into the bays and marsh edges as the water warms.`);
+  else if(sh.wi>=.5)t.push(`Young white shrimp are filling the marsh: fish the grass edges, marsh drains and shell reefs where they collect.`);
+ }
+ if(!inshore&&c.weed!=null&&c.weed<=25){
+  const age=spot.quality&&spot.quality.sources&&spot.quality.sources.weed?Math.round(spot.quality.sources.weed.age_min/1440):null;
+  t.push(`Satellite shows floating sargassum about ${c.weed} mi from here${age!=null?` (image from ${age} day${age===1?"":"s"} ago; weed drifts, so search around it)`:""}. Run the weedlines and patches: mahi, tripletail and bait hold underneath. Turn on Weedlines on the map.`);
+ }
  if(inshore&&c.rain!=null&&c.rain>=1.5)t.push(`${c.rain} in of rain in 48 hours: fresh runoff can push trout and reds toward saltier water nearer the Gulf.`);
  if(c.riv&&c.riv.pct>=80)t.push(`The river is high (${c.riv.pct}% of flood stage): expect fresh, muddy water near the river. Look for cleaner, saltier water farther from the outflow.`);
  else if(c.riv&&c.riv.trend==="Falling"&&c.riv.pct>=40)t.push(`The river is falling: fish often stack at cuts and drains where water pulls out of the flooded marsh and swamp.`);
  if(c.dtemp!=null&&c.dtemp<=-4)t.push(`Water cooled ${-c.dtemp}°F in a day: fish slide to deeper, slower water until it settles.`);
- return t.slice(0,4);
+ return t.slice(0,5);
 }
 function goNoGo(spot,c){
  if(spot.zone!=="offshore")return null;
@@ -991,6 +1063,7 @@ function userDepth(){
 function score(spId,spot,ts=Date.now(),depth=userDepth()){
  const c={...spot.conditions,zone:spot.zone,alerts:(spot.alerts||[]).map(a=>a.event).join("|"),light:lightNow(spot,ts),moon:moonInfo(spot,ts),mon:monthOf(ts)};
  if(depth!=null)c.depth=depth;
+ addCtx(c,spot,ts);
  return scoreC(spId,c,spot.quality||{},ts);
 }
 // Conditions for forecast hour i (shared by the outlook and the best-window finder)
@@ -999,7 +1072,7 @@ function fcConditions(spot,f,i,ts,depth){
  const c={...spot.conditions,zone:spot.zone,light:lightNow(spot,ts),moon:moonInfo(spot,ts),mon:monthOf(ts)};
  if(depth!=null)c.depth=depth;
  for(const k of FC_KEYS)c[k]=f[k]?f[k][i]:null;
- return c;
+ return addCtx(c,spot,ts);
 }
 function scoreC(spId,c,q,ts=Date.now()){
  const p=SP[spId];
@@ -1025,6 +1098,13 @@ function scoreC(spId,c,q,ts=Date.now()){
  return{total:Math.round(100*s/sw),rows,coverage:sw/tw,used:have.length,all:usable.length,
   missing:usable.filter(F=>c[F.k]==null).map(F=>F.l),reason};
 }
+// Cold fronts in the forecast for this spot, for the outlook
+function frontWatch(spot){
+ const fr=(spot.fronts||[]).filter(f=>Date.parse(f.t)>Date.now()-36e5*30);
+ if(!fr.length)return`<div class="note" style="margin-bottom:6px">No cold front in the 7-day forecast.</div>`;
+ return fr.map(f=>{const t=Date.parse(f.t),past=t<Date.now();
+  return`<div class="frontw"><b>${past?"Cold front passed":"Cold front"}</b> ${whenTxt(t)} · about ${f.drop_f}°F cooler${f.nwind?` · north wind to ${f.nwind} mph`:""}${past?"":`<span class="note"> · best bite is usually the day before</span>`}</div>`}).join("");
+}
 function outlook(){
  const el=$("outlook"),spot=DATA.spots.find(s=>s.id===sel),f=FC&&FC.spots&&FC.spots[sel];
  if(!f){el.innerHTML=`<h3>7-day outlook</h3><div class="note">Forecast not available yet. It appears after the next data update.</div>`;return}
@@ -1045,7 +1125,7 @@ function outlook(){
  const best=list.reduce((a,b)=>b.v>a.v?b:a);
  const wd=ts=>new Date(ts).toLocaleDateString([],{weekday:"short",month:"numeric",day:"numeric"});
  el.innerHTML=`<h3>7-day outlook: ${SP[sp].name} at ${spot.name}</h3>
-  <div class="note" style="margin-bottom:6px">Best window this week: <b>${wd(best.from)}, ${fmt(best.from)}–${fmt(best.to)}</b> (${best.v})</div>`+
+  <div class="note" style="margin-bottom:6px">Best window this week: <b>${wd(best.from)}, ${fmt(best.from)}–${fmt(best.to)}</b> (${best.v})</div>${frontWatch(spot)}`+
   list.map((d,i)=>`<div class="day ${i>=3?"dim":""}"><span>${wd(d.from)}</span>
   <div class="bar" style="margin:0"><i style="width:${d.v}%;background:${col(d.v)}"></i></div>
   <span><b style="color:${col(d.v)}">${d.v}</b> <span class="note">${fmt(d.from)}–${fmt(d.to)}</span></span></div>`).join("")+
@@ -1152,8 +1232,8 @@ async function depthAt(ll){
  saveMySpotForm(ll,m!=null&&m<0?Math.round(-m*3.28084):null);
 }
 // ---- Map overlays: temperature breaks, color lines, Loop Current/eddies, rigs, reefs ----
-const OVF={breaks:"ocean.json",color:"ocean.json",ssh:"ocean.json",rigs:"rigs.json",reefs:"reefs.json",tropical:"tropical.json",deadzone:"deadzone.json"},OVDATA={},OVLAYER={};
-const OVCOL={breaks:"#ff4d2e",color03:"#1aa5c8",color1:"#3c9a3c",warm:"#ff2d7a",cold:"#3d6bff",rig:"#ffb400",reef:"#2bd4c4"};
+const OVF={weeds:"ocean.json",breaks:"ocean.json",color:"ocean.json",ssh:"ocean.json",rigs:"rigs.json",reefs:"reefs.json",tropical:"tropical.json",deadzone:"deadzone.json"},OVDATA={},OVLAYER={};
+const OVCOL={weed:"#c9a227",breaks:"#ff4d2e",color03:"#1aa5c8",color1:"#3c9a3c",warm:"#ff2d7a",cold:"#3d6bff",rig:"#ffb400",reef:"#2bd4c4"};
 async function ovData(f){if(!(f in OVDATA))OVDATA[f]=fetch(f+"?t="+Math.floor(Date.now()/36e5)).then(r=>r.ok?r.json():null).catch(()=>null);return OVDATA[f]}
 const ovDate=t=>{const d=new Date(t);return isNaN(d)?"":d.toLocaleDateString([],{month:"short",day:"numeric"})};
 async function buildOverlay(k){
@@ -1168,6 +1248,12 @@ async function buildOverlay(k){
  if(k==="ssh"){const h=d.ssh;if(!h)return{layer:null,note:"no recent sea height data"};
   return{layer:L.layerGroup([line(h.warm||[],OVCOL.warm,3),line(h.cold||[],OVCOL.cold,2,"4 4")]),
    note:`<span class="legendline" style="border-color:${OVCOL.warm}"></span>Loop Current and warm eddies <span class="legendline" style="border-color:${OVCOL.cold};border-top-style:dashed"></span>cold eddies, ${ovDate(h.time)}`}}
+ if(k==="weeds"){const g=d.sargassum;if(!g)return{layer:null,note:"no recent sargassum image"};
+  if(!g.patches||!g.patches.length)return{layer:null,note:`no floating sargassum found in the ${ovDate(g.time)} image`};
+  const R3=L.canvas();
+  return{layer:L.layerGroup(g.patches.map(([la,lo,n])=>L.circleMarker([la,lo],{renderer:R3,radius:Math.min(9,3+Math.sqrt(n)),color:"#5a4a00",weight:1,fillColor:OVCOL.weed,fillOpacity:.85,bubblingMouseEvents:false})
+    .bindTooltip(`Floating sargassum (${n} satellite pixel${n>1?"s":""}), 7 days to ${ovDate(g.time)}`))),
+   note:`<span class="legendline" style="border-color:${OVCOL.weed}"></span>sargassum patches, 7 days to ${ovDate(g.time)}${g.age_days>=5?` (${g.age_days} days old: weed drifts, so look nearby)`:""}`}}
  if(k==="tropical")return tropOverlay(d);
  if(k==="deadzone")return deadzoneOverlay(d);
  const list=k==="rigs"?d.rigs:d.reefs,col=k==="rigs"?OVCOL.rig:OVCOL.reef,R2=L.canvas();
@@ -1337,7 +1423,7 @@ async function setOverlay(k,on){
  if(!MAP)return;
  if(OVLAYER[k]){MAP.removeLayer(OVLAYER[k].layer);delete OVLAYER[k]}
  if(on){const o=await buildOverlay(k);if(o.layer){o.layer.addTo(MAP);OVLAYER[k]=o}else OVLAYER[k]={layer:L.layerGroup(),note:`${{breaks:"Temp breaks",color:"Color lines",ssh:"Loop Current",rigs:"Rigs",reefs:"Reefs",tropical:"Tropical storms",radar:"Radar",deadzone:"Dead zone"}[k]}: ${o.note}`}}
- $("ovnote").innerHTML=Object.values(OVLAYER).map(o=>o.note).join(" · ")+(Object.keys(OVLAYER).some(x=>x==="breaks"||x==="color"||x==="ssh")?" · Satellite analysis; lines move daily.":"");
+ $("ovnote").innerHTML=Object.values(OVLAYER).map(o=>o.note).join(" · ")+(Object.keys(OVLAYER).some(x=>x==="breaks"||x==="color"||x==="ssh"||x==="weeds")?" · Satellite analysis; lines move daily.":"");
  try{localStorage.setItem("la-fish-overlays",JSON.stringify(Object.keys(OVLAYER)))}catch(e){}
 }
 function initOverlays(){
@@ -1519,7 +1605,7 @@ function confLabel(cov){return cov>=0.75?"Solid data":cov>=0.5?"Partial data":"L
 // Data health: how fresh the data is and which readings are missing at which spots
 const MISSL={temp:"water temp",wind:"wind",pres:"pressure",tide:"tide",sal:"salinity",clar:"clarity",cloud:"clouds",dtemp:"temp change",
  rain:"rain",front:"air temp change",level:"water level trend",trange:"tide swing",wave:"waves",cur:"current",sbreak:"temp break",ssat:"satellite sea temp",
- vis:"visibility",wl_anom:"water vs tide table",riv:"river"};
+ vis:"visibility",wl_anom:"water vs tide table",riv:"river",weed:"weedlines"};
 function renderHealth(){
  const el=$("healthbody");if(!el||!DATA)return;
  const ageH=(Date.now()-new Date(DATA.generated))/36e5,sp=DATA.spots,avg=sp.reduce((a,s)=>a+((s.quality||{}).completeness||0),0)/sp.length;
@@ -1545,6 +1631,7 @@ function render(){
   <span><button class="fav ${favs.includes(s.id)?"on":""}" data-fav="${s.id}" title="Pin spot" aria-label="Pin ${esc(s.name)}" aria-pressed="${favs.includes(s.id)}">★</button>${esc(s.name)}${s.user?' <span class="note">(yours)</span>':""}</span>
   ${r.gate?`<span class="note">n/a</span>`:`<span><b style="color:${col(r.total)}">${r.total}</b> <span class="note">${lab(r.total)}</span></span>`}</div>`).join("");
  const spot=DATA.spots.find(s=>s.id===sel),r=score(sp,spot),mi=moonInfo(spot),c={...spot.conditions,zone:spot.zone,alerts:(spot.alerts||[]).map(a=>a.event).join("|"),light:lightNow(spot),moon:mi,mon:monthOf(Date.now())},q=spot.quality||{},p=SP[sp];
+ addCtx(c,spot,Date.now());
  writeHash();
  let h=`<div class="big"><div class="dial" style="--p:${r.gate?0:r.total};--c:${r.gate?"var(--mu)":col(r.total)}"><span style="color:var(--c)">${r.gate?"—":r.total}</span></div><div>
   <div style="font-size:17px;font-weight:600">${p.name} at ${esc(spot.name)} <button class="fav ${favs.includes(spot.id)?"on":""}" data-fav="${spot.id}" title="Pin spot" aria-label="Pin ${esc(spot.name)}" aria-pressed="${favs.includes(spot.id)}">★</button></div>
