@@ -173,14 +173,7 @@ Coastal waters from Port Fourchon LA to Lower Atchafalaya River LA out 20 NM-
 $$
 """
 
-BEACH_HTML = """<table><tr><th>Monitoring Site</th><th>Most Recent<br>Sample Date</th><th>Advisory Status</th></tr>
-<tr><td>Grand Isle Beach Site #1</td><td>10/26/2026</td><td><strong>ADVISORY</strong></td></tr>
-<tr><td>Holly Beach Site #1</td><td>10/20/2026</td><td>No Advisory</td></tr>
-<tr><td>Martin (Mae&#39;s) Beach</td><td>10/20/2026</td><td>No Advisory</td></tr></table>"""
-
 def fake_text(url, params=None, quiet_404=False):
-    if "ldh.la.gov/beach" in url:
-        bump("ldh"); return BEACH_HTML
     if "tgftp" in url:
         bump("tgftp")
         return MARINE_TXT if "/coastal/" in url and "gmz550" in url else None

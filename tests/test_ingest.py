@@ -225,7 +225,7 @@ class FullRun(unittest.TestCase):
         self.assertIn("| NHC tropical storms | OK |", rep)
         self.assertIn("| Artificial reefs | OK |", rep)
         self.assertIn("| NWS radar map | OK |", rep)
-        self.assertIn("| Beach water quality (LDH) | OK | 3 beaches, 1 with advisories |", rep)
+        self.assertNotIn("Beach water quality", rep)
         self.assertGreaterEqual(fails, 1)
 
     def test_tidal_currents(self):
@@ -243,15 +243,10 @@ class FullRun(unittest.TestCase):
         self.assertEqual(sc["cstations"][0][0], "ACT0001")                 # kept for next run
         self.assertEqual(sc["cstn|calc"], [])                              # "none nearby" remembered too
 
-    def test_diversions_and_beaches(self):
+    def test_diversions(self):
         dv = self.latest["diversions"]
         self.assertEqual(dv["bonnet"]["status"], "Open")
         self.assertEqual(dv["davis"]["status"], "Flowing")
-        self.assertEqual(self.spots["barat"]["beach_adv"], ["Grand Isle Beach Site #1"])
-        self.assertEqual(self.spots["calc"]["beach_adv"], [])
-        mae = next(b for b in self.latest["beaches"] if b["name"].startswith("Martin"))
-        self.assertEqual(mae["name"], "Martin (Mae's) Beach")
-        self.assertIsNotNone(mae["lat"])
 
     def test_dead_zone(self):
         with open("deadzone.json") as f:

@@ -1703,7 +1703,6 @@ function render(){
  if(DATA.tropical&&DATA.tropical.rank>=3)h+=`<div class="warn bad"><b>Tropical:</b> ${esc(DATA.tropical.text)} Long-period swells, higher tides and rough seas can arrive days ahead of a storm.</div>`;
  // Share
  if(!r.gate)h+=`<div class="share-row"><button type="button" class="t" id="shareBtn">Share this score</button><span class="note" id="shareMsg" role="status" style="align-self:center"></span></div>`;
- if(spot.beach_adv&&spot.beach_adv.length)h+=`<div class="warn bad"><b>Swimming advisory (high bacteria)</b> at ${esc(spot.beach_adv.join(", "))}. Avoid wading with cuts or scrapes and wash your hands after handling fish. <a href="https://ldh.la.gov/beach" target="_blank" rel="noopener">LDH beach results</a></div>`;
  if(spot.alerts&&spot.alerts.length)h+=`<div class="warn bad"><b>Active weather alerts:</b> ${spot.alerts.map(a=>esc(a.event)+(a.ends?` (until ${new Date(a.ends).toLocaleString([],{weekday:"short",hour:"numeric"})})`:"")).join("; ")}. Check the NWS marine forecast before you go.</div>`;
  if(p.note)h+=`<div class="warn">${p.note}</div>`;
  if(p.tip&&!r.gate)h+=`<div class="spotnote"><b>${esc(p.name)}:</b> ${esc(p.tip)}</div>`;

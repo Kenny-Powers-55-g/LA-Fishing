@@ -1272,7 +1272,6 @@ def collect(spot, now, cache):
             "alerts": get_alerts(spot["lat"], spot["lon"]),
             "tides": tides,
             "current": {k: v for k, v in tcur.items() if k != "_ev"} if tcur else None,
-            "beach_adv": beach_advisories(spot, cache.get("beaches")),
             "fronts": find_fronts(wx["series"], now) if wx and wx.get("series") else [],
             "forecast": build_forecast(cond, wx, pts, now, mar, sbias, tcur["_ev"] if tcur else None) if wx and wx.get("series") else None,
             "conditions": cond,
@@ -2134,46 +2133,8 @@ def hypoxia_flag(spot, dz, now):
         return None
     return "Low" if any(_inside(spot["lat"], spot["lon"], r) for r in dz["areas"]) else "OK"
 
-# ---------------------------------------------------------------- beach water quality (LDH)
-LDH_BEACH = "https://ldh.la.gov/beach"
+# ---------------------------------------------------------------- NWS radar
 RADAR_MS = "https://mapservices.weather.noaa.gov/eventdriven/rest/services/radar/radar_base_reflectivity/MapServer"
-# Approximate positions of the monitored beaches, to match them to spots
-BEACHES = {
-    "constance": (29.755, -93.590), "holly": (29.770, -93.460), "martin": (29.766, -93.360),
-    "mae": (29.766, -93.360), "gulf breeze": (29.766, -93.410), "little florida": (29.770, -93.385),
-    "rutherford": (29.766, -93.120), "dung": (29.770, -93.230), "long beach": (29.770, -93.230),
-    "cypremort": (29.733, -91.860), "elmer": (29.180, -90.075), "fontainebleau": (30.335, -90.040),
-    "grand isle state park": (29.255, -89.960), "grand isle": (29.230, -90.000),
-    "lake charles": (30.240, -93.230),
-}
-
-def _beach_pos(name):
-    n = name.lower()
-    for k in sorted(BEACHES, key=len, reverse=True):
-        if k in n:
-            return BEACHES[k]
-    return None
-
-def beaches():
-    """Swimming advisories from the LDH Beach Monitoring Program table, or None if unreadable."""
-    html = get_text(LDH_BEACH)
-    if not html:
-        return None
-    out = []
-    for row in re.findall(r"<tr[^>]*>(.*?)</tr>", html, re.S | re.I):
-        cells = [re.sub(r"\s+", " ", re.sub(r"<[^>]+>", " ", c)).strip()
-                 for c in re.findall(r"<t[dh][^>]*>(.*?)</t[dh]>", row, re.S | re.I)]
-        if len(cells) < 3 or not re.search(r"\d{1,2}/\d{1,2}/\d{4}", cells[1]):
-            continue
-        name = cells[0].replace("&#39;", "'").replace("&amp;", "&")
-        pos = _beach_pos(name)
-        out.append({"name": name, "date": cells[1], "advisory": "ADVISORY" in cells[2].upper() and "NO ADVISORY" not in cells[2].upper(),
-                    "lat": pos[0] if pos else None, "lon": pos[1] if pos else None})
-    return out or None
-
-def beach_advisories(spot, bl, radius_mi=30):
-    return sorted({b["name"] for b in bl or [] if b["advisory"] and b["lat"] is not None
-                   and miles(spot["lat"], spot["lon"], b["lat"], b["lon"]) <= radius_mi})
 
 # ---------------------------------------------------------------- NWS marine forecasts
 def marine_zone(spot, cache):
@@ -2301,7 +2262,7 @@ def run_once():
     except Exception:
         log.exception("river gauges failed")
         cache["rivers"] = {}
-    for key, fn in (("deadzone", lambda: deadzone(now)), ("beaches", beaches), ("diversions", lambda: diversions(now)),
+    for key, fn in (("deadzone", lambda: deadzone(now)), ("diversions", lambda: diversions(now)),
                     ("sargassum", lambda: sargassum(now))):
         try:
             cache[key] = fn()
@@ -2353,7 +2314,7 @@ def run_once():
     with open(tmp, "w") as f:
         json.dump({"generated": now.isoformat(), "rivers": cache.get("rivers") or {}, "marine": cache.get("marine") or {},
                    "tropical": cache.get("tropical"), "diversions": cache.get("diversions") or {},
-                   "beaches": cache.get("beaches"), "spots": results}, f, indent=2)
+                   "spots": results}, f, indent=2)
     os.replace(tmp, OUT)
     # Lightweight health summary for the UI and operators
     status = {
@@ -2534,15 +2495,11 @@ def health(out_md="health.md"):
         d = diversions(now)
         known = [f"{v['name'].split()[0]} {v['status'].lower()}" for v in d.values() if v["status"] != "Unknown"]
         return bool(known), ", ".join(known) or "no diversion flow readings"
-    def beach():
-        b = beaches()
-        return b, f"{len(b)} beaches, {sum(x['advisory'] for x in b)} with advisories" if b else "table not readable"
     def radar():
         j = get_json(RADAR_MS, dict(f="json"), tries=2)
         return j is not None and "layers" in j, "map service answered" if j else "no answer"
     check("NOAA tidal current predictions", cur)
     check("Freshwater diversions (USGS flow)", div)
-    check("Beach water quality (LDH)", beach)
     check("NWS radar map", radar)
     try:
         checks = map_checks()
