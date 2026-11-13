@@ -69,6 +69,9 @@ def fake_json(url, params=None, tries=3, timeout=15, headers=None):
         if p["type"] == "offshore":
             return {"features": [{"properties": {"id": "GMZ089"}}]}
         return {"features": []}
+    if "/griddap/" in url and "AFAI" in url:
+        bump("afai")
+        return fake_grid(url) if STATE.get("afai", "ok") == "ok" else None
     if "/griddap/" in url and ("(26.4)" in url or "(30.5)" in url or "SSH_GoA" in url):   # ocean_features boxes only
         bump("griddap"); return fake_grid(url)
     if "mapservices.weather.noaa.gov/tropical" in url:
@@ -135,12 +138,14 @@ def fake_grid(url):
     la0, la1, lo0, lo1 = (nums[-4], nums[-3], nums[-2], nums[-1])
     la0, la1 = min(la0, la1), max(la0, la1)
     rows, t = [], (now - timedelta(days=1)).strftime("%Y-%m-%dT00:00:00Z")
-    n = 30
+    n = 90 if var == "AFAI" else 30
     for i in range(n):
         la = la0 + (la1 - la0) * i / (n - 1)
         for j in range(n):
             lo = lo0 + (lo1 - lo0) * j / (n - 1)
-            if var == "adt":
+            if var == "AFAI":                     # a weedline running east-west near 27.6 N
+                v = 0.0012 if abs(la - 27.6) < 0.07 and -91.5 < lo < -89.5 else 0.00005
+            elif var == "adt":
                 v = 0.3 + 0.5 * math.exp(-(((la - 26) / 1.5) ** 2 + ((lo + 88) / 1.5) ** 2))
             elif var == "chlor_a":
                 v = 0.1 * math.exp((la - la0) * 1.5)

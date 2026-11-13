@@ -472,9 +472,56 @@ def weather(lat, lon):
         return {"time": t, "wind_mph": cur["wind_speed_10m"], "wind_dir": wdir, "cloud": cur["cloud_cover"],
                 "pres": trend, "pres_delta_hpa": delta, "air_d24": air_d24, "rain48": rain48,
                 "series": {"t": times, "pres": H["surface_pressure"], "air": H["temperature_2m"], "rain": H["precipitation"],
-                           "wind": H["wind_speed_10m"], "cloud": H["cloud_cover"]}}
+                           "wind": H["wind_speed_10m"], "cloud": H["cloud_cover"],
+                           "wdir": H.get("wind_direction_10m") or [None] * len(times)}}
     except (TypeError, KeyError, ValueError):
         return None
+
+# ---------------------------------------------------------------- cold fronts
+NORTHERLY = lambda d: d is not None and (d >= 290 or d <= 60)      # NW through NE
+SOUTHERLY = lambda d: d is not None and 100 <= d <= 260            # ESE through WSW
+
+def _mean_dir(ds):
+    """Average wind direction (degrees) of a list, None if too few readings."""
+    got = [d for d in ds if d is not None]
+    if len(got) < max(2, len(ds) // 2):
+        return None
+    ds = got
+    x = sum(math.cos(math.radians(d)) for d in ds); y = sum(math.sin(math.radians(d)) for d in ds)
+    return None if abs(x) + abs(y) < 1e-9 else math.degrees(math.atan2(y, x)) % 360
+
+def find_fronts(series, now, min_drop=6.0, min_rise=2.0):
+    """Cold front passages in an hourly weather series (the last 48 h and the next 7 days).
+    A front is where a southerly wind swings to the north, pressure climbs and the 24-hour
+    average air temperature drops. Daily averages are compared so the normal day-night swing
+    doesn't count. Returns [{t, drop_f, rise_hpa, nwind}] with t the hour the wind shifts."""
+    t, pres, air, wdir, wind = (series.get(k) for k in ("t", "pres", "air", "wdir", "wind"))
+    if not t or not pres or not air or not wdir:
+        return []
+    n = len(t)
+    def avg(vals, a, b):
+        v = [x for x in vals[max(0, a):min(n, b)] if x is not None]
+        return sum(v) / len(v) if len(v) >= (b - a) * 0.75 else None
+    out, i = [], 6
+    while i < n - 6:
+        before, after = _mean_dir(wdir[i - 6:i]), _mean_dir(wdir[i + 1:i + 7])
+        if not (NORTHERLY(wdir[i]) and SOUTHERLY(before) and NORTHERLY(after)):
+            i += 1
+            continue
+        warm, cold = avg(air, i - 30, i - 6), avg(air, i + 6, i + 30)
+        p0 = [x for x in pres[max(0, i - 3):i + 1] if x is not None]
+        p1 = [x for x in pres[i + 3:min(n, i + 13)] if x is not None]
+        drop = None if warm is None or cold is None else warm - cold
+        rise = max(p1) - min(p0) if p0 and p1 else None
+        if drop is not None and rise is not None and drop >= min_drop and rise >= min_rise:
+            nw = [w for w, d in zip(wind[i:i + 30], wdir[i:i + 30]) if w is not None and NORTHERLY(d)]
+            out.append({"t": t[i].isoformat(), "drop_f": round(drop), "rise_hpa": round(rise, 1),
+                        "nwind": round(max(nw)) if nw else None})
+            i += 36                                   # one front at a time
+        else:
+            i += 1
+    lo, hi = now - timedelta(hours=72), now + timedelta(days=8)
+    return [f for f in out if lo <= parse_iso(f["t"]) <= hi]
 
 def clarity_label(turb, wind, sal, rain=None, chl=None):
     if turb is not None:
@@ -1149,6 +1196,10 @@ def collect(spot, now, cache):
     if tcur:
         src["tcur"] = {"source": f"coops-currents:{tcur['station']}", "age_min": 0, "distance_mi": tcur["mi"]}
     oxy = hypoxia_flag(spot, cache.get("deadzone"), now)
+    weed = weed_near(spot, cache.get("sargassum"), now)
+    if weed is not None:
+        sg = cache["sargassum"]
+        src["weed"] = {"source": sg["source"], "age_min": sg["age_days"] * 1440}
     if oxy:
         src["oxy"] = {"source": "NOAA Hypoxia Watch", "age_min": 0}
 
@@ -1175,7 +1226,8 @@ def collect(spot, now, cache):
             "ssat": round(got["ssat"][0]) if "ssat" in got else None,
             "tcur": round(abs(tcur["now"]), 1) if tcur else None,
             "tdir": tcur["dir"] if tcur else None,
-            "oxy": oxy}
+            "oxy": oxy,
+            "weed": weed}
     na = []
     if not spot["tide"]:
         na += ["tide", "trange"]
@@ -1195,6 +1247,8 @@ def collect(spot, now, cache):
         na += ["tcur", "tdir"]
     if not oxy:
         na.append("oxy")
+    if weed is None:
+        na.append("weed")
     na = sorted(set(na))
     missing = [k for k, v in cond.items() if v is None and k not in na]
     applicable = len(cond) - len(na)
@@ -1208,6 +1262,7 @@ def collect(spot, now, cache):
             "tides": tides,
             "current": {k: v for k, v in tcur.items() if k != "_ev"} if tcur else None,
             "beach_adv": beach_advisories(spot, cache.get("beaches")),
+            "fronts": find_fronts(wx["series"], now) if wx and wx.get("series") else [],
             "forecast": build_forecast(cond, wx, pts, now, mar, sbias, tcur["_ev"] if tcur else None) if wx and wx.get("series") else None,
             "conditions": cond,
             "quality": {"missing": missing, "sources": src,
@@ -1401,6 +1456,94 @@ def ocean_features(now):
     if "color_lines" in out:
         out["color_lines"]["levels"] = {k: rnd(v) for k, v in out["color_lines"]["levels"].items()}
     return out
+
+# ---------------------------------------------------------------- sargassum (weedlines)
+# USF Alternative Floating Algae Index, 7-day composite from MODIS, served by NOAA AOML CoastWatch.
+# A pixel counts as floating weed when it stands out from the water around it (pixel minus the
+# local median above 1.79e-4, the threshold used in the USF/AOML Sargassum work). Pixels near
+# land or cloud edges are skipped: muddy river water and cloud edges fool the index there.
+AFAI_SOURCES = (("https://cwcgom.aoml.noaa.gov/erddap", "noaa_aoml_atlantic_oceanwatch_AFAI_7D"),
+                ("https://upwell.pfeg.noaa.gov/erddap", "noaa_aoml_ae10_d11a_85ab"))
+AFAI_MIN = 1.79e-4
+SARG_MAX_AGE_D = 12          # older than this, the weed has drifted too far to score with
+
+def _median(v):
+    v = sorted(v)
+    n = len(v)
+    return None if not n else v[n // 2] if n % 2 else (v[n // 2 - 1] + v[n // 2]) / 2
+
+def sargassum_patches(lats, lons, grid, block=12, edge=10, cell=0.1):
+    """[[lat, lon, pixels]] for 0.1-degree cells with floating weed in an AFAI grid."""
+    ni, nj = len(lats), len(lons)
+    if not ni or not nj:
+        return []
+    # distance (in cells) to the nearest gap: land, cloud or no data
+    INF = 10 ** 6
+    dist = [[INF] * nj for _ in range(ni)]
+    q = []
+    for i in range(ni):
+        for j in range(nj):
+            if grid[i][j] is None:
+                dist[i][j] = 0; q.append((i, j))
+    k = 0
+    while k < len(q):
+        i, j = q[k]; k += 1
+        for a, b in ((i + 1, j), (i - 1, j), (i, j + 1), (i, j - 1)):
+            if 0 <= a < ni and 0 <= b < nj and dist[a][b] > dist[i][j] + 1:
+                dist[a][b] = dist[i][j] + 1; q.append((a, b))
+    med = {}
+    for bi in range(0, ni, block):
+        for bj in range(0, nj, block):
+            med[(bi // block, bj // block)] = _median([grid[i][j] for i in range(bi, min(ni, bi + block))
+                                                      for j in range(bj, min(nj, bj + block)) if grid[i][j] is not None])
+    cells = {}
+    for i in range(ni):
+        for j in range(nj):
+            v = grid[i][j]
+            if v is None or dist[i][j] <= edge:
+                continue
+            m = med.get((i // block, j // block))
+            if m is not None and v - m > AFAI_MIN:
+                key = (round(math.floor(lats[i] / cell) * cell + cell / 2, 3), round(math.floor(lons[j] / cell) * cell + cell / 2, 3))
+                cells[key] = cells.get(key, 0) + 1
+    out = [[la, lo, n] for (la, lo), n in cells.items() if n >= 2]
+    out.sort(key=lambda r: -r[2])
+    return out[:400]
+
+def sargassum(now):
+    """{'time', 'patches': [[lat, lon, pixels]], 'source'} from the newest 7-day AFAI image, or None."""
+    lat0, lat1, lon0, lon1 = BOX
+    for base, ds in AFAI_SOURCES:
+        g = None
+        for desc in (False, True):
+            try:
+                g = griddap_box(base, ds, "AFAI", lat0, lat1, lon0, lon1, stride=2, lat_desc=desc, extra="")
+            except Exception:
+                log.warning("AFAI request failed at %s", base)
+                g = None
+            if g and g[1]:
+                break
+        if not g or not g[1]:
+            continue
+        t, la, lo, gr = g
+        try:
+            age = (now - parse_iso(t)).days
+        except (TypeError, ValueError):
+            continue
+        if age > 30:
+            log.info("AFAI at %s is %d days old; skipping", base, age)
+            continue
+        return {"time": t, "age_days": age, "patches": sargassum_patches(la, lo, gr),
+                "source": "USF floating algae index (NOAA AOML CoastWatch)"}
+    return None
+
+def weed_near(spot, sg, now, radius_mi=100):
+    """Miles from an offshore spot to the nearest weed patch in a recent image (capped at radius_mi),
+    None when there is no usable image."""
+    if not spot.get("marine") or not sg or sg.get("age_days") is None or sg["age_days"] > SARG_MAX_AGE_D:
+        return None
+    d = [miles(spot["lat"], spot["lon"], la, lo) for la, lo, _ in sg.get("patches") or []]
+    return round(min([radius_mi] + d))
 
 # ---------------------------------------------------------------- rigs and reefs (weekly)
 RIGS, REEFS = "rigs.json", "reefs.json"
@@ -2099,7 +2242,8 @@ def run_once():
     except Exception:
         log.exception("river gauges failed")
         cache["rivers"] = {}
-    for key, fn in (("deadzone", lambda: deadzone(now)), ("beaches", beaches), ("diversions", lambda: diversions(now))):
+    for key, fn in (("deadzone", lambda: deadzone(now)), ("beaches", beaches), ("diversions", lambda: diversions(now)),
+                    ("sargassum", lambda: sargassum(now))):
         try:
             cache[key] = fn()
         except Exception:                       # extras must never stop the run
@@ -2129,6 +2273,8 @@ def run_once():
     for name, fn in (("ocean lines", lambda: ocean_features(now)), ("rigs and reefs", lambda: static_layers(now))):
         try:
             res = fn()
+            if name == "ocean lines" and res is not None and cache.get("sargassum"):
+                res["sargassum"] = cache["sargassum"]
             if name == "ocean lines" and res:
                 with open(OCEAN + ".tmp", "w") as fh:
                     json.dump(res, fh, separators=(",", ":"))

@@ -112,6 +112,21 @@ class FullRun(unittest.TestCase):
         self.assertEqual(len(h["spots"]["barat"]["temp"]), 1)
         self.assertIn("miss", h["rivers"])
 
+    def test_sargassum_weedline(self):
+        with open("ocean.json") as f:
+            o = json.load(f)
+        sg = o["sargassum"]
+        self.assertTrue(sg["patches"])
+        self.assertTrue(all(27.3 < la < 27.9 and -91.6 < lo < -89.4 for la, lo, n in sg["patches"]))
+        self.assertLessEqual(self.spots["off90"]["conditions"]["weed"], 20)          # 27.8 N, about 14 mi from the line
+        self.assertGreater(self.spots["off_west40"]["conditions"]["weed"], 50)
+        self.assertIsNone(self.spots["barat"]["conditions"]["weed"])                 # inshore
+        self.assertIn("weed", self.spots["barat"]["quality"]["not_applicable"])
+
+    def test_fronts_field(self):
+        self.assertEqual(self.spots["barat"]["fronts"], [])        # canned weather has a steady south wind
+
+
     def test_ocean_lines(self):
         with open("ocean.json") as f:
             o = json.load(f)
@@ -284,6 +299,56 @@ class Tropical(unittest.TestCase):
         ring = [[28, -91], [28, -89], [30, -89], [30, -91]]
         self.assertTrue(ingest._inside(29, -90, ring))
         self.assertFalse(ingest._inside(31, -90, ring))
+
+
+class Fronts(unittest.TestCase):
+    def series(self, front_at=None, hours=216, drop=14, rise=6):
+        t0 = fakes.now.replace(minute=0) - ingest.timedelta(hours=48)
+        t = [t0 + ingest.timedelta(hours=h) for h in range(hours)]
+        s = {"t": t, "pres": [], "air": [], "wdir": [], "wind": []}
+        for h in range(hours):
+            after = front_at is not None and h >= front_at
+            daily = 6 * __import__("math").sin(h / 24 * 6.283)          # normal day-night swing
+            s["air"].append((72 - drop if after else 72) + daily)
+            s["pres"].append(1012 + (rise * min(1, (h - front_at) / 12) if after else 0))
+            s["wdir"].append(340 if after else 190)
+            s["wind"].append(20 if after and h < front_at + 18 else 10)
+        return s
+
+    def test_finds_a_front_ahead(self):
+        fr = ingest.find_fronts(self.series(front_at=120), fakes.now)
+        self.assertEqual(len(fr), 1)
+        t = ingest.parse_iso(fr[0]["t"])
+        self.assertAlmostEqual((t - fakes.now.replace(minute=0)).total_seconds() / 3600, 72, delta=2)
+        self.assertGreaterEqual(fr[0]["drop_f"], 10)
+        self.assertEqual(fr[0]["nwind"], 20)
+
+    def test_day_night_swing_and_sea_breeze_are_not_fronts(self):
+        s = self.series()
+        s["wdir"] = [190 if (h % 24) < 12 else 20 for h in range(len(s["t"]))]   # land/sea breeze flips
+        self.assertEqual(ingest.find_fronts(s, fakes.now), [])
+
+    def test_weak_shift_without_cooling_is_ignored(self):
+        self.assertEqual(ingest.find_fronts(self.series(front_at=120, drop=2), fakes.now), [])
+
+
+class Sargassum(unittest.TestCase):
+    def test_land_and_cloud_edges_are_skipped(self):
+        lats = [27 + 0.03 * i for i in range(40)]
+        lons = [-91 + 0.03 * j for j in range(40)]
+        g = [[0.00005] * 40 for _ in lats]
+        for j in range(40):
+            g[0][j] = None                                  # land along the top edge
+            g[3][j] = 0.002                                 # bright, but right next to land
+            g[20][j] = 0.002                                # a real weedline offshore
+        p = ingest.sargassum_patches(lats, lons, g)
+        self.assertTrue(p)
+        self.assertTrue(all(abs(la - 27.65) < 0.1 for la, lo, n in p))
+
+    def test_old_image_is_not_scored(self):
+        spot = {"marine": True, "lat": 28, "lon": -90}
+        self.assertIsNone(ingest.weed_near(spot, {"age_days": 20, "patches": [[28, -90, 3]]}, fakes.now))
+        self.assertEqual(ingest.weed_near(spot, {"age_days": 3, "patches": [[28, -90, 3]]}, fakes.now), 0)
 
 
 class History(unittest.TestCase):
