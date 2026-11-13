@@ -1,3 +1,8 @@
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="logo-dark.png">
+  <img src="logo.png" alt="OceanCast — Louisiana fishing" width="420">
+</picture>
+
 # OceanCast
 Live Louisiana fishing conditions and scores, built from public NOAA, USGS and weather data. 
 
