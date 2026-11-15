@@ -234,7 +234,8 @@ select,input,textarea{accent-color:var(--ac)}
 /* spot list */
 .rank{border:1px solid transparent;margin-bottom:6px;background:linear-gradient(90deg,color-mix(in srgb,var(--c,var(--mu)) 18%,var(--s2)) var(--w,0%),var(--s2) var(--w,0%))}
 .rank.on{outline:none;border-color:var(--ac)}
-.panel-tabs{background:var(--s2);border:1px solid var(--bd);border-radius:12px;padding:4px;display:grid;grid-template-columns:1fr 1fr;gap:4px;margin:0}
+.panel-tabs{background:var(--s2);border:1px solid var(--bd);border-radius:12px;padding:4px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px;margin:0}
+.panel-tabs .badge{display:inline-block;min-width:18px;height:18px;line-height:18px;border-radius:9px;background:var(--r);color:#fff;font-size:11px;font-weight:700;margin-left:6px;padding:0 5px}
 .panel-tabs button.t{border:0;border-radius:9px;min-height:38px;background:transparent}
 .panel-tabs button.t.on{background:var(--ac)}
 section.card:has(.panel-tabs){padding:8px;background:transparent;border:0}
@@ -438,33 +439,45 @@ body.nomap #mapcard{display:none!important}
 @media(max-width:560px){#acctbtn span.lbl{display:none}#acctbtn{padding:0 6px}}
 #acctdlg{border:1px solid var(--bd);border-radius:20px;padding:18px;background:var(--card);color:var(--tx);width:min(440px,94vw);box-shadow:0 24px 64px rgba(0,0,0,.5)}
 #acctdlg::backdrop{background:rgba(5,10,14,.55);backdrop-filter:blur(2px)}
-#acctbody p{margin:0 0 12px;font-size:14px}
-#acctbody .why{display:grid;gap:6px;margin:0 0 14px;padding:0;list-style:none;font-size:14px}
-#acctbody .why li::before{content:"✓ ";color:var(--g);font-weight:800}
-#acctbody input[type=email],#acctbody input[type=password],#acctbody input:not([type]){width:100%;padding:12px 14px;border-radius:12px;border:1px solid var(--bd);background:var(--s2);color:var(--tx);font:inherit;font-size:16px;margin-bottom:10px}
-#acctbody .primary{width:100%;min-height:46px;background:var(--ac);border-color:var(--ac);color:var(--onac);font-weight:700}
-#acctbody .row3{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
-#acctbody .msg{font-size:13px;color:var(--mu);margin-top:8px}
-#acctbody .msg.err{color:var(--r)}
-#acctbody .danger{color:var(--r);border-color:color-mix(in srgb,var(--r) 45%,var(--bd))}
-#acctbody .danger.confirm{background:var(--r);color:#fff}
-#acctbody .who{background:var(--s2);border:1px solid var(--bd);border-radius:12px;padding:10px 12px;margin-bottom:12px;font-size:14px;word-break:break-all}
+:is(#acctbody,#friendsbody) p{margin:0 0 12px;font-size:14px}
+:is(#acctbody,#friendsbody) .why{display:grid;gap:6px;margin:0 0 14px;padding:0;list-style:none;font-size:14px}
+:is(#acctbody,#friendsbody) .why li::before{content:"✓ ";color:var(--g);font-weight:800}
+:is(#acctbody,#friendsbody) input[type=email],:is(#acctbody,#friendsbody) input[type=password],:is(#acctbody,#friendsbody) input:not([type]){width:100%;padding:12px 14px;border-radius:12px;border:1px solid var(--bd);background:var(--s2);color:var(--tx);font:inherit;font-size:16px;margin-bottom:10px}
+:is(#acctbody,#friendsbody) .primary{width:100%;min-height:46px;background:var(--ac);border-color:var(--ac);color:var(--onac);font-weight:700}
+:is(#acctbody,#friendsbody) .row3{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+:is(#acctbody,#friendsbody) .msg{font-size:13px;color:var(--mu);margin-top:8px}
+:is(#acctbody,#friendsbody) .msg.err{color:var(--r)}
+:is(#acctbody,#friendsbody) .danger{color:var(--r);border-color:color-mix(in srgb,var(--r) 45%,var(--bd))}
+:is(#acctbody,#friendsbody) .danger.confirm{background:var(--r);color:#fff}
+:is(#acctbody,#friendsbody) .who{background:var(--s2);border:1px solid var(--bd);border-radius:12px;padding:10px 12px;margin-bottom:12px;font-size:14px;word-break:break-all}
 #acctdlg{max-height:92vh;overflow:auto}
-#acctbody .atabs{display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap}
-#acctbody .atabs .t.on{background:var(--ac);border-color:var(--ac);color:var(--onac);font-weight:700}
-#acctbody .sec{border-top:1px solid var(--bd);padding-top:12px;margin-top:12px}
-#acctbody .sec h4{margin:0 0 8px;font-size:15px}
-#acctbody details.sec>summary{cursor:pointer;margin-bottom:8px}
-#acctbody form.inline{display:flex;gap:8px;align-items:flex-start}
-#acctbody form.inline input{flex:1;min-width:0;margin-bottom:0}
-#acctbody form.inline+form.inline{margin-top:8px}
-#acctbody .sw{display:flex;gap:8px;align-items:flex-start;font-size:14px;margin:6px 0}
-#acctbody .sw input{margin-top:3px}
-#acctbody .frow{display:flex;justify-content:space-between;gap:8px;align-items:center;font-size:14px;padding:8px 0;border-bottom:1px solid var(--bd);flex-wrap:wrap}
-#acctbody details.friend{border:1px solid var(--bd);border-radius:12px;padding:8px 12px;margin-top:8px;font-size:14px}
-#acctbody details.friend summary{cursor:pointer}
-#acctbody .fcatch{padding:6px 0;border-bottom:1px solid var(--bd)}
-#acctbody .fcatch .note{display:block}
+:is(#acctbody,#friendsbody) .atabs{display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap}
+:is(#acctbody,#friendsbody) .atabs .t.on{background:var(--ac);border-color:var(--ac);color:var(--onac);font-weight:700}
+:is(#acctbody,#friendsbody) .sec{border-top:1px solid var(--bd);padding-top:12px;margin-top:12px}
+:is(#acctbody,#friendsbody) .sec h4{margin:0 0 8px;font-size:15px}
+:is(#acctbody,#friendsbody) details.sec>summary{cursor:pointer;margin-bottom:8px}
+:is(#acctbody,#friendsbody) form.inline{display:flex;gap:8px;align-items:flex-start}
+:is(#acctbody,#friendsbody) form.inline input{flex:1;min-width:0;margin-bottom:0}
+:is(#acctbody,#friendsbody) form.inline+form.inline{margin-top:8px}
+:is(#acctbody,#friendsbody) .sw{display:flex;gap:8px;align-items:flex-start;font-size:14px;margin:6px 0}
+:is(#acctbody,#friendsbody) .sw input{margin-top:3px}
+:is(#acctbody,#friendsbody) .frow{display:flex;justify-content:space-between;gap:8px;align-items:center;font-size:14px;padding:8px 0;border-bottom:1px solid var(--bd);flex-wrap:wrap}
+:is(#acctbody,#friendsbody) details.friend{border:1px solid var(--bd);border-radius:12px;padding:8px 12px;margin-top:8px;font-size:14px}
+:is(#acctbody,#friendsbody) details.friend summary{cursor:pointer}
+:is(#acctbody,#friendsbody) .fcatch{padding:6px 0;border-bottom:1px solid var(--bd)}
+:is(#acctbody,#friendsbody) .fcatch .note{display:block}
+#friendsbody h4{margin:16px 0 8px;font-size:15px}
+#friendsbody .fcard{border:1px solid var(--bd);border-radius:14px;padding:12px 14px;margin-bottom:10px;background:var(--s2);font-size:14px}
+#friendsbody .fhead{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:8px;font-size:16px}
+#friendsbody .fhead .t{font-size:13px;padding:4px 12px}
+#friendsbody .fcols{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+#friendsbody h5{margin:0 0 6px;font-size:12px;text-transform:uppercase;letter-spacing:.04em;color:var(--mu)}
+#friendsbody .fcols .t{font-size:13px;padding:3px 10px;margin-left:4px}
+#friendsbody details.fcl{margin-top:6px}#friendsbody details.fcl>summary{cursor:pointer}
+#friendsbody details.fdefaults{margin-top:16px;border-top:1px solid var(--bd);padding-top:12px}
+#friendsbody details.fdefaults>summary{cursor:pointer}
+#friendsbody .linkbtn{background:none;border:0;padding:0;color:var(--ac);font:inherit;text-decoration:underline;cursor:pointer}
+@media(max-width:560px){#friendsbody .fcols{grid-template-columns:1fr}}
 .fpin{background:#b36bff;border:2px solid #fff;transform:rotate(45deg);border-radius:3px;box-shadow:0 1px 4px rgba(0,0,0,.4)}
 .fpop .t{margin-top:8px}
 @media(max-width:600px){#acctdlg{width:100vw;max-width:100vw;margin:auto 0 0;border-radius:20px 20px 0 0;padding-bottom:calc(18px + env(safe-area-inset-bottom,0px))}}
@@ -529,6 +542,7 @@ body.nomap #mapcard{display:none!important}
   <div class="panel-tabs">
    <button class="t on" type="button" data-panel="fish">Conditions</button>
    <button class="t" type="button" data-panel="log">My catches</button>
+   <button class="t" type="button" data-panel="friends">Friends<span class="badge" id="frbadge" hidden></span></button>
   </div>
  </section>
  <div id="panel-fish">
@@ -582,6 +596,9 @@ body.nomap #mapcard{display:none!important}
    </div>
    <p class="priv" id="privbackup">Clearing browser data for this site will erase the log, so download a backup now and then. Nothing is uploaded.</p>
   </section>
+ </div>
+ <div id="panel-friends" hidden>
+  <section class="card"><h3>Friends</h3><div id="friendsbody"></div></section>
  </div>
 </main>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
@@ -2016,6 +2033,7 @@ async function initAccounts(){
   ACCT.state="err";ACCT.msg=`Accounts aren't set up correctly: in config.js, supabaseUrl must be your Supabase Project URL (it looks like https://abcdefghijkl.supabase.co), not ${host||"this value"}. Find it in Supabase under Project Settings → Data API.`;acctUI();return}
  if(!window.supabase)await loadScript("https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2");
  if(!window.supabase||!window.supabase.createClient){ACCT.state="err";ACCT.msg="Accounts can't load right now (offline?). Your data is still on this device.";acctUI();return}
+ setTimeout(renderFriends,0);
  ACCT.sb=window.supabase.createClient(c.supabaseUrl,c.supabaseKey,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true,flowType:"implicit"}});
  ACCT.sb.auth.onAuthStateChange((ev,session)=>{
   const u=session&&session.user||null,changed=(u&&u.id)!==(ACCT.user&&ACCT.user.id);ACCT.user=u;
@@ -2035,6 +2053,7 @@ function acctUI(){
   const t=ACCT.state==="busy"?"Saving to your account…":ACCT.state==="err"?"Account sync problem":"Signed in: saved to your account";b.title=t;b.setAttribute("aria-label",t)}
  else{b.innerHTML=`<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg><span class="lbl">Sign in</span>`;
   b.title="Sign in to save your spots and catches to an account";b.setAttribute("aria-label","Sign in")}
+ const fb=$("frbadge");if(fb){const n=u?ACCT.links.filter(r=>r.status==="pending"&&r.addressee===u.id).length:0;fb.hidden=!n;fb.textContent=n}
  const pt=$("privtop"),pb=$("privbackup");
  if(pt)pt.textContent=u&&ACCT.profile&&ACCT.profile.share_catches?"Saved to your account and this device. You share this log with your friends (species, spot, date and result; never your notes). Turn that off under your account. Use this to see how the score matched days you actually caught fish."
   :u?"Saved to your account and this device. Only you can see your catches, counts and locations. Use this to see how the score matched days you actually caught fish."
@@ -2051,27 +2070,31 @@ const UNAME_RE=/^[a-z0-9_]{3,20}$/;
 const uDomain=()=>((window.OC_CONFIG||{}).usernameEmailDomain||"users.oceancast.invalid").toLowerCase();
 const isSynthEmail=e=>!!e&&e.toLowerCase().endsWith("@"+uDomain());
 const loginEmail=id=>id.includes("@")?id.trim():`${id.trim().toLowerCase()}@${uDomain()}`;
-Object.assign(ACCT,{mode:"signin",recovery:false,profile:null,links:[],names:{},fdata:[],social:"idle",smsg:""});
+Object.assign(ACCT,{mode:"signin",recovery:false,profile:null,links:[],names:{},fdata:[],shares:{},social:"idle",smsg:""});
 const meId=()=>ACCT.user&&ACCT.user.id;
 async function loadSocial(){
- if(!ACCT.user)return;ACCT.social="busy";
+ if(!ACCT.user)return;ACCT.social="busy";renderFriends();
  const me=meId();
- const [p,f,d]=await Promise.all([
+ const [p,f,d,sh]=await Promise.all([
   ACCT.sb.from("oc_profiles").select("username,share_spots,share_catches").eq("user_id",me).maybeSingle(),
   ACCT.sb.from("oc_friends").select("requester,addressee,status,created_at"),
-  ACCT.sb.rpc("oc_friend_data")]);
+  ACCT.sb.rpc("oc_friend_data"),
+  ACCT.sb.from("oc_shares").select("viewer,spots,catches").eq("owner",me)]);
+ if(!ACCT.user||ACCT.user.id!==me)return;                       // signed out meanwhile
  if(p.error||f.error||d.error){ACCT.social="err";
   ACCT.smsg="Friends aren't available yet. The site owner needs to run the newest supabase/setup.sql (see README).";
-  if($("acctdlg").open)renderAcct();return}
+  renderFriends();if($("acctdlg").open)renderAcct();return}
  ACCT.profile=p.data||null;ACCT.links=f.data||[];ACCT.fdata=d.data||[];
+ ACCT.shares={};for(const r of sh.data||[])ACCT.shares[r.viewer]=r;
+ ACCT.noShares=!!sh.error;          // per-friend sharing needs the newest setup.sql; defaults still work without it
  const ids=[...new Set(ACCT.links.map(r=>r.requester===me?r.addressee:r.requester))].filter(id=>!ACCT.names[id]);
  if(ids.length){const r=await ACCT.sb.from("oc_profiles").select("user_id,username").in("user_id",ids);
   for(const x of r.data||[])ACCT.names[x.user_id]=x.username}
  for(const x of ACCT.fdata)ACCT.names[x.user_id]=x.username;
  ACCT.social="ok";ACCT.smsg="";
- refreshFriendLayer();acctUI();
+ refreshFriendLayer();acctUI();renderFriends();
 }
-function clearSocial(){ACCT.profile=null;ACCT.links=[];ACCT.fdata=[];ACCT.names={};ACCT.social="idle";refreshFriendLayer()}
+function clearSocial(){ACCT.profile=null;ACCT.links=[];ACCT.fdata=[];ACCT.shares={};ACCT.names={};ACCT.social="idle";refreshFriendLayer();renderFriends()}
 // Friends' shared spots on the map (read-only; tap one to copy it to your own spots)
 function friendSpots(){const out=[];for(const f of ACCT.fdata)for(const m of Array.isArray(f.spots)?f.spots:[])
  if(m&&isFinite(m.lat)&&isFinite(m.lon))out.push({...m,who:f.username});return out}
@@ -2094,51 +2117,131 @@ function refreshFriendLayer(){
  if(has&&!off){cb.checked=true;setOverlay("friends",true)}
  else{cb.checked=false;if(OVLAYER.friends)setOverlay("friends",false)}
 }
-async function friendRequest(name){
- const n=name.trim().replace(/^@/,"").toLowerCase(),m=$("frmsg");m.className="msg";
- if(!UNAME_RE.test(n)){m.className="msg err";m.textContent="Usernames are 3 to 20 letters, numbers or _.";return}
- if(ACCT.profile&&n===ACCT.profile.username){m.className="msg err";m.textContent="That's you.";return}
- m.textContent="Sending…";
- const {data:p}=await ACCT.sb.from("oc_profiles").select("user_id,username").eq("username",n).maybeSingle();
- if(!p){m.className="msg err";m.textContent=`No one is called ${n}.`;return}
- const old=ACCT.links.find(r=>r.requester===p.user_id||r.addressee===p.user_id);
- if(old){m.className="msg err";m.textContent=old.status==="accepted"?`You're already friends with ${n}.`:old.requester===meId()?`You already asked ${n}.`:`${n} already asked you: accept it below.`;return}
- const {error}=await ACCT.sb.from("oc_friends").insert({requester:meId(),addressee:p.user_id});
- if(error){m.className="msg err";m.textContent="Couldn't send the request: "+error.message;return}
- ACCT.names[p.user_id]=p.username;await loadSocial();renderAcct();
- const m2=$("frmsg");if(m2)m2.textContent=`Request sent. You'll be friends once ${n} accepts.`;
+// Zoom the map to one friend's shared spots
+function showFriendOnMap(id){
+ const f=ACCT.fdata.find(x=>x.user_id===id),pts=(Array.isArray(f&&f.spots)?f.spots:[]).filter(m=>m&&isFinite(m.lat)&&isFinite(m.lon));
+ if(!MAP||!pts.length)return;
+ if(document.body.classList.contains("nomap"))setMapHidden(false);
+ const cb=document.querySelector('#overlays [data-ov="friends"]');if(cb&&!cb.checked){cb.checked=true;try{localStorage.setItem("oc-friendlayer","1")}catch(e){}setOverlay("friends",true)}
+ $("mapcard").scrollIntoView({behavior:"smooth",block:"start"});
+ setTimeout(()=>{MAP.invalidateSize();if(pts.length===1)MAP.setView([pts[0].lat,pts[0].lon],11);else MAP.fitBounds(pts.map(m=>[m.lat,m.lon]),{padding:[40,40],maxZoom:12})},350);
 }
-function socialHTML(){
- if(ACCT.social==="err")return`<div class="sec"><h4>Friends</h4><p class="msg err">${esc(ACCT.smsg)}</p></div>`;
- if(ACCT.social!=="ok")return`<div class="sec"><h4>Friends</h4><p class="msg">Loading…</p></div>`;
- if(!ACCT.profile)return`<div class="sec"><h4>Choose a username</h4><p class="note">Friends find you by your username. It's the only thing other people see.</p>
-  <form id="unameform" class="inline"><input id="unamein" autocomplete="username" maxlength="20" placeholder="username" aria-label="Username" required><button class="t" type="submit">Save</button></form>
-  <div class="msg" id="unamemsg">3 to 20 letters, numbers or _.</div></div>`;
+const frMsg=(t,err)=>{const m=$("frmsg");if(m){m.className="msg"+(err?" err":"");m.textContent=t}};
+async function friendRequest(name){
+ const n=name.trim().replace(/^@/,"").toLowerCase();
+ if(!UNAME_RE.test(n)){frMsg("Usernames are 3 to 20 letters, numbers or _.",true);return}
+ if(ACCT.profile&&n===ACCT.profile.username){frMsg("That's you.",true);return}
+ frMsg("Sending…");
+ const {data:p}=await ACCT.sb.from("oc_profiles").select("user_id,username").eq("username",n).maybeSingle();
+ if(!p){frMsg(`No one is called ${n}.`,true);return}
+ const old=ACCT.links.find(r=>r.requester===p.user_id||r.addressee===p.user_id);
+ if(old){frMsg(old.status==="accepted"?`You're already friends with ${n}.`:old.requester===meId()?`You already asked ${n}.`:`${n} already asked you: accept it below.`,true);return}
+ const {error}=await ACCT.sb.from("oc_friends").insert({requester:meId(),addressee:p.user_id});
+ if(error){frMsg("Couldn't send the request: "+error.message,true);return}
+ ACCT.names[p.user_id]=p.username;await loadSocial();
+ frMsg(`Request sent. You'll be friends once ${n} accepts.`);
+}
+// What I share with one friend: their own setting if I made one, otherwise my defaults
+const myShare=id=>{const o=ACCT.shares[id],P=ACCT.profile||{};return o?{spots:o.spots,catches:o.catches,custom:true}:{spots:!!P.share_spots,catches:!!P.share_catches,custom:false}};
+function friendsHTML(){
+ if(!acctCfg())return`<p class="note">Friends need accounts, which aren't set up on this site.</p>`;
+ if(!ACCT.user)return`<p>Add friends to see the spots and catches they choose to share with you, and to share yours with them. You choose what each friend sees.</p>
+  <button class="t primary" type="button" id="frsignin">Sign in or create an account</button>`;
+ if(ACCT.social==="err")return`<p class="msg err">${esc(ACCT.smsg)}</p>`;
+ if(ACCT.social!=="ok")return`<p class="msg">Loading your friends…</p>`;
+ if(!ACCT.profile)return`<h4>Choose a username</h4><p class="note">Friends find you by your username. It's the only thing other people see.</p>
+  <form id="unameform" class="inline"><input id="unamein" autocomplete="username" autocapitalize="none" maxlength="20" placeholder="username" aria-label="Username" required><button class="t" type="submit">Save</button></form>
+  <div class="msg" id="unamemsg">3 to 20 letters, numbers or _.</div>`;
  const me=meId(),P=ACCT.profile,nm=id=>esc(ACCT.names[id]||"someone");
  const inc=ACCT.links.filter(r=>r.status==="pending"&&r.addressee===me),out=ACCT.links.filter(r=>r.status==="pending"&&r.requester===me);
- const fr=ACCT.links.filter(r=>r.status==="accepted").map(r=>r.requester===me?r.addressee:r.requester);
+ const fr=ACCT.links.filter(r=>r.status==="accepted").map(r=>r.requester===me?r.addressee:r.requester)
+  .sort((a,b)=>String(ACCT.names[a]||"").localeCompare(String(ACCT.names[b]||"")));
  const fd=id=>ACCT.fdata.find(x=>x.user_id===id)||{};
  const spotName=(L,f)=>{const s=DATA&&DATA.spots.find(x=>x.id===L.spot&&!x.user);if(s)return s.name;
   const m=(Array.isArray(f.spots)?f.spots:[]).find(x=>x.id===L.spot);return m?m.name:"one of their own spots"};
- const catches=(f)=>{const c=(Array.isArray(f.catches)?f.catches:[]).filter(x=>x&&x.date).sort((a,b)=>String(b.date).localeCompare(String(a.date))).slice(0,15);
+ const catches=f=>{const c=(Array.isArray(f.catches)?f.catches:[]).filter(x=>x&&x.date).sort((a,b)=>String(b.date).localeCompare(String(a.date))).slice(0,15);
   if(!c.length)return`<div class="note">No catches logged yet.</div>`;
   return c.map(L=>`<div class="fcatch"><b>${esc(SP[L.sp]?.name||L.sp||"")}</b> @ ${esc(spotName(L,f))} · ${esc(L.date)}${L.depth!=null?` · ${esc(L.depth)} ft`:""}
    <span class="note">${L.result==="caught"?"Caught":L.result==="slow"?"Slow":"Nothing"}${L.scoreAtLog!=null?` · score ${esc(L.scoreAtLog)}`:""}</span></div>`).join("")};
- return`<div class="sec"><h4>Share with friends</h4>
-  <label class="sw"><input type="checkbox" id="shspots" ${P.share_spots?"checked":""}> My pinned spots (names and positions)</label>
-  <label class="sw"><input type="checkbox" id="shcatch" ${P.share_catches?"checked":""}> My catch log (species, spot, date, result; never your notes)</label>
-  <div class="msg" id="shmsg">Only friends you've accepted can see what you share. Turn it off any time.</div></div>
- <div class="sec"><h4>Friends</h4>
-  <form id="frform" class="inline"><input id="frin" autocomplete="off" autocapitalize="none" maxlength="21" placeholder="Friend's username" aria-label="Friend's username" required><button class="t" type="submit">Add friend</button></form>
-  <div class="msg" id="frmsg"></div>
-  ${inc.map(r=>`<div class="frow"><span><b>${nm(r.requester)}</b> wants to be friends</span><span><button class="t" data-acc="${r.requester}">Accept</button> <button class="t" data-del="${r.requester}">Decline</button></span></div>`).join("")}
-  ${out.map(r=>`<div class="frow"><span>Waiting for <b>${nm(r.addressee)}</b></span><button class="t" data-del="${r.addressee}">Cancel</button></div>`).join("")}
-  ${fr.length?fr.map(id=>{const f=fd(id),ns=Array.isArray(f.spots)?f.spots.length:null,nc=Array.isArray(f.catches)?f.catches.length:null;
-   return`<details class="friend"><summary><b>${nm(id)}</b> <span class="note">${ns!=null?`${ns} spot${ns===1?"":"s"}`:"spots private"} · ${nc!=null?`${nc} catch${nc===1?"":"es"}`:"catches private"}</span></summary>
-    ${ns?`<div class="note">Their spots are on the map (purple diamonds). Tap one to save it to your spots.</div>`:""}
-    ${nc!=null?catches(f):""}<button class="t danger" data-del="${id}" style="margin-top:8px">Remove friend</button></details>`}).join("")
-   :(!inc.length&&!out.length?`<p class="note">No friends yet. Ask yours for their username.</p>`:"")}
- </div>`;
+ const card=id=>{const f=fd(id),ns=Array.isArray(f.spots)?f.spots.length:null,nc=Array.isArray(f.catches)?f.catches.length:null,S=myShare(id),n=nm(id);
+  return`<div class="fcard"><div class="fhead"><b>${n}</b><button class="t danger" type="button" data-del="${id}">Remove</button></div>
+   <div class="fcols"><div><h5>${n} shares with you</h5>
+     <div>${ns==null?`<span class="note">Spots: not shared</span>`:`${ns} spot${ns===1?"":"s"}${ns?` <button class="t" type="button" data-map="${id}">Show on map</button>`:""}`}</div>
+     ${nc==null?`<div class="note">Catches: not shared</div>`:`<details class="fcl" data-k="c-${id}"><summary>${nc} catch${nc===1?"":"es"}</summary>${catches(f)}</details>`}</div>
+    <div><h5>You share with ${n}</h5>
+     <label class="sw"><input type="checkbox" data-share="${id}" data-what="spots" ${S.spots?"checked":""}> My spots</label>
+     <label class="sw"><input type="checkbox" data-share="${id}" data-what="catches" ${S.catches?"checked":""}> My catch log</label>
+     <div class="note">${S.custom?`Set just for ${n}. <button class="linkbtn" type="button" data-reset="${id}">Use my defaults</button>`:"Following your defaults."}</div></div></div></div>`};
+ return`<form id="frform" class="inline"><input id="frin" autocomplete="off" autocapitalize="none" maxlength="21" placeholder="Friend's username" aria-label="Friend's username" required><button class="t" type="submit">Add friend</button></form>
+  <div class="msg" id="frmsg">You're <b>${esc(P.username)}</b>. Give friends that name so they can add you.</div>
+  ${inc.length||out.length?`<h4>Requests</h4>`:""}
+  ${inc.map(r=>`<div class="frow"><span><b>${nm(r.requester)}</b> wants to be friends</span><span><button class="t" type="button" data-acc="${r.requester}">Accept</button> <button class="t" type="button" data-del="${r.requester}">Decline</button></span></div>`).join("")}
+  ${out.map(r=>`<div class="frow"><span>Waiting for <b>${nm(r.addressee)}</b> to accept</span><button class="t" type="button" data-del="${r.addressee}">Cancel</button></div>`).join("")}
+  <h4>Your friends${fr.length?` (${fr.length})`:""}</h4>
+  ${fr.length?fr.map(card).join(""):`<p class="note">No friends yet. Ask yours for their username.</p>`}
+  <details class="fdefaults" data-k="defaults"><summary><b>Default sharing</b> <span class="note">for new friends and anyone you haven't set individually</span></summary>
+   <label class="sw"><input type="checkbox" id="shspots" ${P.share_spots?"checked":""}> My pinned spots (names and positions)</label>
+   <label class="sw"><input type="checkbox" id="shcatch" ${P.share_catches?"checked":""}> My catch log (species, spot, date, result; never your notes or amounts)</label>
+   <div class="msg" id="shmsg">Only friends you've accepted can ever see what you share.</div></details>`;
+}
+function renderFriends(){
+ const el=$("friendsbody");if(!el)return;
+ const open=[...el.querySelectorAll("details[open][data-k]")].map(d=>d.dataset.k);
+ el.innerHTML=friendsHTML();
+ for(const k of open){const d=el.querySelector(`details[data-k="${k}"]`);if(d)d.open=true}   // keep what was expanded
+ wireFriends(el);
+}
+function wireFriends(el){
+ const si=$("frsignin");if(si)si.onclick=openAcct;
+ const f=$("unameform");if(f)f.onsubmit=async e=>{e.preventDefault();const n=$("unamein").value.trim().toLowerCase(),m=$("unamemsg");
+  if(!UNAME_RE.test(n)){m.className="msg err";m.textContent="Use 3 to 20 letters, numbers or _.";return}
+  const {error}=await ACCT.sb.from("oc_profiles").insert({user_id:meId(),username:n});
+  if(error){m.className="msg err";m.textContent=/duplicate|unique/i.test(error.message)?`${n} is taken. Try another.`:"Couldn't save: "+error.message;return}
+  await loadSocial();if($("acctdlg").open)renderAcct()};
+ const sh=async()=>{const m=$("shmsg"),v={share_spots:$("shspots").checked,share_catches:$("shcatch").checked};m.className="msg";m.textContent="Saving…";
+  const {error}=await ACCT.sb.from("oc_profiles").update(v).eq("user_id",meId());
+  if(error){m.className="msg err";m.textContent="Couldn't save: "+error.message;return}
+  Object.assign(ACCT.profile,v);acctUI();renderFriends();
+  const m2=$("shmsg");if(m2)m2.textContent="Saved. Friends you haven't set individually now get this."};
+ if($("shspots")){$("shspots").onchange=sh;$("shcatch").onchange=sh}
+ const ff=$("frform");if(ff)ff.onsubmit=e=>{e.preventDefault();friendRequest($("frin").value)};
+ el.querySelectorAll("[data-map]").forEach(b=>b.onclick=()=>showFriendOnMap(b.dataset.map));
+ el.querySelectorAll("[data-share]").forEach(cb=>cb.onchange=async()=>{
+  const id=cb.dataset.share,box=cb.closest(".fcols"),v={owner:meId(),viewer:id,
+   spots:box.querySelector('[data-what="spots"]').checked,catches:box.querySelector('[data-what="catches"]').checked};
+  box.querySelectorAll("[data-share]").forEach(x=>x.disabled=true);
+  const {error}=await ACCT.sb.from("oc_shares").upsert(v);
+  if(error){frMsg(ACCT.noShares?"Per-friend sharing isn't switched on yet: the site owner needs to run the newest supabase/setup.sql. Use Default sharing below for now.":"Couldn't save that: "+error.message,true);cb.checked=!cb.checked;box.querySelectorAll("[data-share]").forEach(x=>x.disabled=false);return}
+  ACCT.shares[id]=v;renderFriends()});
+ el.querySelectorAll("[data-reset]").forEach(b=>b.onclick=async()=>{
+  const {error}=await ACCT.sb.from("oc_shares").delete().eq("owner",meId()).eq("viewer",b.dataset.reset);
+  if(error){frMsg("Couldn't change that: "+error.message,true);return}
+  delete ACCT.shares[b.dataset.reset];renderFriends()});
+ el.querySelectorAll("[data-acc]").forEach(b=>b.onclick=async()=>{b.disabled=true;
+  const {error}=await ACCT.sb.from("oc_friends").update({status:"accepted"}).eq("requester",b.dataset.acc).eq("addressee",meId());
+  if(error){b.disabled=false;frMsg("Couldn't accept: "+error.message,true);return}
+  await loadSocial()});
+ el.querySelectorAll("[data-del]").forEach(b=>b.onclick=async()=>{
+  if(b.classList.contains("danger")&&!b.classList.contains("confirm")){b.classList.add("confirm");b.textContent="Remove friend?";
+   setTimeout(()=>{if(b.isConnected){b.classList.remove("confirm");b.textContent="Remove"}},5000);return}
+  b.disabled=true;const o=b.dataset.del,me=meId();
+  const {error}=await ACCT.sb.from("oc_friends").delete().or(`and(requester.eq.${me},addressee.eq.${o}),and(requester.eq.${o},addressee.eq.${me})`);
+  if(error){b.disabled=false;frMsg("Couldn't change that: "+error.message,true);return}
+  await ACCT.sb.from("oc_shares").delete().eq("owner",me).eq("viewer",o);    // a fresh start if you re-friend later
+  delete ACCT.shares[o];await loadSocial()});
+}
+function showPanel(k){
+ document.querySelectorAll(".panel-tabs [data-panel]").forEach(b=>b.classList.toggle("on",b.dataset.panel===k));
+ for(const p of ["fish","log","friends"])$("panel-"+p).hidden=p!==k;
+ if(k==="log")renderLog();else if(k==="friends"){renderFriends();if(ACCT.user&&ACCT.social!=="busy")loadSocial()}
+ else render();      // scores may have changed with personal tuning
+}
+function socialHTML(){
+ if(ACCT.social!=="ok"||!ACCT.profile)return`<div class="sec"><h4>Friends</h4><p class="note">${ACCT.social==="err"?esc(ACCT.smsg):"Pick a username in the Friends tab to start adding friends."}</p>
+  <button class="t" type="button" id="gofriends">Open Friends</button></div>`;
+ const n=ACCT.links.filter(r=>r.status==="accepted").length,req=ACCT.links.filter(r=>r.status==="pending"&&r.addressee===meId()).length;
+ return`<div class="sec"><h4>Friends</h4><p class="note">${n} friend${n===1?"":"s"}${req?` · <b>${req} request${req>1?"s":""} waiting</b>`:""}. Add friends and choose what each one sees in the Friends tab.</p>
+  <button class="t" type="button" id="gofriends">Open Friends</button></div>`;
 }
 function signinOptsHTML(u){
  const synth=isSynthEmail(u.email);
@@ -2150,28 +2253,7 @@ function signinOptsHTML(u){
   <div class="msg" id="pwmsg"></div></details>`;
 }
 function wireSignedIn(){
- const f=$("unameform");if(f)f.onsubmit=async e=>{e.preventDefault();const n=$("unamein").value.trim().toLowerCase(),m=$("unamemsg");
-  if(!UNAME_RE.test(n)){m.className="msg err";m.textContent="Use 3 to 20 letters, numbers or _.";return}
-  const {error}=await ACCT.sb.from("oc_profiles").insert({user_id:meId(),username:n});
-  if(error){m.className="msg err";m.textContent=/duplicate|unique/i.test(error.message)?`${n} is taken. Try another.`:"Couldn't save: "+error.message;return}
-  await loadSocial();renderAcct()};
- const sh=async()=>{const m=$("shmsg"),v={share_spots:$("shspots").checked,share_catches:$("shcatch").checked};m.className="msg";m.textContent="Saving…";
-  const {error}=await ACCT.sb.from("oc_profiles").update(v).eq("user_id",meId());
-  if(error){m.className="msg err";m.textContent="Couldn't save: "+error.message;return}
-  Object.assign(ACCT.profile,v);acctUI();
-  const m2=$("shmsg");if(m2)m2.textContent=v.share_spots||v.share_catches?"Saved. Your friends can see what's ticked.":"Saved. Nothing is shared."};
- if($("shspots")){$("shspots").onchange=sh;$("shcatch").onchange=sh}
- const ff=$("frform");if(ff)ff.onsubmit=e=>{e.preventDefault();friendRequest($("frin").value)};
- const body=$("acctbody");body.querySelectorAll("[data-acc]").forEach(b=>b.onclick=async()=>{b.disabled=true;
-  const {error}=await ACCT.sb.from("oc_friends").update({status:"accepted"}).eq("requester",b.dataset.acc).eq("addressee",meId());
-  if(error){b.disabled=false;$("frmsg").className="msg err";$("frmsg").textContent="Couldn't accept: "+error.message;return}
-  await loadSocial();renderAcct()});
- body.querySelectorAll("[data-del]").forEach(b=>b.onclick=async()=>{
-  if(b.classList.contains("danger")&&!b.classList.contains("confirm")){b.classList.add("confirm");b.textContent="Remove?";return}
-  b.disabled=true;const o=b.dataset.del,me=meId();
-  const {error}=await ACCT.sb.from("oc_friends").delete().or(`and(requester.eq.${me},addressee.eq.${o}),and(requester.eq.${o},addressee.eq.${me})`);
-  if(error){b.disabled=false;$("frmsg").className="msg err";$("frmsg").textContent="Couldn't change that: "+error.message;return}
-  await loadSocial();renderAcct()});
+ const g=$("gofriends");if(g)g.onclick=()=>{$("acctdlg").close();showPanel("friends");$("panel-friends").scrollIntoView({behavior:"smooth",block:"start"})};
  const ef=$("emform");if(ef)ef.onsubmit=async e=>{e.preventDefault();const m=$("pwmsg"),em=$("emin").value.trim();m.className="msg";m.textContent="Sending…";
   const {error}=await ACCT.sb.auth.updateUser({email:em},{emailRedirectTo:location.origin+location.pathname});
   if(error){m.className="msg err";m.textContent="Couldn't add the email: "+error.message;return}
@@ -2316,15 +2398,8 @@ async function load(isRefresh){
   addEventListener("hashchange",()=>{if(location.hash==="#tropical")showTropical();else if(readHash())render()});
   $("detail").onclick=e=>{const favBtn=e.target.closest("[data-fav]");if(favBtn){e.stopPropagation();toggleFav(favBtn.dataset.fav)}};
   $("refresh").onclick=()=>load(true);
-  // Panel switch: Conditions vs My catches
-  document.querySelectorAll(".panel-tabs [data-panel]").forEach(btn=>{
-   btn.onclick=()=>{
-    document.querySelectorAll(".panel-tabs [data-panel]").forEach(b=>b.classList.toggle("on",b===btn));
-    const log=btn.dataset.panel==="log";
-    $("panel-fish").hidden=log; $("panel-log").hidden=!log;
-    if(log)renderLog();else render();      // scores may have changed with personal tuning
-   };
-  });
+  // Panel switch: Conditions, My catches, Friends
+  document.querySelectorAll(".panel-tabs [data-panel]").forEach(btn=>{btn.onclick=()=>showPanel(btn.dataset.panel)});
   // Depth preference
   const dIn=$("depthIn");
   try{const saved=localStorage.getItem("la-fish-depth");if(saved!=null)dIn.value=saved}catch(e){}

@@ -26,11 +26,13 @@ works as before and saves everything on each device only.
 ### Usernames, passwords and friends
 
 People can also make an account with just a username and password (email optional, for password resets),
-add friends by username, and choose whether friends see their pinned spots and/or their catch log
-(catch notes always stay private). To turn this on in an existing project:
+add friends by username in the Friends tab, and choose for each friend whether they see their
+pinned spots and/or their catch log (catch notes and amounts always stay private). A default
+setting covers new friends and anyone not set individually. To turn this on in an existing project:
 
 1. In Supabase, open **SQL Editor → New query**, paste everything from `supabase/setup.sql` again, and press **Run**.
-   It's safe to run more than once; it only adds the new tables (`oc_profiles`, `oc_friends`) and rules.
+   It's safe to run more than once; it only adds the new tables (`oc_profiles`, `oc_friends`, `oc_shares`)
+   and rules. Run it again after updates that mention a new table.
 2. Open **Authentication → Sign In / Providers → Email** and:
    - turn **off** "Confirm email" (username accounts have no inbox to confirm from), and
    - turn **off** "Secure email change" (otherwise adding a real email asks for a confirmation from the

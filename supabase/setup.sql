@@ -157,7 +157,25 @@ as $$
   select case when jsonb_typeof(public.oc_try_jsonb(t)) = 'array' then public.oc_try_jsonb(t) else '[]'::jsonb end;
 $$;
 
--- What your accepted friends chose to share: their pinned spots and/or their catch log.
+-- Per-friend sharing: what one person (owner) shares with one friend (viewer).
+-- No row means "use my default" (share_spots / share_catches on the owner's profile).
+create table if not exists public.oc_shares (
+  owner   uuid not null references auth.users(id) on delete cascade,
+  viewer  uuid not null references auth.users(id) on delete cascade,
+  spots   boolean not null default false,
+  catches boolean not null default false,
+  primary key (owner, viewer),
+  check (owner <> viewer)
+);
+alter table public.oc_shares enable row level security;
+drop policy if exists "manage own sharing" on public.oc_shares;
+-- Only the owner sees or changes these rows; friends only get the result through oc_friend_data()
+create policy "manage own sharing" on public.oc_shares for all to authenticated
+  using ((select auth.uid()) = owner) with check ((select auth.uid()) = owner);
+revoke all on public.oc_shares from anon;
+grant select, insert, update, delete on public.oc_shares to authenticated;
+
+-- What your accepted friends chose to share with you: their pinned spots and/or their catch log.
 -- Runs with extra rights so it can read their saved data, but only ever returns the two
 -- shared lists, only for accepted friends, and never catch notes.
 create or replace function public.oc_friend_data()
@@ -168,8 +186,8 @@ security definer
 set search_path = ''
 as $$
   select p.user_id, p.username,
-         case when p.share_spots then public.oc_json_list(d.data ->> 'la-fish-myspots') end,
-         case when p.share_catches then (
+         case when coalesce(s.spots, p.share_spots) then public.oc_json_list(d.data ->> 'la-fish-myspots') end,
+         case when coalesce(s.catches, p.share_catches) then (
            select coalesce(jsonb_agg(c - 'notes'), '[]'::jsonb)
            from jsonb_array_elements(public.oc_json_list(d.data ->> 'la-fish-catches-v1')) as c
            where jsonb_typeof(c) = 'object'
@@ -178,6 +196,7 @@ as $$
   join public.oc_profiles p
     on p.user_id = case when f.requester = (select auth.uid()) then f.addressee else f.requester end
   left join public.oc_user_data d on d.user_id = p.user_id
+  left join public.oc_shares s on s.owner = p.user_id and s.viewer = (select auth.uid())
   where f.status = 'accepted' and (select auth.uid()) in (f.requester, f.addressee);
 $$;
 revoke all on function public.oc_friend_data() from public, anon;
