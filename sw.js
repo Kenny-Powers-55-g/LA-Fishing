@@ -1,8 +1,8 @@
 // Caches the app so it opens offline. Data files and the page are network-first with the
 // saved copy as backup; on a weak connection the saved copy is used after a few seconds.
 // The map library and fonts are cached the first time they load.
-const V = "la-fishing-v22";
-const CDN_CACHE = "la-fishing-cdn-v1";          // kept across app versions
+const V = "la-fishing-v23";
+const CDN_CACHE = "la-fishing-cdn-v2";          // kept across app versions
 const TILE_CACHE = "la-fishing-tiles";          // map areas saved for offline (kept too)
 const TILE_RE = /^https:\/\/(gis\.charttools\.noaa\.gov|gis\.ngdc\.noaa\.gov)\/.*(\/tile\/|exportImage)/;
 const ASSETS = ["./", "index.html", "config.js", "manifest.webmanifest", "icon-192.png", "icon-512.png", "favicon.svg", "apple-touch-icon.png"];
@@ -46,6 +46,9 @@ self.addEventListener("fetch", e => {
   if (CDN_RE.test(req.url)) {
     e.respondWith(caches.open(CDN_CACHE).then(c => c.match(req).then(m => {
       const net = fetch(req).then(r => { if (r.ok || r.type === "opaque") c.put(req, r.clone()); return r; });
+      // A script or stylesheet with an integrity hash needs a readable copy: an "opaque" saved
+      // copy would be rejected by the browser, so go to the network for those instead.
+      if (m && m.type === "opaque" && req.mode === "cors") return net.catch(() => m);
       return m || net;
     })));
     return;
