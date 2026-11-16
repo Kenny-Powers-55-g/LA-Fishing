@@ -177,7 +177,7 @@ grant select, insert, update, delete on public.oc_shares to authenticated;
 
 -- What your accepted friends chose to share with you: their pinned spots and/or their catch log.
 -- Runs with extra rights so it can read their saved data, but only ever returns the two
--- shared lists, only for accepted friends, and never catch notes.
+-- shared lists, only for accepted friends, and only a fixed set of catch fields (never notes).
 create or replace function public.oc_friend_data()
 returns table (user_id uuid, username text, spots jsonb, catches jsonb)
 language sql
@@ -188,7 +188,11 @@ as $$
   select p.user_id, p.username,
          case when coalesce(s.spots, p.share_spots) then public.oc_json_list(d.data ->> 'la-fish-myspots') end,
          case when coalesce(s.catches, p.share_catches) then (
-           select coalesce(jsonb_agg(c - 'notes'), '[]'::jsonb)
+           -- Only these fields are ever shared. Notes, amounts, size, weight, kept/released counts, bait,
+           -- photos and saved readings stay private, including any field added to the log later.
+           select coalesce(jsonb_agg(jsonb_strip_nulls(jsonb_build_object(
+             'id', c -> 'id', 'sp', c -> 'sp', 'spot', c -> 'spot', 'date', c -> 'date',
+             'depth', c -> 'depth', 'result', c -> 'result', 'scoreAtLog', c -> 'scoreAtLog'))), '[]'::jsonb)
            from jsonb_array_elements(public.oc_json_list(d.data ->> 'la-fish-catches-v1')) as c
            where jsonb_typeof(c) = 'object'
          ) end
