@@ -16,3 +16,17 @@ health.md
 live_latest.json
 stations_cache.json
 *.tmp
+
+# iPhone app (Capacitor): installed packages and the copied web files are rebuilt by "npm run sync"
+node_modules/
+www/
+ios/App/App/public/
+ios/App/App/capacitor.config.json
+ios/App/App/config.xml
+ios/App/build/
+ios/App/DerivedData/
+ios/App/Pods/
+ios/App/output/
+*.xcuserstate
+xcuserdata/
+.DS_Store

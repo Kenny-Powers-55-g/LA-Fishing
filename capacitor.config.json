@@ -1,0 +1,11 @@
+{
+  "appId": "io.github.kennypowers55g.oceancast",
+  "appName": "OceanCast",
+  "webDir": "www",
+  "backgroundColor": "#0b1014",
+  "ios": {
+    "contentInset": "never",
+    "backgroundColor": "#0b1014",
+    "scheme": "OceanCast"
+  }
+}

@@ -53,6 +53,15 @@ setting and keeps loading its own copy. If the site ever moves, change `dataUrl`
 address to `connect-src` in the security policy at the top of `index.html`
 (`node tests/check_page.js` checks the two match).
 
+The app project lives in `ios/` (Capacitor, Swift Package Manager; app ID
+`io.github.kennypowers55g.oceancast`). The website keeps deploying from the repository root as before;
+`npm run build` copies its files into `www/`, which the app is built from.
+
+- On any computer with Node.js: `npm install`, then `npm run sync` after changing the website.
+- On a Mac with Xcode: `npm run open` opens the project; choose a simulator or your iPhone and press Run.
+- Without a Mac: the "Build iPhone app (check)" workflow compiles the app for the simulator on GitHub's
+  macOS machines whenever the app files change (free for public repositories).
+
 ## Security
 
 What the site does to keep visitors and their data safe:

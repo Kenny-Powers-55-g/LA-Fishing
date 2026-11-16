@@ -1,0 +1,48 @@
+name: Build iPhone app (check)
+
+# Compiles the iPhone app for the iOS Simulator to prove the Xcode project builds. No signing and
+# no Apple account needed; nothing is uploaded or published. Separate from the hourly data update.
+# Runs when the app's files change, or by hand from the Actions tab.
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - "ios/**"
+      - "capacitor.config.json"
+      - "package.json"
+      - "package-lock.json"
+      - "scripts/build-app.js"
+      - ".github/workflows/ios-build.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ios-build-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: macos-15
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Install Capacitor (versions pinned in package-lock.json)
+        run: npm ci --no-audit --no-fund
+
+      - name: Copy the website into the app and update the iOS project
+        run: npm run sync
+
+      - name: Build for the iOS Simulator (unsigned)
+        run: |
+          xcodebuild -version
+          xcodebuild -project ios/App/App.xcodeproj -scheme App -configuration Debug \
+            -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' \
+            -derivedDataPath build CODE_SIGNING_ALLOWED=NO build | tail -40
+          test -d build/Build/Products/Debug-iphonesimulator/App.app
+          ls build/Build/Products/Debug-iphonesimulator/App.app/public
