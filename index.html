@@ -3,7 +3,7 @@
 <!-- Security policy: which sites this page may load scripts, data and images from. The sha256 values
      are the inline scripts' fingerprints; scripts/csp.js updates them (the deploy does it automatically).
      Using a Supabase custom domain instead of *.supabase.co? Add it to connect-src. -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-e2dBkFb8yGPNHgbOpkhBXN0cimbhu2pIwzctEzDA40U=' 'sha256-nk6NLBZTfrOvYSo/RcDxwdKfcjC8O/4gMNRpdN5qS30=' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https://*.noaa.gov https://gibs.earthdata.nasa.gov https://tile.openstreetmap.org https://cdnjs.cloudflare.com; connect-src 'self' https://*.noaa.gov https://gibs.earthdata.nasa.gov https://tile.openstreetmap.org https://api.open-meteo.com https://*.supabase.co wss://*.supabase.co https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://fonts.googleapis.com https://fonts.gstatic.com; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-src 'none'; upgrade-insecure-requests">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-e2dBkFb8yGPNHgbOpkhBXN0cimbhu2pIwzctEzDA40U=' 'sha256-tpukvx4WjG6+QykBmaFqGMseTmqKG4RGuASLQiUFRpo=' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https://*.noaa.gov https://gibs.earthdata.nasa.gov https://tile.openstreetmap.org https://cdnjs.cloudflare.com; connect-src 'self' https://*.noaa.gov https://gibs.earthdata.nasa.gov https://tile.openstreetmap.org https://api.open-meteo.com https://*.supabase.co wss://*.supabase.co https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://fonts.googleapis.com https://fonts.gstatic.com; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-src 'none'; upgrade-insecure-requests">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -488,18 +488,44 @@ body.nomap #mapcard{display:none!important}
 @media(max-width:600px){#acctdlg{width:100vw;max-width:100vw;margin:auto 0 0;border-radius:20px 20px 0 0;padding-bottom:calc(18px + env(safe-area-inset-bottom,0px))}}
 /* ===================== Design refresh ===================== */
 .panel-tabs .badge[hidden]{display:none}
+.tropbar[hidden],.offline-banner[hidden]{display:none!important}
 .card{box-shadow:0 1px 2px var(--lift,rgba(0,0,0,.18)),0 8px 24px -12px var(--lift,rgba(0,0,0,.35))}
 :root[data-theme="light"]{--lift:rgba(15,40,55,.10)}
 @media(prefers-color-scheme:light){:root:not([data-theme="dark"]){--lift:rgba(15,40,55,.10)}}
 section.card:has(.panel-tabs){box-shadow:none}
 h3{letter-spacing:-.015em}
 h3.dh{margin:18px 0 8px;font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--mu);font-weight:700}
-/* welcome */
-#welcome{display:flex;gap:12px;align-items:flex-start;border-color:color-mix(in srgb,var(--ac) 45%,var(--bd));background:linear-gradient(135deg,color-mix(in srgb,var(--ac) 10%,var(--card)),var(--card) 60%)}
+/* landing for first-time visitors */
+#welcome{padding:22px 20px;border-color:color-mix(in srgb,var(--ac) 40%,var(--bd));background:linear-gradient(150deg,color-mix(in srgb,var(--ac) 13%,var(--card)),var(--card) 55%)}
 #welcome[hidden]{display:none}
-#welcome b{font-size:16px;display:block;margin-bottom:2px}
-#welcome p{margin:0;font-size:14px;color:var(--mu)}
-#welcome .t{flex:none;align-self:center;background:var(--ac);border-color:var(--ac);color:var(--onac);font-weight:700}
+.w-eyebrow{font-size:11.5px;text-transform:uppercase;letter-spacing:.1em;font-weight:700;color:var(--ac);margin-bottom:6px}
+#welcome h2{margin:0 0 8px;font-size:clamp(22px,5.4vw,26px);line-height:1.15;letter-spacing:-.025em;font-weight:800}
+#welcome p{margin:0 0 14px;font-size:14.5px;color:var(--mu)}
+.w-feats{list-style:none;margin:0 0 16px;padding:0;display:grid;gap:12px}
+.w-feats li{display:flex;gap:12px;align-items:flex-start}
+.w-ic{flex:none;width:36px;height:36px;border-radius:10px;display:grid;place-items:center;background:color-mix(in srgb,var(--ac) 16%,var(--s2));color:var(--ac)}
+.w-ic svg{width:20px;height:20px}
+.w-feats b{display:block;font-size:14.5px}
+.w-feats div span{font-size:13.5px;color:var(--mu)}
+.w-feats b span{font-size:inherit;color:inherit}
+.w-actions{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+#welcomeok{background:var(--ac);border-color:var(--ac);color:var(--onac);font-weight:700;min-height:44px;padding:8px 22px;font-size:15px}
+.aboutlink{background:none;border:0;padding:0;color:var(--ac);font:inherit;text-decoration:underline;cursor:pointer}
+/* bottom navigation (phones and tablets) */
+#bnav{display:none}
+@media(max-width:899px){
+ #bnav{display:grid;grid-template-columns:repeat(4,1fr);position:fixed;left:0;right:0;bottom:0;z-index:1250;background:var(--appbg);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
+  border-top:1px solid var(--bd);padding:4px 6px calc(4px + env(safe-area-inset-bottom,0px))}
+ #bnav button{position:relative;display:grid;justify-items:center;gap:2px;background:none;border:0;color:var(--mu);font:600 11px Inter,system-ui,sans-serif;padding:6px 2px;min-height:52px;cursor:pointer;border-radius:12px}
+ #bnav svg{width:22px;height:22px}
+ #bnav button.on{color:var(--ac)}
+ #bnav .badge{position:absolute;top:2px;left:calc(50% + 6px);min-width:17px;height:17px;line-height:17px;border-radius:9px;background:var(--r);color:#fff;font-size:10.5px;font-weight:700;padding:0 4px}
+ #bnav .badge[hidden]{display:none}
+ section.card:has(.panel-tabs){display:none}
+ main{padding-bottom:calc(150px + env(safe-area-inset-bottom,0px))}
+ .tropbar,.offline-banner{bottom:calc(72px + env(safe-area-inset-bottom,0px))}
+ body.bigmap #bnav button[data-nav="map"]{color:var(--ac)}
+}
 /* score hero */
 #detail .big{gap:16px;flex-wrap:nowrap;align-items:center;padding-bottom:4px}
 #detail .big>div:last-child{min-width:0}
@@ -575,9 +601,16 @@ h3.dh{margin:18px 0 8px;font-size:12px;text-transform:uppercase;letter-spacing:.
   </div>
   <div class="note hint" id="depthinfo" role="status" style="padding:0 14px 10px">Tap the map anywhere for the water depth and GPS position.</div></section>
 <main id="main" hidden>
-<section class="card" id="welcome" hidden style="grid-column:1/-1"><div><b>Welcome to OceanCast</b>
- <p>Pick a fish and every spot gets a score from 0 to 100, worked out from live tides, wind, water temperature and clarity. Higher means better fishing right now. Tap a spot or a map pin for the details.</p></div>
- <button type="button" class="t" id="welcomeok">Got it</button></section>
+<section class="card" id="welcome" hidden style="grid-column:1/-1">
+ <div class="w-eyebrow">Louisiana fishing forecast</div>
+ <h2>Know where the fish are biting before you launch.</h2>
+ <p>OceanCast turns live tide, wind, water temperature and clarity readings into a simple 0 to 100 score for each spot and each kind of fish. Free, and no account needed.</p>
+ <ul class="w-feats">
+  <li><span class="w-ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19V10M10 19V5M16 19v-7M21 19H3" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></span><div><b><span id="wspots">27</span> spots, <span id="wspecies">20</span> kinds of fish</b><span>Scores update every hour, with the best time window for the next 7 days.</span></div></li>
+  <li><span class="w-ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 2 8l10 5 10-5-10-5zm-10 9 10 5 10-5M2 16l10 5 10-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg></span><div><b>A real fishing map</b><span>Nautical charts, depths, rigs, reefs, live radar, sea temperature and water color.</span></div></li>
+  <li><span class="w-ic"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M2.5 20c1-3.5 3.5-5 6.5-5s5.5 1.5 6.5 5M16 5a3.5 3.5 0 0 1 0 6.5M18.5 15c1.8.7 2.7 2.2 3 5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></span><div><b>Your spots, catches and friends</b><span>Save your own pins, log catches, and share them only with the friends you choose.</span></div></li>
+ </ul>
+ <div class="w-actions"><button type="button" class="t" id="welcomeok">Start exploring</button><span class="note">Tap any spot or map pin for the details.</span></div></section>
  <div id="skeleton" class="card" style="grid-column:1/-1">
   <div class="sk" style="width:40%;height:18px"></div>
   <div class="sk" style="width:70%"></div>
@@ -614,7 +647,7 @@ h3.dh{margin:18px 0 8px;font-size:12px;text-transform:uppercase;letter-spacing:.
  <div class="card" id="compare" style="margin-top:14px"></div>
  <details class="card" id="seasoncal" style="margin-top:14px"><summary><b>Season calendar</b> <span class="note">what's worth targeting each month</span></summary><div id="seasonbody"></div></details>
  <div class="card" id="seastate" style="margin-top:14px"></div>
- <p class="note">Scores are estimates from public NOAA, USGS and Open-Meteo data, which can be hours old or miles from your spot. Seasons, size and bag limits change: confirm with the Louisiana Dept. of Wildlife &amp; Fisheries (wlf.louisiana.gov). Check marine forecasts and advisories before going out.</p>
+ <p class="note"><button type="button" class="aboutlink" id="aboutlink">About OceanCast</button> · Scores are estimates from public NOAA, USGS and Open-Meteo data, which can be hours old or miles from your spot. Seasons, size and bag limits change: confirm with the Louisiana Dept. of Wildlife &amp; Fisheries (wlf.louisiana.gov). Check marine forecasts and advisories before going out.</p>
  <details class="card" id="health"><summary><b>Data health</b> <span class="note" id="healthsum"></span></summary><div id="healthbody"></div></details></section>
  </div>
  <div id="panel-log" hidden>
@@ -657,6 +690,12 @@ h3.dh{margin:18px 0 8px;font-size:12px;text-transform:uppercase;letter-spacing:.
   <section class="card"><h3>Friends</h3><div id="friendsbody"></div></section>
  </div>
 </main>
+<nav id="bnav" aria-label="Sections">
+ <button type="button" data-nav="map"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 4 3 6.500v13.500l6-2.5 6 2.5 6-2.500V4l-6 2.500L9 4zm0 0v13.500m6-11v13.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>Map</button>
+ <button type="button" class="on" data-panel="fish"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2.5 12c3-4.5 7-6 10.5-6 3 0 5.5 1.5 7 3.500l1.5-2v9l-1.5-2c-1.5 2-4 3.5-7 3.5-3.5 0-7.5-1.5-10.5-6z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><circle cx="8" cy="11" r="1" fill="currentColor"/></svg>Conditions</button>
+ <button type="button" data-panel="log"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h9l4 4v14H6zM14 3v5h5M9 13h7M9 17h7" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"/></svg>My catches</button>
+ <button type="button" data-panel="friends"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3.5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M2.5 20c1-3.5 3.5-5 6.5-5s5.5 1.5 6.5 5M16 5a3.5 3.5 0 0 1 0 6.500M18.5 15c1.8.7 2.7 2.2 3 5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>Friends<span class="badge" id="frbadge2" hidden></span></button>
+</nav>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js?oc=2" integrity="sha384-NElt3Op+9NBMCYaef5HxeJmU4Xeard/Lku8ek6hoPTvYkQPh3zLIrJP7KiRocsxO" crossorigin="anonymous"></script>
 <script>
 const trap=(v,[a,b,c,d])=>v<=a||v>=d?0:v<b?(v-a)/(b-a):v<=c?1:(d-v)/(d-c);
@@ -1851,6 +1890,7 @@ function render(){
   <span><b>${SP[a.k].name}</b> · ${esc(a.x.name)}</span>
   <span class="why">${a.reason||lab(a.v)}</span>
  </button>`).join(""):`<span class="note">Not enough data right now.</span>`;
+ const wsp=$("wspots");if(wsp)wsp.textContent=DATA.spots.filter(s=>!s.user).length;
  renderSaved(favs);
  mapUpdate(list);outlook();seaState();renderHealth();compareSpots();seasonCal();radarNear(spot);
 }
@@ -2135,7 +2175,7 @@ function acctUI(){
   const t=ACCT.state==="busy"?"Saving to your account…":ACCT.state==="err"?"Account sync problem":"Signed in: saved to your account";b.title=t;b.setAttribute("aria-label",t)}
  else{b.innerHTML=`<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg><span class="lbl">Sign in</span>`;
   b.title="Sign in to save your spots and catches to an account";b.setAttribute("aria-label","Sign in")}
- const fb=$("frbadge");if(fb){const n=u?ACCT.links.filter(r=>r.status==="pending"&&r.addressee===u.id).length:0;fb.hidden=!n;fb.textContent=n}
+ {const n=u?ACCT.links.filter(r=>r.status==="pending"&&r.addressee===u.id).length:0;for(const id of ["frbadge","frbadge2"]){const fb=$(id);if(fb){fb.hidden=!n;fb.textContent=n}}}
  const pt=$("privtop"),pb=$("privbackup");
  if(pt)pt.textContent=u&&ACCT.profile&&ACCT.profile.share_catches?"Saved to your account and this device. You share this log with your friends (species, spot, date and result; never your notes). Turn that off under your account. Use this to see how the score matched days you actually caught fish."
   :u?"Saved to your account and this device. Only you can see your catches, counts and locations. Use this to see how the score matched days you actually caught fish."
@@ -2313,7 +2353,7 @@ function wireFriends(el){
   delete ACCT.shares[o];await loadSocial()});
 }
 function showPanel(k){
- document.querySelectorAll(".panel-tabs [data-panel]").forEach(b=>b.classList.toggle("on",b.dataset.panel===k));
+ document.querySelectorAll(".panel-tabs [data-panel],#bnav [data-panel]").forEach(b=>b.classList.toggle("on",b.dataset.panel===k));
  for(const p of ["fish","log","friends"])$("panel-"+p).hidden=p!==k;
  if(k==="log")renderLog();else if(k==="friends"){renderFriends();if(ACCT.user&&ACCT.social!=="busy")loadSocial()}
  else render();      // scores may have changed with personal tuning
@@ -2421,6 +2461,8 @@ function renderAcct(){
   $("acctbody").innerHTML=`<p>Your account and everything saved in it have been deleted.</p>`};
 }
 (()=>{const w=$("welcome");if(!w)return;let seen=false;try{seen=localStorage.getItem("oc-welcomed")==="1"}catch(e){}
+ const ws=$("wspecies");if(ws)ws.textContent=Object.keys(SP).length;
+ const ab=$("aboutlink");if(ab)ab.onclick=()=>{w.hidden=false;if(innerWidth<900)showPanel("fish");w.scrollIntoView({behavior:"smooth",block:"center"})};
  w.hidden=seen;$("welcomeok").onclick=()=>{w.hidden=true;try{localStorage.setItem("oc-welcomed","1")}catch(e){}}})();
 initAccounts();
 // ---- Theme: automatic (follows the device), light or dark ----
@@ -2485,6 +2527,11 @@ async function load(isRefresh){
   $("refresh").onclick=()=>load(true);
   // Panel switch: Conditions, My catches, Friends
   document.querySelectorAll(".panel-tabs [data-panel]").forEach(btn=>{btn.onclick=()=>showPanel(btn.dataset.panel)});
+  // Bottom bar on phones: switch section and bring it into view under the map
+  document.querySelectorAll("#bnav [data-panel]").forEach(btn=>{btn.onclick=()=>{showPanel(btn.dataset.panel);
+   const el=$("panel-"+btn.dataset.panel),y=el.getBoundingClientRect().top+scrollY-($("mapcard").hidden||document.body.classList.contains("nomap")?70:innerHeight*.30);
+   scrollTo({top:Math.max(0,y),behavior:"smooth"})}});
+  document.querySelector('#bnav [data-nav="map"]').onclick=()=>{if(document.body.classList.contains("nomap"))setMapHidden(false);scrollTo({top:0,behavior:"smooth"})};
   // Depth preference
   const dIn=$("depthIn");
   try{const saved=localStorage.getItem("la-fish-depth");if(saved!=null)dIn.value=saved}catch(e){}
