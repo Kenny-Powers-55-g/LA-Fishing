@@ -1,5 +1,10 @@
 <!DOCTYPE html>
 <html lang="en"><head><meta charset="utf-8">
+<!-- Security policy: which sites this page may load scripts, data and images from. The sha256 values
+     are the inline scripts' fingerprints; scripts/csp.js updates them (the deploy does it automatically).
+     Using a Supabase custom domain instead of *.supabase.co? Add it to connect-src. -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-e2dBkFb8yGPNHgbOpkhBXN0cimbhu2pIwzctEzDA40U=' 'sha256-1hPfKmxA+ChwkC+O6b8yFkD9O3YXGDE0xToj4IyOPTQ=' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https://*.noaa.gov https://gibs.earthdata.nasa.gov https://tile.openstreetmap.org https://cdnjs.cloudflare.com; connect-src 'self' https://*.noaa.gov https://gibs.earthdata.nasa.gov https://tile.openstreetmap.org https://api.open-meteo.com https://*.supabase.co wss://*.supabase.co https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://fonts.googleapis.com https://fonts.gstatic.com; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-src 'none'; upgrade-insecure-requests">
+<meta name="referrer" content="strict-origin-when-cross-origin">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -9,7 +14,7 @@
 <meta name="apple-mobile-web-app-title" content="OceanCast"><meta name="application-name" content="OceanCast">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Russo+One&display=swap">
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" integrity="sha384-c6Rcwz4e4CITMbu/NBmnNS8yN2sC3cUElMEMfP3vqqKFp7GOYaaBBCqmaWBjmkjb" crossorigin="anonymous">
 <script src="config.js"></script>
 <link rel="manifest" href="manifest.webmanifest"><meta name="theme-color" content="#0b1014">
 <script>try{var t=localStorage.getItem("oc-theme");if(t==="light"||t==="dark")document.documentElement.dataset.theme=t}catch(e){}</script>
@@ -601,7 +606,7 @@ body.nomap #mapcard{display:none!important}
   <section class="card"><h3>Friends</h3><div id="friendsbody"></div></section>
  </div>
 </main>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js" integrity="sha384-NElt3Op+9NBMCYaef5HxeJmU4Xeard/Lku8ek6hoPTvYkQPh3zLIrJP7KiRocsxO" crossorigin="anonymous"></script>
 <script>
 const trap=(v,[a,b,c,d])=>v<=a||v>=d?0:v<b?(v-a)/(b-a):v<=c?1:(d-v)/(d-c);
 const E=m=>v=>m[v]??0;
@@ -1160,7 +1165,7 @@ function outlook(){
  if(!list.length){el.innerHTML=`<h3>7-day outlook</h3><div class="note">Not enough forecast data.</div>`;return}
  const best=list.reduce((a,b)=>b.v>a.v?b:a);
  const wd=ts=>new Date(ts).toLocaleDateString([],{weekday:"short",month:"numeric",day:"numeric"});
- el.innerHTML=`<h3>7-day outlook: ${SP[sp].name} at ${spot.name}</h3>
+ el.innerHTML=`<h3>7-day outlook: ${SP[sp].name} at ${esc(spot.name)}</h3>
   <div class="note" style="margin-bottom:6px">Best window this week: <b>${wd(best.from)}, ${fmt(best.from)}–${fmt(best.to)}</b> (${best.v})</div>${frontWatch(spot)}`+
   list.map((d,i)=>`<div class="day ${i>=3?"dim":""}"><span>${wd(d.from)}</span>
   <div class="bar" style="margin:0"><i style="width:${d.v}%;background:${col(d.v)}"></i></div>
@@ -1481,7 +1486,13 @@ function marinePanel(spot){
 // Water readings (temperature, salinity, tide, clarity, river) are borrowed from the nearest
 // official spot; wind, clouds and pressure are fetched live for the pin from Open-Meteo.
 const MY_KEY="la-fish-myspots";
-function getMy(){try{return JSON.parse(localStorage.getItem(MY_KEY)||"[]")}catch(e){return[]}}
+// Saved pins can arrive from another device, a backup file or a friend, so only keep well-formed ones
+function cleanMy(m){if(!m||typeof m!=="object")return null;const lat=+m.lat,lon=+m.lon;
+ if(!isFinite(lat)||!isFinite(lon)||Math.abs(lat)>90||Math.abs(lon)>180)return null;
+ const d=m.depth_ft==null||m.depth_ft===""?null:+m.depth_ft;
+ return{id:/^u[a-z0-9]{1,20}$/.test(m.id)?m.id:"u"+Math.abs(Math.round(lat*1e5)^Math.round(lon*1e5)).toString(36),
+  name:String(m.name??"My spot").replace(/[\u0000-\u001f]/g,"").slice(0,40)||"My spot",lat,lon,depth_ft:isFinite(d)?Math.round(d):null}}
+function getMy(){try{const a=JSON.parse(localStorage.getItem(MY_KEY)||"[]");return Array.isArray(a)?a.map(cleanMy).filter(Boolean):[]}catch(e){return[]}}
 function saveMy(a){try{localStorage.setItem(MY_KEY,JSON.stringify(a))}catch(e){}}
 function milesJS(la1,lo1,la2,lo2){const r=Math.PI/180,a=Math.sin((la2-la1)*r/2)**2+Math.cos(la1*r)*Math.cos(la2*r)*Math.sin((lo2-lo1)*r/2)**2;return 3959*2*Math.asin(Math.sqrt(a))}
 function buildMySpot(m){
@@ -1624,10 +1635,11 @@ function seaState(){
   ${hasW?`<path d="${line(f.wave,mw)}" fill="none" stroke="var(--ac)" stroke-width="2.5"/>`:""}<path d="${line(f.wind,mx)}" fill="none" stroke="var(--o)" stroke-width="1.8" stroke-dasharray="5 3"/></svg>`;
  const q=spot.quality||{},bs=(q.sources||{}).temp_f,buoy=bs&&bs.source.startsWith("ndbc")?` · <a href="https://www.ndbc.noaa.gov/station_page.php?station=${bs.source.slice(5)}" target="_blank" rel="noopener">Buoy ${bs.source.slice(5)}</a>`:"";
  el.innerHTML=`<div class="ss"><div class="row" style="flex-wrap:wrap;align-items:center"><h3 style="margin:0">Sea state and go windows</h3>
-  <select aria-label="Boat size" onchange="setBoat(this.value)">${Object.entries(BOATS).map(([k,b])=>`<option value="${k}" ${k===boat()?"selected":""}>${b.n}</option>`).join("")}</select></div>
+  <select aria-label="Boat size" id="boatsel">${Object.entries(BOATS).map(([k,b])=>`<option value="${k}" ${k===boat()?"selected":""}>${b.n}</option>`).join("")}</select></div>
   <div class="note" style="margin:6px 0">${summary}</div><div class="chips">${chips}</div>${svg}
   <div class="note" style="margin-top:6px"><span style="color:var(--ac)">&#9632;</span> ${hasW?"Waves (0-"+Math.round(mw)+" ft) &nbsp;":""}<span style="color:var(--o)">&#9632;</span> Wind (0-${Math.round(mx)} mph, dashed) &nbsp; Green = go, red = no-go.</div>
   <div class="note" style="margin-top:6px">"Go" for this boat size means waves up to ${B.go[0]} ft and wind up to ${B.go[1]} mph; "caution" up to ${B.cau[0]} ft and ${B.cau[1]} mph. These are rough guides I chose, not safety standards. Wind and waves are model forecasts and are less reliable after about day 3. <a href="https://marine.weather.gov/MapClick.php?lat=${spot.lat}&lon=${spot.lon}" target="_blank" rel="noopener">Official NWS marine forecast</a>${buoy}</div></div>`;
+ const bsel=$("boatsel");if(bsel)bsel.onchange=e=>setBoat(e.target.value);
 }
 function pick(){render();
  const s=DATA&&DATA.spots.find(x=>x.id===sel);
@@ -1834,7 +1846,7 @@ function renderLog(){
    const S=L.snap||{},snap=[S.temp!=null?S.temp+"°F":"",S.tide||"",S.wind!=null?S.wind+" mph":"",S.pres?"pressure "+S.pres.toLowerCase():"",S.clar||""].filter(Boolean).join(", ");
    return`<div class="log-item"><b>${esc(sp)}</b> @ ${esc(spot)} · ${esc(L.date)}${L.depth!=null?` · ${esc(L.depth)} ft`:""}<br>
     <span class="note">${res}${sc}${snap?` · ${esc(snap)}`:""}${L.notes?` · ${esc(L.notes.slice(0,80))}`:""}</span>
-    <div style="margin-top:6px"><button type="button" class="t" data-del="${L.id}" style="font-size:12px;padding:4px 10px">Delete</button></div></div>`;
+    <div style="margin-top:6px"><button type="button" class="t" data-del="${esc(L.id)}" style="font-size:12px;padding:4px 10px">Delete</button></div></div>`;
   }).join("");
   list.onclick=e=>{const b=e.target.closest("[data-del]");if(!b)return;
    saveLogs(getLogs().filter(L=>String(L.id)!==b.dataset.del));renderLog()};
@@ -2023,7 +2035,9 @@ async function acctPull(){
  applyBlob(blob);try{localStorage.setItem(flag,"1")}catch(e){}
  if(!remote||first)await acctPush();else{ACCT.state="ok";ACCT.last=Date.now();acctUI()}
 }
-function loadScript(src){return new Promise(res=>{const el=document.createElement("script");el.src=src;el.onload=()=>res(true);el.onerror=()=>res(false);document.head.appendChild(el)})}
+// integrity: the browser refuses the file if the CDN ever serves anything but this exact version
+function loadScript(src,integrity){return new Promise(res=>{const el=document.createElement("script");el.src=src;
+ if(integrity){el.integrity=integrity;el.crossOrigin="anonymous"}el.onload=()=>res(true);el.onerror=()=>res(false);document.head.appendChild(el)})}
 async function initAccounts(){
  const c=acctCfg(),b=$("acctbtn");if(!c||!b)return;
  b.hidden=false;b.onclick=openAcct;acctUI();
@@ -2031,7 +2045,8 @@ async function initAccounts(){
  let host="";try{const u=new URL(c.supabaseUrl);host=u.host;c.supabaseUrl=u.origin}catch(e){}   // keep only https://xxxx.supabase.co (drop a pasted /rest/v1/ etc.)
  if(!host||host===location.host||/github\.io$/.test(host)||/(^|\.)supabase\.com$/.test(host)){
   ACCT.state="err";ACCT.msg=`Accounts aren't set up correctly: in config.js, supabaseUrl must be your Supabase Project URL (it looks like https://abcdefghijkl.supabase.co), not ${host||"this value"}. Find it in Supabase under Project Settings → Data API.`;acctUI();return}
- if(!window.supabase)await loadScript("https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2");
+ if(!window.supabase)await loadScript("https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.118.0/dist/umd/supabase.js",
+  "sha384-TcHRA3zBbn+Lexh5n+Oil4guNPOS3rjNDpGRAN46u/s/mB2IZ50ceC6TYDU2yvgK");
  if(!window.supabase||!window.supabase.createClient){ACCT.state="err";ACCT.msg="Accounts can't load right now (offline?). Your data is still on this device.";acctUI();return}
  setTimeout(renderFriends,0);
  ACCT.sb=window.supabase.createClient(c.supabaseUrl,c.supabaseKey,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true,flowType:"implicit"}});
@@ -2137,7 +2152,7 @@ async function friendRequest(name){
  const old=ACCT.links.find(r=>r.requester===p.user_id||r.addressee===p.user_id);
  if(old){frMsg(old.status==="accepted"?`You're already friends with ${n}.`:old.requester===meId()?`You already asked ${n}.`:`${n} already asked you: accept it below.`,true);return}
  const {error}=await ACCT.sb.from("oc_friends").insert({requester:meId(),addressee:p.user_id});
- if(error){frMsg("Couldn't send the request: "+error.message,true);return}
+ if(error){frMsg(/row-level security/i.test(error.message)?"You have 20 requests waiting for an answer. Cancel some, or wait for people to accept, then try again.":"Couldn't send the request: "+error.message,true);return}
  ACCT.names[p.user_id]=p.username;await loadSocial();
  frMsg(`Request sent. You'll be friends once ${n} accepts.`);
 }

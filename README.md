@@ -44,3 +44,27 @@ spots and catches are only readable by accepted friends, and only while sharing 
 
 Supabase's built-in email sender only allows a few sign-in emails per hour. Once more people use the site, add your own
 email service under **Authentication → Emails → SMTP Settings** (Resend, SendGrid, Amazon SES and others have free tiers).
+
+## Security
+
+What the site does to keep visitors and their data safe:
+
+- **Content Security Policy** (a `<meta>` tag at the top of `index.html`): the page may only run its own
+  scripts plus two pinned libraries, and only talk to NOAA, NASA, OpenStreetMap, Open-Meteo and your
+  Supabase project. If someone ever slipped code into a spot name or a friend's shared data, the browser
+  would refuse to run it. The deploy refreshes the policy's script fingerprints automatically
+  (`scripts/csp.js`); `node tests/check_page.js` warns if the repository copy is stale.
+- **Pinned, fingerprinted libraries**: Leaflet and the Supabase library load at exact versions with
+  `integrity` hashes, so a compromised CDN can't swap in different code.
+- **Everything people type is escaped** before it's shown, and saved spots are cleaned when read
+  (spots can arrive from another device, a backup file or a friend).
+- **Database rules** (`supabase/setup.sql`): row level security on every table; friends only ever get
+  the two lists a person chose to share, never notes; saved data is capped at about 2 MB per person;
+  at most 20 unanswered friend requests at a time.
+
+Recommended Supabase settings (Authentication section of the dashboard):
+
+- **Passwords**: set the minimum length to 8 and require letters and digits.
+- **Leaked password protection** (if your plan has it): blocks passwords known from data breaches.
+- **Rate limits**: leave the defaults on; they slow down password guessing and sign-up floods.
+- Keep the **secret / service_role key** out of this repository. Only the publishable key belongs in `config.js`.

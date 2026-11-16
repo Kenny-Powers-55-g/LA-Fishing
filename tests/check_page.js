@@ -12,5 +12,14 @@ scripts.forEach((code, i) => {
 for (const id of ["map", "detail", "ranks", "tabs", "outlook", "seastate", "status"]) {
   if (!html.includes(`id="${id}"`)) { bad++; console.error(`Missing element #${id}`); }
 }
+// Security policy: inline scripts only run if their fingerprints are listed. The deploy refreshes
+// them, so a stale list here is only a warning (it must never block the hourly data update).
+if (!/<meta http-equiv="Content-Security-Policy"/.test(html)) { bad++; console.error("Missing the Content-Security-Policy meta tag"); }
+else {
+  const r = require("child_process").spawnSync(process.execPath, [path.join(__dirname, "..", "scripts", "csp.js"), "--check"], { encoding: "utf8" });
+  if (r.status !== 0) console.warn("Warning: " + (r.stderr || r.stdout).trim());
+}
+for (const m of html.matchAll(/<script src="https:[^"]*"[^>]*>/g))
+  if (!/integrity="sha(256|384|512)-/.test(m[0])) { bad++; console.error(`External script without an integrity hash: ${m[0]}`); }
 console.log(bad ? `${bad} problem(s)` : `index.html OK (${scripts.length} script${scripts.length > 1 ? "s" : ""})`);
 process.exit(bad ? 1 : 0);

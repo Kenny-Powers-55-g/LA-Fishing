@@ -87,6 +87,8 @@ jobs:
           # Fail clearly if core data is missing
           test -f site/latest.json
           test -f site/index.html
+          # Refresh the security policy's inline-script fingerprints for the published page
+          node scripts/csp.js site/index.html
 
       - uses: actions/configure-pages@v5
 

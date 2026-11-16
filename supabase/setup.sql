@@ -201,3 +201,29 @@ as $$
 $$;
 revoke all on function public.oc_friend_data() from public, anon;
 grant execute on function public.oc_friend_data() to authenticated;
+
+-- =====================================================================================
+-- Abuse limits. Safe to run again.
+-- =====================================================================================
+
+-- Each person's saved data (spots, catch log, settings) is capped at about 2 MB, far above real
+-- use, so nobody can use the free database as file storage. NOT VALID: existing rows aren't rechecked.
+alter table public.oc_user_data drop constraint if exists oc_user_data_size;
+alter table public.oc_user_data add constraint oc_user_data_size check (octet_length(data::text) <= 2000000) not valid;
+
+-- At most 20 unanswered friend requests out at once, so nobody can spam every username.
+create or replace function public.oc_my_pending_requests()
+returns integer
+language sql
+stable
+security definer
+set search_path = ''
+as $$
+  select count(*)::int from public.oc_friends where requester = (select auth.uid()) and status = 'pending';
+$$;
+revoke all on function public.oc_my_pending_requests() from public, anon;
+grant execute on function public.oc_my_pending_requests() to authenticated;
+
+drop policy if exists "send friend requests" on public.oc_friends;
+create policy "send friend requests" on public.oc_friends for insert to authenticated
+  with check ((select auth.uid()) = requester and status = 'pending' and public.oc_my_pending_requests() < 20);
