@@ -3,7 +3,7 @@
 <!-- Security policy: which sites this page may load scripts, data and images from. The sha256 values
      are the inline scripts' fingerprints; scripts/csp.js updates them (the deploy does it automatically).
      Using a Supabase custom domain instead of *.supabase.co? Add it to connect-src. -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-e2dBkFb8yGPNHgbOpkhBXN0cimbhu2pIwzctEzDA40U=' 'sha256-tpukvx4WjG6+QykBmaFqGMseTmqKG4RGuASLQiUFRpo=' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https://*.noaa.gov https://gibs.earthdata.nasa.gov https://tile.openstreetmap.org https://cdnjs.cloudflare.com; connect-src 'self' https://*.noaa.gov https://gibs.earthdata.nasa.gov https://tile.openstreetmap.org https://api.open-meteo.com https://*.supabase.co wss://*.supabase.co https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://fonts.googleapis.com https://fonts.gstatic.com; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-src 'none'; upgrade-insecure-requests">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-GyfSGo7PvkX8Ao9uoe+P1Ipq/whb+93h/AzXK6u+IOk=' 'sha256-+SpONctzyT6xnvKl6PnNVGqOW9ERUbC0rIKp1rrFpmA=' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https://*.noaa.gov https://gibs.earthdata.nasa.gov https://tile.openstreetmap.org https://cdnjs.cloudflare.com; connect-src 'self' https://*.noaa.gov https://gibs.earthdata.nasa.gov https://tile.openstreetmap.org https://api.open-meteo.com https://*.supabase.co wss://*.supabase.co https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://fonts.googleapis.com https://fonts.gstatic.com; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-src 'none'; upgrade-insecure-requests">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -17,7 +17,8 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css?oc=2" integrity="sha384-c6Rcwz4e4CITMbu/NBmnNS8yN2sC3cUElMEMfP3vqqKFp7GOYaaBBCqmaWBjmkjb" crossorigin="anonymous">
 <script src="config.js"></script>
 <link rel="manifest" href="manifest.webmanifest"><meta name="theme-color" content="#0b1014">
-<script>try{var t=localStorage.getItem("oc-theme");if(t==="light"||t==="dark")document.documentElement.dataset.theme=t}catch(e){}</script>
+<script>try{if(self!==top){document.documentElement.style.display="none";top.location=self.location}}catch(e){}
+try{var t=localStorage.getItem("oc-theme");if(t==="light"||t==="dark")document.documentElement.dataset.theme=t}catch(e){}</script>
 <link rel="icon" href="favicon.svg" type="image/svg+xml"><link rel="icon" href="icon-192.png" sizes="192x192"><link rel="apple-touch-icon" href="apple-touch-icon.png">
 <style>
 @property --p{syntax:"<number>";inherits:false;initial-value:0}
@@ -1304,6 +1305,10 @@ function readHash(){
 function writeHash(){const h=`#${sp}/${sel}`;if(location.hash!==h)try{history.replaceState(null,"",h)}catch(e){}}
 const col=s=>s>=75?"var(--g)":s>=55?"var(--y)":s>=35?"var(--o)":"var(--r)";
 const lab=s=>s>=75?"Excellent":s>=55?"Good":s>=35?"Fair":"Poor";
+// Strips the characters needed to write HTML from every string in a loaded data file.
+// Text is also escaped where it's displayed; this is the second line of defence.
+function deepClean(o){if(Array.isArray(o)){for(let i=0;i<o.length;i++){const v=o[i];if(typeof v==="string")o[i]=v.replace(/[<>`]/g,"").replace(/"/g,"'");else if(v&&typeof v==="object")deepClean(v)}}
+ else if(o&&typeof o==="object"){for(const k in o){const v=o[k];if(typeof v==="string")o[k]=v.replace(/[<>`]/g,"").replace(/"/g,"'");else if(v&&typeof v==="object")deepClean(v)}}return o}
 let DATA=null,FC=null,sp="redfish",sel=null;
 const $=id=>document.getElementById(id);
 
@@ -1487,7 +1492,7 @@ async function depthAt(ll){
 // ---- Map overlays: temperature breaks, color lines, Loop Current/eddies, rigs, reefs ----
 const OVF={weeds:"ocean.json",breaks:"ocean.json",color:"ocean.json",ssh:"ocean.json",rigs:"rigs.json",reefs:"reefs.json",tropical:"tropical.json",deadzone:"deadzone.json"},OVDATA={},OVLAYER={};
 const OVCOL={weed:"#c9a227",breaks:"#ff4d2e",color03:"#1aa5c8",color1:"#3c9a3c",warm:"#ff2d7a",cold:"#3d6bff",rig:"#ffb400",reef:"#2bd4c4"};
-async function ovData(f){if(!(f in OVDATA))OVDATA[f]=fetch(f+"?t="+Math.floor(Date.now()/36e5)).then(r=>r.ok?r.json():null).catch(()=>null);return OVDATA[f]}
+async function ovData(f){if(!(f in OVDATA))OVDATA[f]=fetch(f+"?t="+Math.floor(Date.now()/36e5)).then(r=>r.ok?r.json():null).then(d=>d&&deepClean(d)).catch(()=>null);return OVDATA[f]}
 const ovDate=t=>{const d=new Date(t);return isNaN(d)?"":d.toLocaleDateString([],{month:"short",day:"numeric"})};
 async function buildOverlay(k){
  if(k==="radar")return radarOverlay();
@@ -2048,7 +2053,13 @@ function renderTune(){
  $("tuneOn").onchange=e=>{try{localStorage.setItem("la-fish-tune",e.target.checked?"on":"off")}catch(_){}computeTune();render();renderTune()};
 }
 const LOG_KEY="la-fish-catches-v1";
-function getLogs(){try{return JSON.parse(localStorage.getItem(LOG_KEY)||"[]")}catch(e){return[]}}
+// The log can arrive from another device or a backup file, so each entry is cleaned when read
+function cleanLog(L,i){if(!L||typeof L!=="object")return null;
+ const num=v=>v==null||v===""||!isFinite(+v)?null:+v,txt=(v,n)=>v==null?v:String(v).replace(/[<>"`]/g,"").slice(0,n),S=L.snap&&typeof L.snap==="object"?L.snap:null;
+ return{...L,id:/^[\w.-]{1,40}$/.test(String(L.id))?L.id:"x"+i,sp:txt(L.sp,40),spot:txt(L.spot,40),date:/^\d{4}-\d\d-\d\d$/.test(L.date)?L.date:"",
+  depth:num(L.depth),scoreAtLog:num(L.scoreAtLog),result:["caught","slow","none"].includes(L.result)?L.result:"none",
+  snap:S?{...S,temp:num(S.temp),wind:num(S.wind),tide:txt(S.tide,30),pres:txt(S.pres,30),clar:txt(S.clar,30)}:L.snap}}
+function getLogs(){try{const a=JSON.parse(localStorage.getItem(LOG_KEY)||"[]");return Array.isArray(a)?a.map(cleanLog).filter(Boolean):[]}catch(e){return[]}}
 function saveLogs(arr){try{localStorage.setItem(LOG_KEY,JSON.stringify(arr))}catch(e){}}
 function renderLog(){
  if(!DATA)return;
@@ -2613,6 +2624,7 @@ async function load(isRefresh){
   const res=await fetch("latest.json?t="+Date.now());
   if(!res.ok)throw new Error(res.status);
   DATA=await res.json();
+  deepClean(DATA);         // feed text is shown in many places; make sure none of it can carry markup
   if(!DATA.spots||!DATA.spots.length)throw new Error("empty");
   setOffline(!navigator.onLine);
  }catch(e){
@@ -2687,7 +2699,7 @@ async function load(isRefresh){
    renderLog();
   };
  }
- try{const fr=await fetch("forecast.json?t="+Date.now());if(fr.ok)FC=await fr.json()}catch(e){}
+ try{const fr=await fetch("forecast.json?t="+Date.now());if(fr.ok)FC=deepClean(await fr.json())}catch(e){}
  fetch("history.json?t="+Date.now()).then(r=>r.ok?r.json():null).then(h=>{if(h&&h.t){HIST=h;if(DATA&&sel)render()}}).catch(()=>{});
  computeTune();
  addMySpots();
