@@ -3,7 +3,7 @@
 <!-- Security policy: which sites this page may load scripts, data and images from. The sha256 values
      are the inline scripts' fingerprints; scripts/csp.js updates them (the deploy does it automatically).
      Using a Supabase custom domain instead of *.supabase.co? Add it to connect-src. -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-GyfSGo7PvkX8Ao9uoe+P1Ipq/whb+93h/AzXK6u+IOk=' 'sha256-+SpONctzyT6xnvKl6PnNVGqOW9ERUbC0rIKp1rrFpmA=' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https://*.noaa.gov https://gibs.earthdata.nasa.gov https://tile.openstreetmap.org https://cdnjs.cloudflare.com; connect-src 'self' https://*.noaa.gov https://gibs.earthdata.nasa.gov https://tile.openstreetmap.org https://api.open-meteo.com https://*.supabase.co wss://*.supabase.co https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://fonts.googleapis.com https://fonts.gstatic.com; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-src 'none'; upgrade-insecure-requests">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-GyfSGo7PvkX8Ao9uoe+P1Ipq/whb+93h/AzXK6u+IOk=' 'sha256-JuQ8P6hc0h9i9IhdboF9dQC+/QUKAGEoq64xd63t5yE=' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https://*.noaa.gov https://gibs.earthdata.nasa.gov https://tile.openstreetmap.org https://cdnjs.cloudflare.com; connect-src 'self' https://kenny-powers-55-g.github.io https://*.noaa.gov https://gibs.earthdata.nasa.gov https://tile.openstreetmap.org https://api.open-meteo.com https://*.supabase.co wss://*.supabase.co https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://fonts.googleapis.com https://fonts.gstatic.com; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-src 'none'; upgrade-insecure-requests">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -1305,6 +1305,16 @@ function readHash(){
 function writeHash(){const h=`#${sp}/${sel}`;if(location.hash!==h)try{history.replaceState(null,"",h)}catch(e){}}
 const col=s=>s>=75?"var(--g)":s>=55?"var(--y)":s>=35?"var(--o)":"var(--r)";
 const lab=s=>s>=75?"Excellent":s>=55?"Good":s>=35?"Fair":"Poor";
+// ---- Running as the iPhone app (Capacitor) or as the website ----
+// Capacitor's own check first; the app's page address (capacitor:// or ionic://) as a backup.
+const IS_APP=(()=>{try{const C=window.Capacitor;
+ if(C&&typeof C.isNativePlatform==="function")return C.isNativePlatform()===true;
+ return /^(capacitor|ionic):$/.test((window.location||{}).protocol||"")}catch(e){return false}})();
+// Data files: the website loads its own copy (same as always); the app loads the live site's,
+// from config.js dataUrl, because the app's own address only holds the copy bundled at build time.
+const DATA_URL=(()=>{if(!IS_APP)return"";const u=String(((window.OC_CONFIG||{}).dataUrl)||"").trim();
+ return /^https:\/\/[^\s"'<>]+\/$/.test(u)?u:"https://kenny-powers-55-g.github.io/LA-Fishing/"})();
+const dataPath=f=>DATA_URL+f;
 // Strips the characters needed to write HTML from every string in a loaded data file.
 // Text is also escaped where it's displayed; this is the second line of defence.
 function deepClean(o){if(Array.isArray(o)){for(let i=0;i<o.length;i++){const v=o[i];if(typeof v==="string")o[i]=v.replace(/[<>`]/g,"").replace(/"/g,"'");else if(v&&typeof v==="object")deepClean(v)}}
@@ -1492,7 +1502,7 @@ async function depthAt(ll){
 // ---- Map overlays: temperature breaks, color lines, Loop Current/eddies, rigs, reefs ----
 const OVF={weeds:"ocean.json",breaks:"ocean.json",color:"ocean.json",ssh:"ocean.json",rigs:"rigs.json",reefs:"reefs.json",tropical:"tropical.json",deadzone:"deadzone.json"},OVDATA={},OVLAYER={};
 const OVCOL={weed:"#c9a227",breaks:"#ff4d2e",color03:"#1aa5c8",color1:"#3c9a3c",warm:"#ff2d7a",cold:"#3d6bff",rig:"#ffb400",reef:"#2bd4c4"};
-async function ovData(f){if(!(f in OVDATA))OVDATA[f]=fetch(f+"?t="+Math.floor(Date.now()/36e5)).then(r=>r.ok?r.json():null).then(d=>d&&deepClean(d)).catch(()=>null);return OVDATA[f]}
+async function ovData(f){if(!(f in OVDATA))OVDATA[f]=fetch(dataPath(f)+"?t="+Math.floor(Date.now()/36e5)).then(r=>r.ok?r.json():null).then(d=>d&&deepClean(d)).catch(()=>null);return OVDATA[f]}
 const ovDate=t=>{const d=new Date(t);return isNaN(d)?"":d.toLocaleDateString([],{month:"short",day:"numeric"})};
 async function buildOverlay(k){
  if(k==="radar")return radarOverlay();
@@ -2621,7 +2631,7 @@ async function load(isRefresh){
  if(!isRefresh&&sk)sk.hidden=false;
  if(isRefresh)$("status").textContent="Refreshing…";
  try{
-  const res=await fetch("latest.json?t="+Date.now());
+  const res=await fetch(dataPath("latest.json")+"?t="+Date.now());
   if(!res.ok)throw new Error(res.status);
   DATA=await res.json();
   deepClean(DATA);         // feed text is shown in many places; make sure none of it can carry markup
@@ -2699,8 +2709,8 @@ async function load(isRefresh){
    renderLog();
   };
  }
- try{const fr=await fetch("forecast.json?t="+Date.now());if(fr.ok)FC=deepClean(await fr.json())}catch(e){}
- fetch("history.json?t="+Date.now()).then(r=>r.ok?r.json():null).then(h=>{if(h&&h.t){HIST=h;if(DATA&&sel)render()}}).catch(()=>{});
+ try{const fr=await fetch(dataPath("forecast.json")+"?t="+Date.now());if(fr.ok)FC=deepClean(await fr.json())}catch(e){}
+ fetch(dataPath("history.json")+"?t="+Date.now()).then(r=>r.ok?r.json():null).then(h=>{if(h&&h.t){HIST=h;if(DATA&&sel)render()}}).catch(()=>{});
  computeTune();
  addMySpots();
  LAST_LOAD=Date.now();

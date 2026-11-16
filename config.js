@@ -10,5 +10,9 @@ window.OC_CONFIG = {
   supabaseKey: "sb_publishable_8EuhGmHdv5jJ3RaAAxUJAQ_Nc5Y4gdA",    // e.g. "sb_publishable_..."
   // Username + password accounts are stored as <username>@<this domain>. It never receives mail.
   // Leave it as is; changing it later stops existing username accounts from signing in.
-  usernameEmailDomain: "users.oceancast.invalid"
+  usernameEmailDomain: "users.oceancast.invalid",
+
+  // Where the iPhone app loads the hourly data files (latest.json, forecast.json and the map layers).
+  // The website ignores this and always loads its own copy, exactly as before. Must end with "/".
+  dataUrl: "https://kenny-powers-55-g.github.io/LA-Fishing/"
 };

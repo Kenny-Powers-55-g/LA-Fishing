@@ -45,6 +45,14 @@ spots and catches are only readable by accepted friends, and only while sharing 
 Supabase's built-in email sender only allows a few sign-in emails per hour. Once more people use the site, add your own
 email service under **Authentication → Emails → SMTP Settings** (Resend, SendGrid, Amazon SES and others have free tiers).
 
+## iPhone app (in progress)
+
+The page can also run inside an iPhone app built with Capacitor. Inside the app it loads the
+hourly data files from the live site, set by `dataUrl` in `config.js`; the website ignores that
+setting and keeps loading its own copy. If the site ever moves, change `dataUrl` and add the new
+address to `connect-src` in the security policy at the top of `index.html`
+(`node tests/check_page.js` checks the two match).
+
 ## Security
 
 What the site does to keep visitors and their data safe:
