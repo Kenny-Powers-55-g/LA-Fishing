@@ -165,6 +165,142 @@ SPOTS = [
     {"id": "swpass", "river": "miss", "name": "Southwest Pass jetties", "lat": 28.9056, "lon": -89.4289,
      "water": [("coops", "8760922")], "tide": "8760922",
      "note": "End of the Mississippi River's Southwest Pass. Bull reds and specks along the jetties; strong current and ship traffic."},
+    # ---- Added spots. Coordinates are approximate centers. Coastal spots use the nearest NOAA tide
+    # prediction station; where no NOAA water station is close, the worker finds the nearest USGS gauges.
+    # Pontchartrain basin and the east side
+    {"id": "borgne", "name": "Lake Borgne", "lat": 30.03, "lon": -89.6,
+     "water": [("coops", "8761305")], "tide": "8761305"},
+    {"id": "rigolets", "name": "Rigolets / Lake St. Catherine", "lat": 30.17, "lon": -89.74,
+     "water": [], "tide": "8761402"},
+    {"id": "chef", "name": "Chef Menteur Pass", "lat": 30.07, "lon": -89.8,
+     "water": [], "tide": "8761487"},
+    {"id": "maurepas", "name": "Lake Maurepas", "lat": 30.25, "lon": -90.5,
+     "water": [], "tide": None},
+    {"id": "shellbeach", "name": "Shell Beach / MRGO", "lat": 29.86, "lon": -89.68,
+     "water": [("coops", "8761305")], "tide": "8761305"},
+    {"id": "hopedale", "name": "Hopedale / Lake Robin", "lat": 29.82, "lon": -89.61,
+     "water": [("coops", "8761305")], "tide": "8761305"},
+    {"id": "delacroix", "river": "miss", "name": "Delacroix", "lat": 29.76, "lon": -89.79,
+     "water": [("coops", "8761305")], "tide": "8761305"},
+    {"id": "biloximarsh", "name": "Biloxi Marsh", "lat": 30.05, "lon": -89.35,
+     "water": [], "tide": "8760668"},
+    {"id": "chandeleur", "name": "Chandeleur Islands", "lat": 29.85, "lon": -88.85,
+     "water": [], "tide": "8760172",
+     "note": "Remote barrier islands about 30 miles offshore. Open-water run: check the marine forecast."},
+    {"id": "blackbay", "river": "miss", "name": "Black Bay / Breton Sound", "lat": 29.6, "lon": -89.55,
+     "water": [], "tide": "8761108"},
+    {"id": "palh", "river": "miss", "name": "Pointe a la Hache", "lat": 29.57, "lon": -89.8,
+     "water": [], "tide": "8761431"},
+    {"id": "empire", "river": "miss", "name": "Empire / Buras", "lat": 29.38, "lon": -89.6,
+     "water": [], "tide": "8761115"},
+    # Barataria basin
+    {"id": "lafitte", "name": "Lafitte / Barataria", "lat": 29.67, "lon": -90.11,
+     "water": [], "tide": "8761899"},
+    {"id": "salvador", "name": "Lake Salvador", "lat": 29.75, "lon": -90.27,
+     "water": [("coops", "8762482")], "tide": "8761899"},
+    {"id": "cataouatche", "name": "Lake Cataouatche", "lat": 29.83, "lon": -90.23,
+     "water": [], "tide": "8761899"},
+    {"id": "allemands", "name": "Lac des Allemands", "lat": 29.92, "lon": -90.57,
+     "water": [], "tide": None, "fresh": True},
+    {"id": "myrtlegrove", "river": "miss", "name": "Myrtle Grove", "lat": 29.63, "lon": -89.94,
+     "water": [], "tide": "8761899"},
+    {"id": "leeville", "name": "Leeville / Bayou Lafourche", "lat": 29.25, "lon": -90.21,
+     "water": [], "tide": "8762084"},
+    {"id": "goldenmeadow", "name": "Golden Meadow / Catfish Lake", "lat": 29.38, "lon": -90.27,
+     "water": [], "tide": "8762184"},
+    # Terrebonne and the central coast
+    {"id": "timbalier", "name": "Timbalier Bay", "lat": 29.15, "lon": -90.35,
+     "water": [], "tide": "8762481"},
+    {"id": "pelto", "name": "Lake Pelto / Isles Dernieres", "lat": 29.07, "lon": -90.75,
+     "water": [], "tide": "8763206"},
+    {"id": "pac", "name": "Pointe-aux-Chenes", "lat": 29.5, "lon": -90.56,
+     "water": [], "tide": "8762525"},
+    {"id": "decade", "name": "Lake Decade", "lat": 29.42, "lon": -90.92,
+     "water": [], "tide": "8763843"},
+    {"id": "mechant", "name": "Lake Mechant / Caillou Lake", "lat": 29.3, "lon": -90.95,
+     "water": [], "tide": "8763535"},
+    {"id": "fourleague", "river": "atch", "name": "Four League Bay", "lat": 29.3, "lon": -91.2,
+     "water": [("coops", "8764314")], "tide": "8763843"},
+    {"id": "atchbay", "river": "atch", "name": "Atchafalaya Bay / Wax Lake Delta", "lat": 29.5, "lon": -91.42,
+     "water": [("coops", "8764227")], "tide": "8764227"},
+    {"id": "vermilion", "river": "atch", "name": "Vermilion Bay (Cypremort Point)", "lat": 29.72, "lon": -91.87,
+     "water": [], "tide": "8765251"},
+    {"id": "marshisland", "name": "Marsh Island / Southwest Pass", "lat": 29.6, "lon": -92.0,
+     "water": [], "tide": "8765551"},
+    {"id": "intracoastal", "name": "Intracoastal City / Vermilion River", "lat": 29.78, "lon": -92.16,
+     "water": [], "tide": "8765785"},
+    # Southwest
+    {"id": "whitelake", "name": "White Lake", "lat": 29.73, "lon": -92.5,
+     "water": [], "tide": None, "fresh": True},
+    {"id": "rockefeller", "name": "Rockefeller Refuge / Grand Chenier", "lat": 29.72, "lon": -92.8,
+     "water": [], "tide": "8766941"},
+    {"id": "grandlake", "name": "Grand Lake / Mermentau River", "lat": 29.9, "lon": -92.8,
+     "water": [], "tide": None, "fresh": True},
+    {"id": "cameron", "name": "Cameron Jetties", "lat": 29.765, "lon": -93.345,
+     "water": [("coops", "8768094")], "tide": "8768094"},
+    {"id": "lakecharles", "name": "Lake Charles / Prien Lake", "lat": 30.2, "lon": -93.26,
+     "water": [("coops", "8767961")], "tide": "8767961"},
+    {"id": "sabine", "name": "Sabine Lake", "lat": 29.85, "lon": -93.87,
+     "water": [("coops", "8770475")], "tide": "8769858"},
+    # Freshwater: south and central
+    {"id": "henderson", "river": "atch", "name": "Henderson Lake", "lat": 30.33, "lon": -91.75,
+     "water": [], "tide": None, "fresh": True},
+    {"id": "falseriver", "name": "False River", "lat": 30.68, "lon": -91.45,
+     "water": [], "tide": None, "fresh": True},
+    {"id": "tchefuncte", "name": "Tchefuncte River (Madisonville)", "lat": 30.4, "lon": -90.16,
+     "water": [], "tide": "8761993", "fresh": True},
+    {"id": "pearl", "name": "Pearl River / Honey Island Swamp", "lat": 30.35, "lon": -89.7,
+     "water": [], "tide": None, "fresh": True},
+    {"id": "springbayou", "name": "Spring Bayou", "lat": 31.13, "lon": -92.03,
+     "water": [], "tide": None, "fresh": True},
+    {"id": "kincaid", "name": "Kincaid Lake", "lat": 31.27, "lon": -92.62,
+     "water": [], "tide": None, "fresh": True},
+    {"id": "vernon", "name": "Vernon Lake", "lat": 31.18, "lon": -93.33,
+     "water": [], "tide": None, "fresh": True},
+    {"id": "concordia", "name": "Lake Concordia", "lat": 31.6, "lon": -91.55,
+     "water": [], "tide": None, "fresh": True},
+    {"id": "bruin", "name": "Lake Bruin", "lat": 31.95, "lon": -91.2,
+     "water": [], "tide": None, "fresh": True},
+    # Freshwater: north
+    {"id": "toledo", "name": "Toledo Bend", "lat": 31.4, "lon": -93.7,
+     "water": [], "tide": None, "fresh": True},
+    {"id": "blacklake", "name": "Black Lake / Clear Lake", "lat": 31.95, "lon": -93.0,
+     "water": [], "tide": None, "fresh": True},
+    {"id": "caney", "name": "Caney Creek Reservoir", "lat": 32.22, "lon": -92.5,
+     "water": [], "tide": None, "fresh": True},
+    {"id": "bistineau", "name": "Lake Bistineau", "lat": 32.4, "lon": -93.4,
+     "water": [], "tide": None, "fresh": True},
+    {"id": "crosslake", "name": "Cross Lake", "lat": 32.5, "lon": -93.83,
+     "water": [], "tide": None, "fresh": True},
+    {"id": "caddo", "name": "Caddo Lake", "lat": 32.7, "lon": -93.95,
+     "water": [], "tide": None, "fresh": True},
+    {"id": "claiborne", "name": "Lake Claiborne", "lat": 32.73, "lon": -92.92,
+     "water": [], "tide": None, "fresh": True},
+    {"id": "darbonne", "name": "Lake D'Arbonne", "lat": 32.72, "lon": -92.35,
+     "water": [], "tide": None, "fresh": True},
+    {"id": "ouachita", "name": "Ouachita River (Monroe)", "lat": 32.5, "lon": -92.12,
+     "water": [], "tide": None, "fresh": True},
+    {"id": "povertypoint", "name": "Poverty Point Reservoir", "lat": 32.53, "lon": -91.49,
+     "water": [], "tide": None, "fresh": True},
+    # Offshore grounds (approximate centers; check your chart)
+    {"id": "off_mainpass", "name": "Main Pass rigs (east of the Delta)", "lat": 29.25, "lon": -88.75,
+     "water": [], "tide": None, "marine": True},
+    {"id": "off_westdelta", "name": "West Delta rigs", "lat": 28.95, "lon": -89.75,
+     "water": [], "tide": None, "marine": True},
+    {"id": "off_eugene", "name": "Eugene Island rigs", "lat": 28.6, "lon": -91.6,
+     "water": [], "tide": None, "marine": True},
+    {"id": "off_vermilion", "name": "Vermilion rigs", "lat": 28.8, "lon": -92.3,
+     "water": [], "tide": None, "marine": True},
+    {"id": "off_cameron", "name": "Cameron rigs (30 mi south)", "lat": 29.3, "lon": -93.3,
+     "water": [], "tide": None, "marine": True},
+    {"id": "ewing", "name": "Ewing Bank", "lat": 28.1, "lon": -91.03,
+     "water": [], "tide": None, "marine": True,
+     "note": "Offshore bank roughly 100 miles south of Morgan City. Position is approximate: check your chart."},
+    {"id": "sonnier", "name": "Sonnier Bank", "lat": 28.33, "lon": -92.45,
+     "water": [], "tide": None, "marine": True,
+     "note": "Offshore bank roughly 100 miles south of Intracoastal City. Position is approximate: check your chart."},
+    {"id": "off_mc_east", "name": "Mississippi Canyon deepwater (east)", "lat": 28.5, "lon": -88.3,
+     "water": [], "tide": None, "marine": True},
 ]
 
 # ---------------------------------------------------------------- HTTP
@@ -1046,7 +1182,9 @@ def collect(spot, now, cache):
         for m in ("temp_f", "temp_d24", "cond_ms", "turb_fnu", "wind_mph", "level_d6"):
             take(m, cache[key], f"{kind}:{sid}")
 
-    if not spot.get("marine") and "cond_ms" not in got:  # inland/coastal only — open Gulf has no gauges
+    # Freshwater lakes and rivers ("fresh") skip this: the nearest conductivity gauge can be a coastal
+    # one many miles away, which would report a salty lake.
+    if not spot.get("marine") and not spot.get("fresh") and "cond_ms" not in got:  # open Gulf has no gauges
         for sid, dist in near_sites(spot, cache, "00095"):
             if ("usgs", sid) not in cache:
                 cache[("usgs", sid)] = usgs_source(sid)
@@ -1074,6 +1212,20 @@ def collect(spot, now, cache):
                     got[m], src[m] = (mar["now"][key], nh, None), msrc
 
     wx = cache.setdefault(("wx", spot["id"]), weather(spot["lat"], spot["lon"]))
+    est = []
+    # No water-temperature gauge within reach (most north Louisiana lakes): estimate it from the air.
+    # Lake surface temperature follows the average air temperature of the last couple of days.
+    if not spot.get("marine") and "temp_f" not in got and wx and wx.get("series"):
+        air = [(t, v) for t, v in zip(wx["series"]["t"], wx["series"]["air"]) if v is not None and t <= now]
+        last48, last24 = [v for t, v in air[-48:]], [v for t, v in air[-24:]]
+        prev24 = [v for t, v in air[-48:-24]]
+        if len(last48) >= 36:
+            got["temp_f"] = (sum(last48) / len(last48), now)
+            src["temp_f"] = {"source": "estimated from air temperature (no gauge nearby)", "age_min": 0}
+            est.append("temp")
+            if len(last24) >= 18 and len(prev24) >= 18:
+                got["temp_d24"] = (0.3 * (sum(last24) / len(last24) - sum(prev24) / len(prev24)), now)
+                src["temp_d24"] = dict(src["temp_f"])
     if wx:
         age = (now - wx["time"]).total_seconds() / 60
         wsrc = {"source": "open-meteo", "age_min": round(age)}
@@ -1155,6 +1307,10 @@ def collect(spot, now, cache):
         if tc is not None:
             sal = round(psu(c, tc), 1)
             src["sal"] = src.pop("cond_ms")
+    if sal is None and spot.get("fresh"):
+        sal = 0.1
+        src["sal"] = {"source": "freshwater lake or river (assumed)", "age_min": 0}
+        est.append("sal")
     turb = got["turb_fnu"][0] if "turb_fnu" in got else None
     wind = got["wind_mph"][0] if "wind_mph" in got else None
     rain = got["rain"][0] if "rain" in got else None
@@ -1276,7 +1432,7 @@ def collect(spot, now, cache):
             "forecast": build_forecast(cond, wx, pts, now, mar, sbias, tcur["_ev"] if tcur else None) if wx and wx.get("series") else None,
             "conditions": cond,
             "quality": {"missing": missing, "sources": src,
-                        "estimated": ["clar"] if clar_kind in ("estimated", "satellite") else [],
+                        "estimated": (["clar"] if clar_kind in ("estimated", "satellite") else []) + est,
                         "clarity_method": clar_kind,
                         "vis_method": vsrc["method"] if vsrc else None,
                         "not_applicable": na,

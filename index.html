@@ -3,7 +3,7 @@
 <!-- Security policy: which sites this page may load scripts, data and images from. The sha256 values
      are the inline scripts' fingerprints; scripts/csp.js updates them (the deploy does it automatically).
      Using a Supabase custom domain instead of *.supabase.co? Add it to connect-src. -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-9Cptd3I9BPDZeQQBZ2Rq1DNK2bdPfwGehQkwli7t4jg=' 'sha256-AbbCJIExg6fGOoqTs6o02WbjkhL/UmVeXsF9kyi6iWU=' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https://*.noaa.gov https://gibs.earthdata.nasa.gov https://tile.openstreetmap.org https://cdnjs.cloudflare.com; connect-src 'self' https://kenny-powers-55-g.github.io https://*.noaa.gov https://gibs.earthdata.nasa.gov https://tile.openstreetmap.org https://api.open-meteo.com https://*.supabase.co wss://*.supabase.co https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://fonts.googleapis.com https://fonts.gstatic.com; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-src 'none'; upgrade-insecure-requests">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-9Cptd3I9BPDZeQQBZ2Rq1DNK2bdPfwGehQkwli7t4jg=' 'sha256-8Z6cFb1AuZfsYfeMTyfdtdonFJjl5WC3yTiocRKUhHY=' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https://*.noaa.gov https://gibs.earthdata.nasa.gov https://tile.openstreetmap.org https://cdnjs.cloudflare.com; connect-src 'self' https://kenny-powers-55-g.github.io https://*.noaa.gov https://gibs.earthdata.nasa.gov https://tile.openstreetmap.org https://api.open-meteo.com https://*.supabase.co wss://*.supabase.co https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://fonts.googleapis.com https://fonts.gstatic.com; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-src 'none'; upgrade-insecure-requests">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -1219,7 +1219,86 @@ const SP={
  blackfin:{name:"Blackfin Tuna",zone:"offshore",tip:"Blackfin hang around rigs in 150 to 600 ft, especially at first light and when shrimp boats are culling. Chum and freeline, or jig vertically around the legs.",gate:offGate,factors:[sbreak(1.5),visO(1.5,25),
   {k:"temp",l:"Sea temp",w:3,f:v=>trap(v,[66,72,84,90]),t:v=>v+"°F"},wave(2),windO(1),cur(1),presO(1),light(1.5),moon(0.5),depth(2,[80,150,600,1500])]},
  grouper:{name:"Grouper",zone:"offshore",note:LIM+" Gag, red and other groupers each have their own federal seasons and limits.",tip:"Grouper sit tight to hard bottom, reefs and rig bases. Heavy tackle and lock the drag so they can't reach the rocks; live bait or big cut bait on the bottom.",gate:offGate,factors:[
-  {k:"temp",l:"Sea temp",w:2,f:v=>trap(v,[58,64,82,88]),t:v=>v+"°F"},wave(3),windO(2),cur(2,2),presO(1),light(0.5),depth(2,[50,80,300,450])]}
+  {k:"temp",l:"Sea temp",w:2,f:v=>trap(v,[58,64,82,88]),t:v=>v+"°F"},wave(3),windO(2),cur(2,2),presO(1),light(0.5),depth(2,[50,80,300,450])]},
+ // ---- Added fish. Like the ones above, the ranges are starting estimates, not researched values.
+ tarpon:{name:"Tarpon",tip:"Tarpon show along the passes and beaches in the heat of summer, rolling on calm mornings. Big live baits or Coon Pop style lures drifted through the schools. Handle them in the water and release them quickly.",gate:c=>c.sal!=null&&c.sal<8?"Tarpon stay in saltier water near the passes":c.temp!=null&&c.temp<68?`Too cold for tarpon (${c.temp}°F): they show up when the water passes about 70°F`:null,factors:[
+  {k:"temp",l:"Water temp",w:3,f:v=>trap(v,[70,78,88,92]),t:v=>v+"°F"},
+  {k:"tide",l:"Tide movement",w:2,f:E({Incoming:1,Outgoing:1,Slack:.4}),t:v=>v},
+  {k:"wind",l:"Wind",w:2.5,f:v=>trap(v,[-1,0,9,18]),t:v=>v+" mph"},
+  {k:"clar",l:"Water clarity",w:1.5,f:E({Clear:1,Stained:.7,Muddy:.2}),t:v=>v},
+  {k:"sal",l:"Salinity",w:1.5,f:v=>trap(v,[8,20,36,40]),t:v=>v+" ppt"},
+  light(1),moon(0.8),depth(1,[5,10,40,80]),seas(2,[0,0,0,.1,.4,.8,1,1,.9,.5,.1,0])]},
+ jack:{name:"Jack Crevalle",tip:"Jacks crash bait at the passes, jetties and beachfronts in warm water. Watch for birds and showering mullet; a big topwater or spoon thrown into the commotion gets hit. Bring heavy tackle.",gate:c=>c.sal!=null&&c.sal<8?"Jack crevalle stay in saltier water":null,factors:[
+  {k:"temp",l:"Water temp",w:3,f:v=>trap(v,[62,72,88,94]),t:v=>v+"°F"},
+  {k:"tide",l:"Tide movement",w:2.5,f:E({Incoming:1,Outgoing:1,Slack:.3}),t:v=>v},
+  {k:"wind",l:"Wind",w:1.5,f:v=>trap(v,[-1,0,14,24]),t:v=>v+" mph"},
+  {k:"sal",l:"Salinity",w:1.5,f:v=>trap(v,[8,18,36,40]),t:v=>v+" ppt"},
+  {k:"clar",l:"Water clarity",w:1,f:E({Clear:1,Stained:.8,Muddy:.4}),t:v=>v},
+  trange,light(1),depth(1,[3,6,30,60]),seas(1.5,[.1,.1,.3,.6,.9,1,1,1,1,.8,.4,.2])]},
+ whitetrout:{name:"White Trout (Sand Trout)",tip:"White trout stack in deeper channels, passes and around lit docks, best in the cooler months. Small jigs or dead shrimp bounced on the bottom; they bite well at night under lights.",gate:c=>c.sal!=null&&c.sal<5?"Too fresh for white trout":null,factors:[
+  {k:"temp",l:"Water temp",w:3,f:v=>trap(v,[48,56,78,88]),t:v=>v+"°F"},
+  {k:"tide",l:"Tide movement",w:2.5,f:E({Incoming:1,Outgoing:1,Slack:.4}),t:v=>v},
+  {k:"sal",l:"Salinity",w:1.5,f:v=>trap(v,[5,12,34,40]),t:v=>v+" ppt"},
+  {k:"wind",l:"Wind",w:1.5,f:v=>trap(v,[-1,0,14,24]),t:v=>v+" mph"},
+  {k:"clar",l:"Water clarity",w:1,f:E({Clear:1,Stained:.9,Muddy:.5}),t:v=>v},
+  trange,light(1,NIGHT),depth(1.2,[6,10,35,60]),seas(1.5,[1,1,.9,.7,.5,.5,.5,.5,.6,.8,1,1])]},
+ whitebass:{name:"White Bass",tip:"White bass run up rivers and creeks in late winter and spring, then school over open-water points and sandbars. Small jigs, spoons and inline spinners; find one and you have found a school.",gate:c=>c.sal!=null&&c.sal>3?"Too salty for white bass":null,factors:[
+  {k:"temp",l:"Water temp",w:4,f:v=>trap(v,[44,54,72,84]),t:v=>v+"°F"},
+  {k:"level",l:"Water level trend",w:2,f:E({Rising:1,Steady:.9,Falling:.6}),t:v=>v},
+  {k:"clar",l:"Water clarity",w:1.5,f:E({Clear:.9,Stained:1,Muddy:.4}),t:v=>v},
+  {k:"wind",l:"Wind",w:1.5,f:v=>trap(v,[-1,2,14,24]),t:v=>v+" mph"},
+  {k:"pres",l:"Pressure trend",w:1,f:E({Falling:1,Steady:.85,Rising:.5}),t:v=>v},
+  front(1.5),dtemp(1),light(1),depth(1,[3,6,20,35]),seas(1.5,[.6,.9,1,1,.7,.5,.5,.5,.6,.7,.6,.5])]},
+ striper:{name:"Striped / Hybrid Bass",tip:"Stripers and hybrids chase shad in open water, most active at dawn, dusk and on overcast days when the water is cool. Watch for surfacing schools and gulls; live shad, spoons and swimbaits.",gate:c=>c.sal!=null&&c.sal>10?"Too salty here for stripers":null,factors:[
+  {k:"temp",l:"Water temp",w:4,f:v=>trap(v,[44,54,70,80]),t:v=>v+"°F"},
+  {k:"cloud",l:"Cloud cover",w:1.5,f:v=>trap(v,[-1,30,100,101]),t:v=>v+"%"},
+  {k:"wind",l:"Wind",w:1.5,f:v=>trap(v,[-1,3,14,24]),t:v=>v+" mph"},
+  {k:"pres",l:"Pressure trend",w:1.5,f:E({Falling:1,Steady:.8,Rising:.5}),t:v=>v},
+  {k:"clar",l:"Water clarity",w:1,f:E({Clear:1,Stained:.9,Muddy:.4}),t:v=>v},
+  front(1.5),dtemp(1),light(2),moon(0.6),depth(1.2,[8,15,40,70])]},
+ spotbass:{name:"Spotted Bass",tip:"Spotted bass like clearer water, current and hard bottom: points, bluff banks and river bends. Smaller baits than for largemouth; finesse worms, small crankbaits and jigs.",gate:c=>c.sal!=null&&c.sal>5?"Too salty for spotted bass":null,factors:[
+  {k:"temp",l:"Water temp",w:4,f:v=>trap(v,[48,60,78,88]),t:v=>v+"°F"},
+  {k:"clar",l:"Water clarity",w:2,f:E({Clear:1,Stained:.8,Muddy:.3}),t:v=>v},
+  {k:"pres",l:"Pressure trend",w:2,f:E({Falling:1,Steady:.8,Rising:.45}),t:v=>v},
+  {k:"level",l:"Water level trend",w:1.5,f:E({Steady:1,Falling:.8,Rising:.5}),t:v=>v},
+  {k:"wind",l:"Wind",w:1,f:v=>trap(v,[-1,2,12,24]),t:v=>v+" mph"},
+  {k:"cloud",l:"Cloud cover",w:1,f:v=>trap(v,[-1,25,85,101]),t:v=>v+"%"},
+  dtemp(1.5),front(2),rain(1,3),light(1),depth(1.2,[3,6,20,35])]},
+ chinquapin:{name:"Chinquapin (Redear)",tip:"Chinquapin bed a little deeper than bluegill, on shell and firm bottom, peaking around the full moons of April and May. Worms fished right on the bottom.",gate:c=>c.sal!=null&&c.sal>4?"Too salty for chinquapin":null,factors:[
+  {k:"temp",l:"Water temp",w:4,f:v=>trap(v,[58,68,82,90]),t:v=>v+"°F"},
+  {k:"wind",l:"Wind",w:1.5,f:v=>trap(v,[-1,0,10,20]),t:v=>v+" mph"},
+  {k:"clar",l:"Water clarity",w:1,f:E({Clear:1,Stained:.9,Muddy:.4}),t:v=>v},
+  {k:"level",l:"Water level trend",w:1,f:E({Steady:1,Falling:.7,Rising:.6}),t:v=>v},
+  {k:"pres",l:"Pressure trend",w:1,f:E({Falling:.9,Steady:1,Rising:.6}),t:v=>v},
+  moon(2),light(1),front(1.5),dtemp(1),depth(1,[2,4,10,20]),seas(1.5,[.1,.2,.6,1,1,.8,.6,.5,.5,.4,.2,.1])]},
+ choupique:{name:"Choupique (Bowfin)",tip:"Choupique hold in weedy, shallow backwater and bite best in warm, low-light conditions. Cut bait, live bait or a spinnerbait slow-rolled along the grass; use strong line.",gate:c=>c.sal!=null&&c.sal>4?"Too salty for choupique":null,factors:[
+  {k:"temp",l:"Water temp",w:3,f:v=>trap(v,[55,68,88,95]),t:v=>v+"°F"},
+  {k:"level",l:"Water level trend",w:1.5,f:E({Rising:1,Steady:.9,Falling:.6}),t:v=>v},
+  {k:"wind",l:"Wind",w:1,f:v=>trap(v,[-1,0,12,24]),t:v=>v+" mph"},
+  {k:"clar",l:"Water clarity",w:.5,f:E({Clear:.8,Stained:1,Muddy:.9}),t:v=>v},
+  dtemp(1),front(1.5),light(1.5),depth(1,[1,2,8,15])]},
+ gar:{name:"Garfish",tip:"Gar bask near the surface on hot, calm, sunny days in slow water. Cut mullet or shad under a float, or a rope lure; give them time to run before you set the hook.",gate:c=>c.sal!=null&&c.sal>18?"Too salty for garfish here":null,factors:[
+  {k:"temp",l:"Water temp",w:4,f:v=>trap(v,[62,75,92,98]),t:v=>v+"°F"},
+  {k:"wind",l:"Wind",w:2,f:v=>trap(v,[-1,0,8,18]),t:v=>v+" mph"},
+  {k:"cloud",l:"Cloud cover",w:1,f:v=>trap(v,[-1,0,50,101]),t:v=>v+"%"},
+  {k:"level",l:"Water level trend",w:1,f:E({Steady:1,Rising:.8,Falling:.7}),t:v=>v},
+  dtemp(1),front(1.5),light(1,E({Daytime:1,Dawn:.7,Dusk:.8,Night:.5})),depth(1,[2,4,15,30]),seas(1.5,[.1,.1,.3,.6,.9,1,1,1,.9,.6,.3,.1])]},
+ gaspergou:{name:"Gaspergou (Freshwater Drum)",tip:"Gaspergou feed on the bottom in rivers and big lakes, often where there is current. Crawfish tails, worms or cut bait on a simple bottom rig.",gate:c=>c.sal!=null&&c.sal>8?"Too salty for gaspergou":null,factors:[
+  {k:"temp",l:"Water temp",w:3,f:v=>trap(v,[48,62,84,92]),t:v=>v+"°F"},
+  {k:"level",l:"Water level trend",w:2,f:E({Rising:1,Steady:.9,Falling:.7}),t:v=>v},
+  {k:"clar",l:"Water clarity",w:1,f:E({Clear:.7,Stained:1,Muddy:.9}),t:v=>v},
+  {k:"wind",l:"Wind",w:1,f:v=>trap(v,[-1,0,15,26]),t:v=>v+" mph"},
+  dtemp(1),rain(1,5),light(.8),depth(1.2,[4,8,25,45])]},
+ vermilion:{name:"Vermilion Snapper (Beeliner)",zone:"offshore",note:LIM,tip:"Beeliners school over hard bottom and around deeper rigs, usually higher in the water column than red snapper. Small hooks and small cut bait on a multi-hook rig.",gate:offGate,factors:[
+  {k:"temp",l:"Sea temp",w:2,f:v=>trap(v,[60,66,82,90]),t:v=>v+"°F"},wave(3),windO(2),cur(2,2.5),presO(1),depth(2,[80,120,300,450])]},
+ trigger:{name:"Gray Triggerfish",zone:"offshore",note:LIM,tip:"Triggerfish hang around rigs, reefs and wrecks and are expert bait thieves. Small, strong hooks with squid or cut bait, fished just above the structure.",gate:offGate,factors:[
+  {k:"temp",l:"Sea temp",w:2,f:v=>trap(v,[62,68,84,90]),t:v=>v+"°F"},wave(3),windO(2),cur(2,2),presO(1),light(.5),depth(2,[40,60,180,300])]},
+ marlin:{name:"Blue Marlin",zone:"offshore",note:LIM+" Billfish have federal permit and reporting rules.",tip:"Blue marlin work the deep blue-water edges, rips and the big floating platforms in summer. Trolled lures or live tuna along temperature and color breaks.",gate:c=>offGate(c)||(c.temp!=null&&c.temp<70?`Too cold for blue marlin (${c.temp}°F)`:null),factors:[sbreak(2),visO(2,40),
+  {k:"temp",l:"Sea temp",w:3,f:v=>trap(v,[72,78,87,91]),t:v=>v+"°F"},wave(2),windO(1),cur(1.5),presO(1),moon(1),
+  depth(2,[400,1000,8000,12000]),seas(2,[0,0,.1,.3,.7,1,1,1,.9,.5,.1,0])]},
+ swordfish:{name:"Swordfish",zone:"offshore",note:LIM+" Swordfish need a federal HMS permit.",tip:"Swordfish are caught deep-dropping in daylight over 1,200 to 1,800 feet, or drifting baits at night near the surface. Calm seas and a manageable current matter most.",gate:offGate,factors:[
+  {k:"temp",l:"Sea temp",w:1.5,f:v=>trap(v,[66,72,86,90]),t:v=>v+"°F"},wave(3.5),windO(2.5),cur(2.5,2.5),presO(1),moon(1.2),
+  depth(3,[700,1100,1900,2600])]}
 };
 // River level (share of flood stage, and trend) for spots fed by the Mississippi or Atchafalaya.
 // High or rising river means fresh, muddy water for most fish; catfish don't mind rising water.
@@ -1569,10 +1648,16 @@ function userDepth(){
  try{const v=localStorage.getItem("la-fish-depth");if(v!==null&&v!==""&&!isNaN(+v))return +v}catch(e){}
  return null;
 }
+// The readings a score uses are the same for every fish at a spot, and working out the moon, light and
+// front timing is the slow part. So they're worked out once per spot per minute and reused (the page
+// scores every fish at every spot on each update). Treat the returned object as read-only.
+let COND_CACHE=new WeakMap();
 function condFor(spot,ts=Date.now(),depth=userDepth()){
+ const key=Math.floor(ts/6e4)+"|"+(depth??"");let m=COND_CACHE.get(spot);
+ if(m&&m.key===key&&m.src===spot.conditions)return m.c;
  const c={...spot.conditions,zone:spot.zone,alerts:(spot.alerts||[]).map(a=>a.event).join("|"),light:lightNow(spot,ts),moon:moonInfo(spot,ts),mon:monthOf(ts)};
  if(depth!=null)c.depth=depth;
- return addCtx(c,spot,ts);
+ addCtx(c,spot,ts);COND_CACHE.set(spot,{key,src:spot.conditions,c});return c;
 }
 function score(spId,spot,ts=Date.now(),depth=userDepth()){return scoreC(spId,condFor(spot,ts,depth),spot.quality||{},ts)}
 // Conditions for forecast hour i (shared by the outlook and the best-window finder)
@@ -1982,7 +2067,7 @@ async function liveWeather(s){
   const r=await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${s.lat}&longitude=${s.lon}&current=wind_speed_10m,wind_direction_10m,cloud_cover,surface_pressure&hourly=surface_pressure&past_hours=4&forecast_hours=1&wind_speed_unit=mph&timezone=GMT`);
   if(!r.ok)return;const j=await r.json(),c=j.current,h=j.hourly;
   const i=h.time.findIndex(t=>Date.parse(t+"Z")>=Date.parse(c.time+"Z")-3*36e5),d=i>=0&&h.surface_pressure[i]!=null?c.surface_pressure-h.surface_pressure[i]:null;
-  Object.assign(s.conditions,{wind:Math.round(c.wind_speed_10m),wdir:Math.round(c.wind_direction_10m),cloud:Math.round(c.cloud_cover)});
+  COND_CACHE.delete(s);Object.assign(s.conditions,{wind:Math.round(c.wind_speed_10m),wdir:Math.round(c.wind_direction_10m),cloud:Math.round(c.cloud_cover)});
   if(d!=null)s.conditions.pres=d<=-1?"Falling":d>=1?"Rising":"Steady";
   const src={source:"Open-Meteo at your pin",age_min:0};Object.assign(s.quality.sources=s.quality.sources||{},{wind_mph:src,cloud:src,pres:src});
   if(DATA&&sel)render();
@@ -2004,7 +2089,7 @@ function removeMySpot(id){
 // ---- Where the rules are ----
 const RULES={salt:["Louisiana saltwater seasons and limits","https://wlf.louisiana.gov/fishing/saltwater-seasons-limits"],
  fresh:["Louisiana freshwater creel and size limits","https://wlf.louisiana.gov/fishing/freshwater-creel-size-limits"]};
-const FRESH_SP=new Set(["bass","crappie","catfish","bream"]);
+const FRESH_SP=new Set(["bass","crappie","catfish","bream","whitebass","striper","spotbass","chinquapin","choupique","gar","gaspergou"]);
 function rulesPanel(spId,spot){
  const p=SP[spId],r=RULES[FRESH_SP.has(spId)?"fresh":"salt"];
  let h=`<div class="note rules">Rules: <a href="${r[1]}" target="_blank" rel="noopener">${r[0]} (LDWF)</a>.`;
@@ -2198,7 +2283,7 @@ function toggleFav(id){let f=getFavs();if(f.includes(id))f=f.filter(x=>x!==id);e
 function confClass(cov){return cov>=0.75?"":cov>=0.5?"low":"bad"}
 // How old the readings behind a score are: the middle age of the sources it used, in minutes
 // When the scoring itself last changed (shown in "How scores work"). Update this when factors or weights change.
-const MODEL_UPDATED="2026-11-13";
+const MODEL_UPDATED="2026-11-17";
 function openHow(){const d=$("howdlg");$("modeldate").textContent=new Date(MODEL_UPDATED+"T12:00:00").toLocaleDateString([],{month:"long",day:"numeric",year:"numeric"});
  $("howclose").onclick=()=>d.close();d.onclick=e=>{if(e.target===d)d.close()};if(d.showModal)d.showModal();else d.setAttribute("open","")}
 document.addEventListener("click",e=>{if(e.target.closest("[data-howto]")){e.preventDefault();openHow()}});
@@ -2305,7 +2390,7 @@ function render(){
  if(!r.gate)h+=driversHTML(r);
  // ---- 3. The readings that matter most for this kind of water; everything else one tap away
  const depthTxt=spot.depth_ft!=null?`${spot.depth_ft.toLocaleString()} ft <span class="note">(${spot.depth_src==="published"?"published":"model"})</span>`:null;
- const fullGrid=`<div class="grid">${depthTxt?cell("Depth here",depthTxt):""}${cell("Water temp",c.temp,"°F")}${cell("Wind",c.wind," mph")}${cell("Wind dir",wdirTxt)}${cell("Pressure",c.pres)}
+ const fullGrid=`<div class="grid">${depthTxt?cell("Depth here",depthTxt):""}${cell("Water temp",c.temp==null?null:c.temp+"°F"+((q.estimated||[]).includes("temp")?" (est.)":""))}${cell("Wind",c.wind," mph")}${cell("Wind dir",wdirTxt)}${cell("Pressure",c.pres)}
   ${(q.not_applicable||[]).includes("tide")?"":cell("Tide",c.tide)}${(q.not_applicable||[]).includes("sal")?"":cell("Salinity",c.sal," ppt")}
   ${(q.not_applicable||[]).includes("clar")?"":cell("Clarity",clarTxt)}
   ${c.vis!==undefined?cell("Visibility",visText(c,q)):cell("Water color",wcolorHtml)}${c.sbreak!=null?cell("Temp break",c.sbreak+" °F/mi")+cell("Satellite SST",c.ssat,"°F"):""}${cell("Clouds",c.cloud,"%")}
@@ -2315,7 +2400,7 @@ function render(){
  const key=spot.zone==="offshore"
   ?[["Water temp",c.temp,"°F"],["Wind",c.wind!=null?c.wind+" mph"+(c.wdir!=null?" "+windCompass(c.wdir):""):null,""],["Waves",c.wave," ft"],["Current",c.cur," kt"],
     ["Temp break",c.sbreak!=null?c.sbreak+" °F/mi":null,""],[c.vis!==undefined?"Visibility":"Water color",c.vis!==undefined?visText(c,q):wcolorHtml,""]]
-  :[["Water temp",c.temp,"°F"],["Wind",c.wind!=null?c.wind+" mph"+(c.wdir!=null?" "+windCompass(c.wdir):""):null,""],nap("tide")?null:["Tide",c.tide!=null?c.tide+(c.trange!=null&&!nap("trange")?` <span class="note">${c.trange} ft swing</span>`:""):null,""],
+  :[["Water temp",c.temp==null?null:c.temp+"°F"+((q.estimated||[]).includes("temp")?` <span class="note">est.</span>`:""),""],["Wind",c.wind!=null?c.wind+" mph"+(c.wdir!=null?" "+windCompass(c.wdir):""):null,""],nap("tide")?null:["Tide",c.tide!=null?c.tide+(c.trange!=null&&!nap("trange")?` <span class="note">${c.trange} ft swing</span>`:""):null,""],
     nap("clar")?null:["Clarity",c.vis!==undefined&&c.vis!=null?visText(c,q):clarTxt,""],["Pressure",c.pres,""],nap("sal")?null:["Salinity",c.sal," ppt"]];
  h+=`<h3 class="dh">Right now</h3><div class="grid key">${key.filter(Boolean).filter(x=>x[1]!=null).slice(0,6).map(x=>cell(x[0],x[1],x[2])).join("")}</div>`;
  h+=sec("cond","All conditions",fullGrid,false);
@@ -3320,7 +3405,7 @@ $("install").onclick=()=>{if(ip){ip.prompt();ip=null;$("install").hidden=true}};
    <li>BOEM and NOAA: offshore platforms and artificial reefs</li>
   </ul>
   <h4>Changes to the scoring</h4>
-  <p class="note">Last changed <b id="modeldate"></b>: added cold-front timing, offshore weedlines and the fall shrimp migration.</p>
+  <p class="note">Last changed <b id="modeldate"></b>: added 14 more fish, and estimated water temperature for lakes with no gauge nearby.</p>
   <p class="note">Scores are estimates, not guarantees, and the readings can be hours old or miles from your spot. Always check the official marine forecast before you go out.</p>
  </div>
 </dialog>
