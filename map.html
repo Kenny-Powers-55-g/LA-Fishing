@@ -929,15 +929,9 @@ select option,select optgroup{background-color:var(--card);color:var(--tx)}
 .bb-tr{font-size:12.5px;font-weight:700;color:var(--mu);text-align:right;white-space:nowrap}
 .bb-tr.up{color:var(--g)}.bb-tr.dn{color:var(--r)}
 @media(max-width:420px){.bb-row{grid-template-columns:40px minmax(0,1fr)}.bb-tr{grid-column:2;text-align:left}}
-.signup{margin-top:16px;padding-top:14px;border-top:.5px solid var(--hair)}
-.signup-t{margin:0 0 8px}
-.signup-row{display:flex;gap:8px;flex-wrap:wrap}
-.signup input{flex:1 1 200px;min-height:44px;padding:0 12px;border-radius:12px;border:1px solid var(--bd);background:var(--s2);color:var(--tx);font:inherit}
-.signup .t:disabled,.signup input:disabled{opacity:.6;cursor:not-allowed}
-.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
 #rerunsetup{width:100%;margin:8px 0}
 /* tap targets: at least 44px for the buttons people press most */
-#bestbets .t,#bestbets .linkbtn,#signupApp .t,#myfishcard .t,#spbar .t,#tabs .t{min-height:44px}
+#bestbets .t,#bestbets .linkbtn,#myfishcard .t,#spbar .t,#tabs .t{min-height:44px}
 #bestbets .linkbtn{display:inline-flex;align-items:center}
 .appbar .brand{min-height:44px;align-items:center}
 @media(max-width:600px){#detail .t,#detail .linkbtn,#panel-fish .t,#panel-log .t,#panel-friends .t,.fnav .aboutlink,.mapbar .t,#alertdlg .t,#howdlg .t,#detail .share-row .t,.fnav a{min-height:44px}
@@ -1054,11 +1048,6 @@ select option,select optgroup{background-color:var(--card);color:var(--tx)}
  <div class="bb-h"><div><h3>Today's best bets</h3><p class="note" id="bbsub"></p></div><button type="button" class="linkbtn" id="bbedit">Change fish or area</button></div>
  <ol class="bb-list" id="bblist"></ol>
  <p class="note" id="bbnone" hidden></p>
- <form class="signup" id="signupApp" action="[PLACEHOLDER: newsletter form URL]" method="post">
-  <p class="signup-t"><b>Get the weekend forecast every Thursday.</b></p>
-  <div class="signup-row"><label class="sr">Email address<input type="email" name="email" autocomplete="email" placeholder="you@example.com" disabled></label><button type="button" class="t on" disabled>Sign up</button></div>
-  <p class="note">Sign-up opens soon. We only use your email to send this. Unsubscribe any time.</p>
- </form>
 </section>
  <section class="card" id="savedcard" style="grid-column:1/-1">
  <h3>Saved spots</h3>

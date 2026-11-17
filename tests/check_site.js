@@ -82,14 +82,6 @@ const sm = read("sitemap.xml");
 for (const p of ["", "map.html", ...PAGES.slice(1)]) if (!sm.includes(`<loc>${BASE}${p}</loc>`)) fail(`sitemap.xml lacks ${BASE}${p}`);
 if (!/^Sitemap: https:\/\/.+\/sitemap\.xml$/m.test(read("robots.txt"))) fail("robots.txt needs a Sitemap line");
 if (!fs.existsSync(path.join(ROOT, "og-image.png"))) fail("og-image.png missing");
-// The sign-up form stays disabled until a provider is set up
-for (const f of ["index.html", "map.html"]) {
-  const h = read(f);
-  if (!/action="\[PLACEHOLDER: [^"]+\]"/.test(h)) fail(`${f}: sign-up form needs its [PLACEHOLDER] action`);
-  const form = (/<form class="signup[^"]*"[\s\S]*?<\/form>/.exec(h) || [""])[0];
-  if (!form) fail(`${f}: sign-up form missing`);
-  for (const b of form.match(/<button[^>]*>/g) || []) if (!/disabled/.test(b)) fail(`${f}: sign-up button must stay disabled until a provider is set`);
-}
 
 console.log(bad ? `${bad} problem(s)` : `site pages OK (${PAGES.length} pages, forward.js ${cases.length} cases)`);
 process.exit(bad ? 1 : 0);
