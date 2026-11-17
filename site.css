@@ -143,3 +143,7 @@ img,svg{max-width:100%}
 @media(max-width:420px){.wm{font-size:16px}.logo{width:55px;height:28px}.brand{gap:6px}.btn.sm{padding:0 12px;font-size:13.5px}.bar-nav{gap:6px}}
 @media(max-width:350px){.logo{display:none}}
 @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}*{transition:none!important;animation:none!important}.btn:active{transform:none}}
+
+/* keep text links easy to tap without changing how the text sits on the page */
+.doc p a,.doc li a,.fine a,.foot-note a,.foot-small a{display:inline-block;padding:10px 0;margin:-10px 0}
+.bar .brand{min-height:44px}

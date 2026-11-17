@@ -67,5 +67,21 @@ for (const [h, s, o, want] of cases) { const got = run(h, s, o); if (got !== wan
   if (!/id="resume" hidden/.test(read("index.html"))) fail("index.html: resume banner missing");
 }
 
+// Search and sharing: every page has a title, a description, and preview tags
+const BASE = "https://kenny-powers-55-g.github.io/LA-Fishing/";
+for (const f of [...PAGES, "map.html"]) {
+  const h = read(f);
+  const title = (/<title>([^<]*)<\/title>/.exec(h) || [])[1] || "";
+  const desc = (/<meta name="description" content="([^"]*)"/.exec(h) || [])[1] || "";
+  if (title.length < 20 || title.length > 75) fail(`${f}: title length ${title.length}`);
+  if (desc.length < 50 || desc.length > 170) fail(`${f}: description length ${desc.length}`);
+  for (const tag of ['property="og:title"', 'property="og:description"', 'property="og:image"', 'name="twitter:card"', 'name="twitter:image"', 'rel="canonical"'])
+    if (!h.includes(tag)) fail(`${f}: missing ${tag}`);
+}
+const sm = read("sitemap.xml");
+for (const p of ["", "map.html", ...PAGES.slice(1)]) if (!sm.includes(`<loc>${BASE}${p}</loc>`)) fail(`sitemap.xml lacks ${BASE}${p}`);
+if (!/^Sitemap: https:\/\/.+\/sitemap\.xml$/m.test(read("robots.txt"))) fail("robots.txt needs a Sitemap line");
+if (!fs.existsSync(path.join(ROOT, "og-image.png"))) fail("og-image.png missing");
+
 console.log(bad ? `${bad} problem(s)` : `site pages OK (${PAGES.length} pages, forward.js ${cases.length} cases)`);
 process.exit(bad ? 1 : 0);

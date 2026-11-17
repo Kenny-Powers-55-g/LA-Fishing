@@ -49,5 +49,9 @@ for (const m of html.matchAll(/<input type="checkbox" (?:data-ov|data-sat)="(\w+
   const want = mu && new Date(mu + "T12:00:00").toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
   if (!shown || shown !== want) { bad++; console.error(`"Last changed" date is "${shown}", expected "${want}" (MODEL_UPDATED)`); }
 }
+// First-visit setup and best bets
+for (const id of ["setupdlg", "bestbets", "bblist", "sufish", "suareas", "sures"]) if (!html.includes(`id="${id}"`)) { bad++; console.error(`Missing #${id}`); }
+if (/Best right now/.test(html)) { bad++; console.error('"Best right now" should be replaced by Today\'s best bets'); }
+if (!html.includes('"scores-daily.json"')) { bad++; console.error("Map does not load scores-daily.json for the trend numbers"); }
 console.log(bad ? `${bad} problem(s)` : `map.html OK (${scripts.length} script${scripts.length > 1 ? "s" : ""})`);
 process.exit(bad ? 1 : 0);

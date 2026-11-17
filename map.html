@@ -3,14 +3,27 @@
 <!-- Security policy: which sites this page may load scripts, data and images from. The sha256 values
      are the inline scripts' fingerprints; scripts/csp.js updates them (the deploy does it automatically).
      Using a Supabase custom domain instead of *.supabase.co? Add it to connect-src. -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-2OVmCOTCLZW3ydBCA1PttjEADQgd3HA3mBFO2BjowpE=' 'sha256-OsVbjFRWC2eWwzvtKwDcr+Csp42Vlk/pk1py5/WpsNM=' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https://*.noaa.gov https://gibs.earthdata.nasa.gov https://tile.openstreetmap.org https://cdnjs.cloudflare.com; connect-src 'self' https://kenny-powers-55-g.github.io https://*.noaa.gov https://gibs.earthdata.nasa.gov https://tile.openstreetmap.org https://api.open-meteo.com https://*.supabase.co wss://*.supabase.co https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://fonts.googleapis.com https://fonts.gstatic.com; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-src 'none'; upgrade-insecure-requests">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-2OVmCOTCLZW3ydBCA1PttjEADQgd3HA3mBFO2BjowpE=' 'sha256-dYjllzJK8kNBszTsWPltrIlMAJITu/H23qFAHQRXRx8=' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https://*.noaa.gov https://gibs.earthdata.nasa.gov https://tile.openstreetmap.org https://cdnjs.cloudflare.com; connect-src 'self' https://kenny-powers-55-g.github.io https://*.noaa.gov https://gibs.earthdata.nasa.gov https://tile.openstreetmap.org https://api.open-meteo.com https://*.supabase.co wss://*.supabase.co https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://fonts.googleapis.com https://fonts.gstatic.com; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-src 'none'; upgrade-insecure-requests">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="mobile-web-app-capable" content="yes">
-<meta name="description" content="OceanCast: live Louisiana fishing conditions and scores for redfish, trout, bass and more from NOAA, USGS and weather data.">
-<title>OceanCast · Louisiana fishing conditions</title>
+<meta name="description" content="Hourly fishing scores for Louisiana spots, built from NOAA buoys, satellites and tides. Free, no account needed.">
+<meta property="og:title" content="OceanCast: Louisiana fishing forecast and live conditions">
+<meta property="og:description" content="Hourly fishing scores for Louisiana spots, built from NOAA buoys, satellites and tides. Free, no account needed.">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="OceanCast">
+<meta property="og:url" content="https://kenny-powers-55-g.github.io/LA-Fishing/map.html">
+<meta property="og:image" content="https://kenny-powers-55-g.github.io/LA-Fishing/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="OceanCast: Louisiana fishing forecast and live conditions">
+<meta name="twitter:description" content="Hourly fishing scores for Louisiana spots, built from NOAA buoys, satellites and tides. Free, no account needed.">
+<meta name="twitter:image" content="https://kenny-powers-55-g.github.io/LA-Fishing/og-image.png">
+<link rel="canonical" href="https://kenny-powers-55-g.github.io/LA-Fishing/map.html">
+<title>OceanCast: Louisiana fishing forecast and live conditions</title>
 <meta name="apple-mobile-web-app-title" content="OceanCast"><meta name="application-name" content="OceanCast">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Russo+One&display=swap">
@@ -887,6 +900,42 @@ select option,select optgroup{background-color:var(--card);color:var(--tx)}
 #alform .primary{min-height:48px;border-radius:12px;font-size:16px;font-weight:600;background:var(--ac);color:var(--onac)}
 #alertbody .msg{font-size:13px;color:var(--mu)}#alertbody .msg.err{color:var(--r)}
 @media(max-width:600px){#alertdlg{width:100vw;max-width:100vw;margin:auto 0 0;border-radius:14px 14px 0 0;padding-bottom:calc(18px + env(safe-area-inset-bottom,0px))}}
+/* first-visit setup, best bets, sign-up */
+#setupdlg{border:0;border-radius:18px;padding:20px 22px;background:var(--card);color:var(--tx);width:min(560px,94vw);max-height:88vh;overflow:auto;box-shadow:0 20px 60px rgba(0,0,0,.3)}
+#setupdlg::backdrop{background:rgba(5,10,14,.55)}
+#setupdlg h2{margin:6px 0 4px;font-size:22px;line-height:1.2;letter-spacing:-.02em}
+.su-prog{display:flex;gap:6px;margin-bottom:6px}.su-prog i{flex:1;height:4px;border-radius:4px;background:var(--bd)}.su-prog i.on{background:var(--ac)}
+.su-step[hidden]{display:none}
+.su-fish{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:12px 0 8px}
+.su-tile{min-height:64px;padding:8px 10px;border-radius:16px;border:2px solid var(--bd);background:var(--s2);color:var(--tx);font:700 17px/1.2 var(--sys,system-ui);cursor:pointer}
+.su-tile[aria-pressed="true"]{border-color:var(--ac);background:color-mix(in srgb,var(--ac) 16%,var(--s2))}
+.su-areas{display:grid;gap:8px;margin:12px 0}
+.su-area{display:grid;gap:2px;text-align:left;min-height:56px;padding:10px 14px;border-radius:14px;border:2px solid var(--bd);background:var(--s2);color:var(--tx);font:inherit;cursor:pointer}
+.su-area[aria-pressed="true"]{border-color:var(--ac);background:color-mix(in srgb,var(--ac) 16%,var(--s2))}
+.su-area b{font-size:16px}
+.su-res{list-style:none;margin:12px 0;padding:0;display:grid;gap:8px}
+.su-spot{display:grid;grid-template-columns:48px 1fr;gap:10px;align-items:center;width:100%;min-height:56px;padding:10px 12px;border:0;border-radius:14px;background:var(--s2);color:var(--tx);font:inherit;text-align:left;cursor:pointer}
+.su-spot .sc{font-size:24px;font-weight:800;text-align:center}
+.su-spot .bb-t{display:grid;gap:2px;min-width:0}
+.su-nav{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-top:14px}
+.su-nav .t{min-height:44px}
+@media(max-width:600px){#setupdlg{width:100vw;max-width:100vw;max-height:92vh;margin:auto 0 0;border-radius:18px 18px 0 0;padding-bottom:calc(18px + env(safe-area-inset-bottom,0px))}.su-fish{grid-template-columns:1fr 1fr}}
+.bb-h{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap}
+.bb-h h3{margin:0}
+.bb-list{list-style:none;margin:12px 0 0;padding:0;display:grid;gap:8px}
+.bb-row{display:grid;grid-template-columns:48px minmax(0,1fr) auto;gap:10px;align-items:center;width:100%;min-height:58px;padding:10px 12px;border:0;border-radius:14px;background:var(--s2);color:var(--tx);font:inherit;text-align:left;cursor:pointer}
+.bb-row .sc{font-size:24px;font-weight:800;text-align:center}
+.bb-t{display:grid;gap:2px;min-width:0}.bb-t b{overflow-wrap:anywhere}
+.bb-tr{font-size:12.5px;font-weight:700;color:var(--mu);text-align:right;white-space:nowrap}
+.bb-tr.up{color:var(--g)}.bb-tr.dn{color:var(--r)}
+@media(max-width:420px){.bb-row{grid-template-columns:40px minmax(0,1fr)}.bb-tr{grid-column:2;text-align:left}}
+#rerunsetup{width:100%;margin:8px 0}
+/* tap targets: at least 44px for the buttons people press most */
+#bestbets .t,#bestbets .linkbtn,#myfishcard .t,#spbar .t,#tabs .t{min-height:44px}
+#bestbets .linkbtn{display:inline-flex;align-items:center}
+.appbar .brand{min-height:44px;align-items:center}
+@media(max-width:600px){#detail .t,#detail .linkbtn,#panel-fish .t,#panel-log .t,#panel-friends .t,.fnav .aboutlink,.mapbar .t,#alertdlg .t,#howdlg .t,#detail .share-row .t,.fnav a{min-height:44px}
+ #detail a,#detail .linkbtn,.marinefc a,.fnav a{display:inline-block;padding:8px 0;margin:-8px 0}}
 /* footer links */
 .appbar a.brand{color:inherit;text-decoration:none;border-radius:10px}
 .fnav{display:flex;flex-wrap:wrap;gap:2px 16px}
@@ -936,6 +985,7 @@ select option,select optgroup{background-color:var(--card);color:var(--tx)}
 <div id="appear" role="menu" aria-label="Appearance" hidden>
  <div class="ap-h">Appearance</div>
  <div class="seg" role="radiogroup" aria-label="Theme"><button type="button" role="radio" data-theme-v="auto">Automatic</button><button type="button" role="radio" data-theme-v="light">Light</button><button type="button" role="radio" data-theme-v="dark">Dark</button></div>
+ <button type="button" class="t ap-setup" id="rerunsetup">Setup: fish and launch area</button>
  <label class="ap-boat"><span><b>Boat mode</b><span class="note">Bigger text and buttons, stronger contrast for sun glare and wet hands</span></span><input type="checkbox" id="boatchk" role="switch"></label>
 </div>
 <div id="offline" class="offline-banner" hidden>You're offline — showing the last saved readings.</div>
@@ -990,14 +1040,14 @@ select option,select optgroup{background-color:var(--card);color:var(--tx)}
  <section class="card" id="alertcard" hidden style="grid-column:1/-1"></section>
  <section class="card" id="myfishcard" hidden style="grid-column:1/-1">
   <h3>What do you fish for most?</h3>
-  <p class="note" style="margin:0 0 10px">Pick a few. They'll come first in the fish chips and in Best right now. You can change them any time from Choose a fish.</p>
+  <p class="note" style="margin:0 0 10px">Pick a few. They'll come first in the fish chips and in Today's best bets. You can change them any time from Choose a fish.</p>
   <div id="myfishchips"></div>
   <div class="row3" style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap"><button type="button" class="t on" id="myfishsave">Save</button><button type="button" class="t" id="myfishlater">Not now</button></div>
  </section>
- <section class="card" id="topcard" style="grid-column:1/-1">
- <h3>Best right now</h3>
- <div id="top" style="display:flex;gap:8px;flex-wrap:wrap"></div>
- <div class="note" style="margin-top:8px">The best spot for each of the top species, among spots with solid data. Tap any card to open it.</div>
+ <section class="card" id="bestbets" style="grid-column:1/-1">
+ <div class="bb-h"><div><h3>Today's best bets</h3><p class="note" id="bbsub"></p></div><button type="button" class="linkbtn" id="bbedit">Change fish or area</button></div>
+ <ol class="bb-list" id="bblist"></ol>
+ <p class="note" id="bbnone" hidden></p>
 </section>
  <section class="card" id="savedcard" style="grid-column:1/-1">
  <h3>Saved spots</h3>
@@ -2385,6 +2435,114 @@ function renderHealth(){
   (weak.length?`<table><tr><th>Spot</th><th>Data</th><th>Missing now</th></tr>${weak.map(s=>`<tr><td>${esc(s.name)}</td><td>${Math.round((s.quality.completeness||0)*100)}%</td><td>${s.quality.missing.map(m=>esc(MISSL[m]||m)).join(", ")}</td></tr>`).join("")}</table>`:"")+
   `<p class="note">Missing readings are left out of the score, which lowers its confidence. Data updates every hour; a daily check reports broken sources on GitHub.</p>`;
 }
+// ---- First-visit setup, launch areas, and "Today's best bets" ----
+const AREAS=[
+ {k:"sw",n:"Southwest",sub:"Cameron, Calcasieu, Sabine",lat:29.8,lon:-93.2},
+ {k:"acadiana",n:"Vermilion & Acadiana",sub:"Vermilion Bay, Atchafalaya, Marsh Island",lat:29.7,lon:-91.6},
+ {k:"terr",n:"Terrebonne & Lafourche",sub:"Houma, Cocodrie, Fourchon, Leeville",lat:29.3,lon:-90.6},
+ {k:"nola",n:"New Orleans & Pontchartrain",sub:"Lake Pontchartrain, Lake Borgne, Rigolets",lat:30.0,lon:-89.9},
+ {k:"delta",n:"Plaquemines & the Delta",sub:"Venice, Barataria, Empire, Chandeleur",lat:29.4,lon:-89.6},
+ {k:"north",n:"North Louisiana lakes",sub:"Toledo Bend, Caddo, Black Lake, Bistineau",lat:31.8,lon:-92.5},
+ {k:"offshore",n:"Offshore",sub:"Rigs, reefs and banks in the Gulf",zone:"offshore"}];
+const SU_FISH=["redfish","trout","flounder","drum","sheepshead","bass","crappie","mahi"];
+const SETUP_KEY="oc-setup",AREA_KEY="oc-area";
+let DAILY=null,SU={step:1,fish:"redfish",area:null,more:false};
+const ymd=ms=>new Date(ms).toISOString().slice(0,10);
+function isSetupDone(){try{return localStorage.getItem(SETUP_KEY)==="1"||localStorage.getItem("oc-welcomed")==="1"}catch(e){return true}}
+function getArea(){let a="";try{a=localStorage.getItem(AREA_KEY)||""}catch(e){}return AREAS.some(x=>x.k===a)?a:null}
+function areaOf(s){if(s.zone==="offshore")return"offshore";let best=null,bd=1e9;
+ for(const a of AREAS){if(a.zone)continue;const d=milesJS(s.lat,s.lon,a.lat,a.lon);if(d<bd){bd=d;best=a.k}}return best}
+const inArea=(s,k)=>!k||areaOf(s)===k;
+function setupFish(){const f=getMyFish()[0];return f&&SP[f]?f:(SP[sp]?sp:"redfish")}
+function bestCandidates(fish,area,n){
+ const ud=userDepth(),tropNo=DATA&&DATA.tropical&&DATA.tropical.rank>=4,out=[];
+ for(const x of DATA.spots){
+  if(x.user||!inArea(x,area)||(tropNo&&x.zone==="offshore"))continue;
+  const q=score(fish,x,Date.now(),ud);
+  if(q.gate||q.total==null||(q.coverage!=null&&q.coverage<.65))continue;
+  out.push({x,v:q.total,reason:q.reason||""})}
+ out.sort((a,b)=>b.v-a.v);return out.slice(0,n)}
+function windowTxt(x,fish){const w=bestWindowFor(x,fish);if(!w)return"";
+ const f=t=>new Date(t).toLocaleTimeString([],{weekday:"short",hour:"numeric"});
+ return`${f(w.from)}–${new Date(w.from+3*36e5).toLocaleTimeString([],{hour:"numeric"})}`}
+function trendOf(x,fish,v){if(!DAILY)return null;const y=DAILY[ymd(Date.now()-864e5)],p=y&&y[x.id+"|"+fish];return p==null||v==null?null:v-p}
+function trendHtml(d){if(d==null)return`<span class="bb-tr" title="Trend appears once yesterday's score is saved">trend –</span>`;
+ if(d>0)return`<span class="bb-tr up">▲ ${d} vs yesterday</span>`;if(d<0)return`<span class="bb-tr dn">▼ ${-d} vs yesterday</span>`;
+ return`<span class="bb-tr">same as yesterday</span>`}
+function renderBestBets(){
+ const c=$("bestbets");if(!c||!DATA||!DATA.spots)return;
+ const fish=setupFish(),area=getArea(),a=AREAS.find(x=>x.k===area);
+ $("bbsub").textContent=`${SP[fish].name} · ${a?a.n:"all launch areas"}`;
+ const list=bestCandidates(fish,area,5);
+ $("bblist").innerHTML=list.map(({x,v,reason})=>{const w=windowTxt(x,fish),d=trendOf(x,fish,v);
+  return`<li><button type="button" class="bb-row" data-id="${esc(x.id)}" data-k="${esc(fish)}">
+   <span class="sc" style="color:${col(v)}">${v}</span>
+   <span class="bb-t"><b>${esc(x.name)}</b><span class="note">${esc(reason||lab(v))}${w?` · best ${esc(w)}`:""}</span></span>
+   ${trendHtml(d)}</button></li>`}).join("");
+ const none=$("bbnone");none.hidden=list.length>0;
+ none.textContent=list.length?"":"No spots have enough data for this fish and area right now. Try another fish or area.";
+}
+function drawSetup(){
+ const d=$("setupdlg");if(!d)return;
+ document.querySelectorAll("#setupdlg .su-step").forEach(x=>x.hidden=+x.dataset.step!==SU.step);
+ $("suprog").innerHTML=[1,2,3].map(n=>`<i class="${n<=SU.step?"on":""}"></i>`).join("");
+ const keys=SU.more?Object.keys(SP):SU_FISH.filter(k=>SP[k]);
+ $("sufish").innerHTML=keys.map(k=>`<button type="button" class="su-tile" data-fish="${k}" aria-pressed="${k===SU.fish}">${esc(SP[k].name)}</button>`).join("");
+ $("sumore").textContent=SU.more?"Fewer fish":"More fish";
+ $("suareas").innerHTML=AREAS.map(a=>`<button type="button" class="su-area" data-area="${a.k}" aria-pressed="${a.k===SU.area}"><b>${esc(a.n)}</b><span class="note">${esc(a.sub)}</span></button>`).join("");
+ $("suback").hidden=SU.step===1;$("sunext").hidden=SU.step===3;$("sugo").hidden=SU.step!==3;
+ if(SU.step===3){
+  const list=bestCandidates(SU.fish,SU.area,3),a=AREAS.find(x=>x.k===SU.area);
+  $("suresub").textContent=`${SP[SU.fish].name} · ${a?a.n:"all launch areas"}`;
+  $("sures").innerHTML=list.map(({x,v,reason})=>{const w=windowTxt(x,SU.fish);
+   return`<li><button type="button" class="su-spot" data-id="${esc(x.id)}"><span class="sc" style="color:${col(v)}">${v}</span><span class="bb-t"><b>${esc(x.name)}</b><span class="note">${esc(reason||lab(v))}${w?` · best ${esc(w)}`:""}</span></span></button></li>`}).join("");
+  $("sunores").hidden=list.length>0;
+ }
+}
+function openSetup(){
+ const d=$("setupdlg");if(!d)return;
+ SU={step:1,fish:setupFish(),area:getArea(),more:false};
+ const w=$("welcome");if(w)w.hidden=true;
+ $("sulocmsg").textContent="";drawSetup();if(!d.open)d.showModal()}
+function finishSetup(go){
+ try{localStorage.setItem(SETUP_KEY,"1");localStorage.setItem("oc-myfish-asked","1")}catch(e){}
+ const d=$("setupdlg");if(d&&d.open)d.close();
+ if(!go)return;
+ try{localStorage.setItem(AREA_KEY,SU.area||"")}catch(e){}
+ setMyFish([SU.fish]);sp=SU.fish;
+ setMapFilter({min:0,water:"all",mine:false});
+ document.querySelectorAll('#overlays input[data-ov]:checked').forEach(c=>{c.checked=false;setOverlay(c.dataset.ov,false)});
+ document.querySelectorAll('#overlays [data-sat]').forEach(c=>c.checked=false);
+ try{localStorage.removeItem(SAT_KEY)}catch(e){}setSat("");
+ moreCount();setMoreOpen(false,true);
+ const top=bestCandidates(SU.fish,SU.area,1)[0];
+ if(top)sel=top.x.id;
+ render();if(top)pick();
+ if(isPhoneLayout())setMapFull(true);
+ else{const m=$("mapcard");if(m&&m.scrollIntoView)m.scrollIntoView({behavior:"smooth",block:"start"})}
+}
+function wireSetup(){
+  $("bblist").onclick=e=>{const b=e.target.closest("[data-id]");if(!b)return;sp=b.dataset.k;sel=b.dataset.id;pick()};
+  $("bbedit").onclick=()=>openSetup();
+  $("sufish").onclick=e=>{const b=e.target.closest("[data-fish]");if(!b)return;SU.fish=b.dataset.fish;drawSetup()};
+  $("sumore").onclick=()=>{SU.more=!SU.more;drawSetup()};
+  $("suareas").onclick=e=>{const b=e.target.closest("[data-area]");if(!b)return;SU.area=b.dataset.area;drawSetup()};
+  $("suskip").onclick=()=>finishSetup(false);
+  $("suback").onclick=()=>{SU.step=Math.max(1,SU.step-1);drawSetup()};
+  $("sunext").onclick=()=>{SU.step=Math.min(3,SU.step+1);if(SU.step===2&&!SU.area)SU.area=null;drawSetup()};
+  $("sugo").onclick=()=>finishSetup(true);
+  $("sures").onclick=e=>{const b=e.target.closest("[data-id]");if(!b)return;finishSetup(true);sel=b.dataset.id;pick()};
+  $("suloc").onclick=()=>{const msg=$("sulocmsg");
+   if(!navigator.geolocation){msg.textContent="Location isn't available here. Pick an area instead.";return}
+   msg.textContent="Finding your location…";
+   navigator.geolocation.getCurrentPosition(p=>{let best=null,bd=1e9;
+     for(const a of AREAS){if(a.zone)continue;const d=milesJS(p.coords.latitude,p.coords.longitude,a.lat,a.lon);if(d<bd){bd=d;best=a}}
+     SU.area=best.k;msg.textContent=`Nearest launch area: ${best.n}.`;drawSetup()},
+    ()=>{msg.textContent="Location was not allowed. Pick an area instead."},{timeout:8000,maximumAge:600000});
+  };
+  $("rerunsetup").onclick=()=>{$("appear").hidden=true;openSetup()};
+}
+document.addEventListener("DOMContentLoaded",wireSetup);
 function render(){
  renderSpeciesBar();
  const favs=getFavs();
@@ -2511,16 +2669,7 @@ function render(){
  const sh=$("shareBtn");if(sh)sh.onclick=()=>shareScore(p.name,spot.name,r.total,lab(r.total));
  const rm=document.querySelector("[data-rmspot]");if(rm)rm.onclick=()=>removeMySpot(rm.dataset.rmspot);
  const cr=$("copyrule");if(cr)cr.onclick=async()=>{try{await navigator.clipboard.writeText($("ruletxt").textContent);$("copymsg").textContent="Copied."}catch(e){$("copymsg").textContent="Select the rule above and copy it."}};
- const all=[],ud=userDepth(),tropNo=DATA.tropical&&DATA.tropical.rank>=4;for(const k of Object.keys(SP))for(const x of DATA.spots){if(tropNo&&x.zone==="offshore")continue;const q=score(k,x,Date.now(),ud);if(!q.gate)all.push({k,x,v:q.total,cov:q.coverage,reason:q.reason||""})}
- all.sort((a,b)=>b.v-a.v);const seen=new Set();
- // best spot for each species, so one species cannot fill every card
- const mine=getMyFish();
- const picks=all.filter(a=>a.cov>=.65&&!seen.has(a.k)&&seen.add(a.k)).sort((a,b)=>(mine.includes(b.k)?1:0)-(mine.includes(a.k)?1:0)).slice(0,6);
- $("top").innerHTML=picks.length?picks.map(a=>`<button class="pick" data-k="${a.k}" data-id="${a.x.id}">
-  <span class="sc" style="color:${col(a.v)}">${a.v}</span>
-  <span><b>${SP[a.k].name}</b> · ${esc(a.x.name)}</span>
-  <span class="why">${a.reason||lab(a.v)}</span>
- </button>`).join(""):`<span class="note">Not enough data right now.</span>`;
+ renderBestBets();
  const wsp=$("wspots");if(wsp)wsp.textContent=DATA.spots.filter(s=>!s.user).length;
  renderSaved(favs);renderAlerts();
  mapUpdate(list);outlook();seaState();renderHealth();compareSpots();seasonCal();radarNear(spot);
@@ -2890,7 +3039,7 @@ function setMapHidden(h,save=true){
 
 // ---- Accounts (optional): sign in with an emailed link; saved spots, your own pins, the catch log
 // and settings then follow you to any device. Off unless config.js has a Supabase project. ----
-const SYNC_KEYS=["oc-alerts","oc-boatmode","oc-myfish","oc-myfish-asked","oc-mapfilter","la-fish-favs","la-fish-myspots","la-fish-catches-v1","oc-recent-sp","oc-theme","boat","la-fish-depth","la-fish-overlays","la-fish-mapbase","oc-nomap","la-fish-tune"];
+const SYNC_KEYS=["oc-setup","oc-area","oc-alerts","oc-boatmode","oc-myfish","oc-myfish-asked","oc-mapfilter","la-fish-favs","la-fish-myspots","la-fish-catches-v1","oc-recent-sp","oc-theme","boat","la-fish-depth","la-fish-overlays","la-fish-mapbase","oc-nomap","la-fish-tune"];
 const PERSONAL_KEYS=["oc-alerts","la-fish-favs","la-fish-myspots","la-fish-catches-v1","oc-recent-sp","la-fish-tune"];
 const ACCT={sb:null,user:null,state:"idle",msg:"",applying:false,timer:null,last:null};
 const acctCfg=()=>{const c=window.OC_CONFIG||{};return c.supabaseUrl&&c.supabaseKey?c:null};
@@ -3339,6 +3488,7 @@ async function load(isRefresh){
    }else d=await net;
   }
   if(!d||!Array.isArray(d.spots)||!d.spots.length)throw new Error("empty");
+  if(!DATA&&!sel&&!location.hash){const f=getMyFish()[0];if(f&&SP[f])sp=f}
   deepClean(d);          // feed text is shown in many places; make sure none of it can carry markup
   if(isRefresh)FROM_SAVED=false;
   if(!FROM_SAVED)writeSaved(d);           // only fresh downloads replace the saved copy
@@ -3356,11 +3506,11 @@ async function load(isRefresh){
  if(!isRefresh||!FROM_SAVED)REFRESH_FAILED=false;
  showAge();
  tropBanner();
+ if(!isRefresh&&!isSetupDone())setTimeout(openSetup,500);
  if(!isRefresh){
   $("tabs").onclick=e=>{const b=e.target.closest("button");if(!b)return;if(b.dataset.all)openPicker();else if(b.dataset.k)setSpecies(b.dataset.k)};
   $("spbar").onclick=e=>{if(e.target.closest("#sppick"))openPicker()};
-  $("top").onclick=e=>{const b=e.target.closest("button");if(b&&b.dataset.k){sp=b.dataset.k;sel=b.dataset.id;pick()}};
-  $("favs").onclick=savedClick;
+   $("favs").onclick=savedClick;
   $("ranks").onclick=e=>{
    const favBtn=e.target.closest("[data-fav]");
    if(favBtn){e.stopPropagation();toggleFav(favBtn.dataset.fav);return}
@@ -3427,6 +3577,7 @@ async function load(isRefresh){
   };
  }
  try{const fr=await fetch(dataPath("forecast.json")+"?t="+Date.now());if(fr.ok)FC=deepClean(await fr.json())}catch(e){}
+ fetch(dataPath("scores-daily.json")+"?t="+Date.now()).then(r=>r.ok?r.json():null).then(j=>{if(j&&typeof j==="object"){DAILY=j;if(DATA&&sel)renderBestBets()}}).catch(()=>{});
  fetch(dataPath("history.json")+"?t="+Date.now()).then(r=>r.ok?r.json():null).then(h=>{if(h&&h.t){HIST=h;if(DATA&&sel)render()}}).catch(()=>{});
  computeTune();
  addMySpots();
@@ -3459,6 +3610,32 @@ $("install").onclick=()=>{if(ip){ip.prompt();ip=null;$("install").hidden=true}};
  <p class="note" style="margin:0 0 8px"><button type="button" class="linkbtn" id="editmyfish">Set the fish you target most</button></p>
  <input id="spsearch" type="search" placeholder="Search: trout, tuna, bass…" aria-label="Search species" autocomplete="off">
  <div id="splist"></div>
+</dialog>
+<dialog id="setupdlg" aria-labelledby="setupt">
+ <div class="su-prog" id="suprog" aria-hidden="true"></div>
+ <section class="su-step" data-step="1">
+  <h2 id="setupt">What do you fish for most?</h2>
+  <p class="note">Pick one to start with. You can change it any time.</p>
+  <div class="su-fish" id="sufish"></div>
+  <button type="button" class="linkbtn" id="sumore">More fish</button>
+ </section>
+ <section class="su-step" data-step="2" hidden>
+  <h2>Where do you launch?</h2>
+  <p class="note">We'll show the best spots near you.</p>
+  <div class="su-areas" id="suareas"></div>
+  <button type="button" class="t" id="suloc">Use my location</button>
+  <p class="note" id="sulocmsg" role="status"></p>
+ </section>
+ <section class="su-step" data-step="3" hidden>
+  <h2>Your top spots today</h2>
+  <p class="note" id="suresub"></p>
+  <ol class="su-res" id="sures"></ol>
+  <p class="note" id="sunores" hidden>No spots have enough data for this fish and area right now. Go back and try another area.</p>
+ </section>
+ <div class="su-nav">
+  <button type="button" class="t" id="suskip">Skip for now</button>
+  <span><button type="button" class="t" id="suback" hidden>Back</button> <button type="button" class="t on" id="sunext">Next</button> <button type="button" class="t on" id="sugo" hidden>Start on the map</button></span>
+ </div>
 </dialog>
 <dialog id="alertdlg" aria-labelledby="alertt">
  <div class="sph"><h3 id="alertt">My alerts</h3><button type="button" class="t" id="alertclose" aria-label="Close">✕</button></div>
