@@ -1,6 +1,6 @@
 // Phone alerts. Runs in the hourly workflow after latest.json and forecast.json are built.
 // For each rule in alerts.json it finds the best 3-hour daylight window in the next 48 hours
-// using the site's own scoring code (from index.html), and sends one ntfy notification per
+// using the site's own scoring code (from map.html), and sends one ntfy notification per
 // rule, spot and day when the score reaches min_score. It also sends safety alerts (NWS
 // warnings at your spots, forecast wind/seas over your limits, tropical storms) set under
 // "safety" in alerts.json.
@@ -15,8 +15,9 @@ const ROOT = path.join(__dirname, ".."), DIR = process.env.ALERTS_DIR || process
 const TZ = "America/Chicago", H = 36e5;
 
 function loadScoring() {
-  const html = fs.readFileSync(path.join(ROOT, "index.html"), "utf8");
+  const html = fs.readFileSync(path.join(ROOT, "map.html"), "utf8");
   const code = [...html.matchAll(/<script>([\s\S]*?)<\/script>/g)].map(m => m[1]).join("\n");
+  if (!code.trim()) throw new Error("No scripts found in map.html");
   const noop = () => [];
   const el = () => new Proxy({ style: {}, dataset: {}, classList: { toggle() {}, add() {}, remove() {} } },
     { get: (t, k) => (k in t ? t[k] : noop), set: (t, k, v) => ((t[k] = v), true) });
@@ -31,7 +32,7 @@ function loadScoring() {
   ctx.window = ctx;
   vm.createContext(ctx);
   // the page's top-level consts aren't visible from outside, so hand the pieces we need back
-  vm.runInContext(code + "\n;globalThis.__api={SP,score,scoreC,fcConditions,lightNow};", ctx, { filename: "index.html" });
+  vm.runInContext(code + "\n;globalThis.__api={SP,score,scoreC,fcConditions,lightNow};", ctx, { filename: "map.html" });
   return ctx.__api;
 }
 
@@ -77,7 +78,7 @@ function safetyMessages(cfg, latest, fc, rules, now, site) {
     : [...new Set(rules.flatMap(r => !r.spots || r.spots.includes("*") ? all : r.spots))];
   if (!ids.length) ids = all;
   const spots = ids.map(id => latest.spots.find(x => x.id === id)).filter(Boolean);
-  const out = [], day = dayKey(now), link = site ? `${site}/` : "";
+  const out = [], day = dayKey(now), link = site ? `${site}/map.html` : "";
   // 1. NWS alerts in effect at those spots, one message per event type
   if (s.nws !== false) {
     const re = s.events && s.events.length ? new RegExp(s.events.join("|"), "i") : SAFETY_EVENTS, by = {};
@@ -124,7 +125,7 @@ function safetyMessages(cfg, latest, fc, rules, now, site) {
   if (tr && min > 0 && tr.rank >= min) {
     const names = (tr.storms || []).map(x => x.name).join("+") || "outlook";
     out.push({ keys: [`trop|${names}|${tr.level}|${day}`], title: `🌀 Tropical: ${tr.level === "gulf" ? "storm in the Gulf" : tr.level}`,
-      body: tr.text, priority: tr.rank >= 4 ? "high" : "default", tags: "cyclone", link: site ? `${site}/#tropical` : "" });
+      body: tr.text, priority: tr.rank >= 4 ? "high" : "default", tags: "cyclone", link: site ? `${site}/map.html#tropical` : "" });
   }
   return out;
 }
@@ -186,7 +187,7 @@ async function main() {
       const sev = (spot.alerts || []).filter(a => /Warning|Hurricane|Tropical Storm/i.test(a.event || "")).map(a => a.event);
       if (tr && tr.rank >= 5 && !sev.length) sev.push(`a tropical ${tr.level}`);
       await deliver([key], { title, body: body + (sev.length ? ` But ${sev.join(", ")} in effect: check before going.` : ""),
-        tags: "fish", link: site ? `${site}/#${rule.species}/${id}` : "" });
+        tags: "fish", link: site ? `${site}/map.html#${rule.species}/${id}` : "" });
     }
   }
   fs.writeFileSync(path.join(DIR, "alerts_state.json"), JSON.stringify(state));

@@ -6,6 +6,16 @@
 # OceanCast
 Live Louisiana fishing conditions and scores, built from public NOAA, USGS and weather data. 
 
+## Pages
+
+- `index.html` is the landing page, with `about.html`, `contact.html`, `terms.html` and `privacy.html`. They share `site.css`
+  and `site.js`; `forward.js` sends old app links (deep links, sign-in links, installed icons) on to the app.
+- `map.html` is the app itself (the map, scores, accounts).
+- Terms and Privacy are drafts marked "needs legal review"; fill in each **[PLACEHOLDER]** on the About, Terms and Privacy pages.
+- To add the phone screenshot to the landing page, save it as `phone-map.png` and replace the `<div class="shot">` block
+  (the HTML comment in `index.html` shows the exact `<img>`). Add `phone-map.png` to the `cp` list in `.github/workflows/update.yml` and to `ASSETS` in `sw.js`.
+- Weather data from Open-Meteo is used under CC BY 4.0 and its free tier is for non-commercial use: check its terms before charging for the app or showing ads.
+
 ## Accounts (optional)
 
 People can sign in with an emailed link (no passwords). Their saved spots, their own map pins,
@@ -16,7 +26,8 @@ works as before and saves everything on each device only.
 2. In the project, open **SQL Editor → New query**, paste everything from `supabase/setup.sql`, and press **Run**.
    This creates one private table; its rules only let a signed-in person read or change their own row.
 3. Open **Authentication → URL Configuration**. Set **Site URL** to the site's address
-   (for example `https://kenny-powers-55-g.github.io/LA-Fishing/`) and add the same address under **Redirect URLs**.
+   (for example `https://kenny-powers-55-g.github.io/LA-Fishing/`) and add `https://kenny-powers-55-g.github.io/LA-Fishing/**` (with the `**`) under **Redirect URLs**, because the
+   app now lives at `map.html` and sign-in, reset and email-change links return there.
    Sign-in links only go to addresses listed here.
 4. Open **Project Settings → API Keys** and copy the **Project URL** and the **publishable key** (`sb_publishable_…`).
    Never use the secret key in the site.
@@ -50,14 +61,14 @@ email service under **Authentication → Emails → SMTP Settings** (Resend, Sen
 The page can also run inside an iPhone app built with Capacitor. Inside the app it loads the
 hourly data files from the live site, set by `dataUrl` in `config.js`; the website ignores that
 setting and keeps loading its own copy. If the site ever moves, change `dataUrl` and add the new
-address to `connect-src` in the security policy at the top of `index.html`
+address to `connect-src` in the security policy at the top of `map.html`
 (`node tests/check_page.js` checks the two match).
 
 ## Security
 
 What the site does to keep visitors and their data safe:
 
-- **Content Security Policy** (a `<meta>` tag at the top of `index.html`): the page may only run its own
+- **Content Security Policy** (a `<meta>` tag at the top of `map.html`): the page may only run its own
   scripts plus two pinned libraries, and only talk to NOAA, NASA, OpenStreetMap, Open-Meteo and your
   Supabase project. If someone ever slipped code into a spot name or a friend's shared data, the browser
   would refuse to run it. The deploy refreshes the policy's script fingerprints automatically
