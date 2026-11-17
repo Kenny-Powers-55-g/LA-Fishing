@@ -3,7 +3,7 @@
 <!-- Security policy: which sites this page may load scripts, data and images from. The sha256 values
      are the inline scripts' fingerprints; scripts/csp.js updates them (the deploy does it automatically).
      Using a Supabase custom domain instead of *.supabase.co? Add it to connect-src. -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-9Cptd3I9BPDZeQQBZ2Rq1DNK2bdPfwGehQkwli7t4jg=' 'sha256-8Z6cFb1AuZfsYfeMTyfdtdonFJjl5WC3yTiocRKUhHY=' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https://*.noaa.gov https://gibs.earthdata.nasa.gov https://tile.openstreetmap.org https://cdnjs.cloudflare.com; connect-src 'self' https://kenny-powers-55-g.github.io https://*.noaa.gov https://gibs.earthdata.nasa.gov https://tile.openstreetmap.org https://api.open-meteo.com https://*.supabase.co wss://*.supabase.co https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://fonts.googleapis.com https://fonts.gstatic.com; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-src 'none'; upgrade-insecure-requests">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-2OVmCOTCLZW3ydBCA1PttjEADQgd3HA3mBFO2BjowpE=' 'sha256-OsVbjFRWC2eWwzvtKwDcr+Csp42Vlk/pk1py5/WpsNM=' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https://*.noaa.gov https://gibs.earthdata.nasa.gov https://tile.openstreetmap.org https://cdnjs.cloudflare.com; connect-src 'self' https://kenny-powers-55-g.github.io https://*.noaa.gov https://gibs.earthdata.nasa.gov https://tile.openstreetmap.org https://api.open-meteo.com https://*.supabase.co wss://*.supabase.co https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://fonts.googleapis.com https://fonts.gstatic.com; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-src 'none'; upgrade-insecure-requests">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -18,7 +18,8 @@
 <script src="config.js"></script>
 <link rel="manifest" href="manifest.webmanifest"><meta name="theme-color" content="#0b1014">
 <script>try{if(self!==top){document.documentElement.style.display="none";top.location=self.location}}catch(e){}
-try{var t=localStorage.getItem("oc-theme");if(t==="light"||t==="dark")document.documentElement.dataset.theme=t;if(localStorage.getItem("oc-boatmode")==="1")document.documentElement.classList.add("boat")}catch(e){}</script>
+try{var t=localStorage.getItem("oc-theme");if(t==="light"||t==="dark")document.documentElement.dataset.theme=t;if(localStorage.getItem("oc-boatmode")==="1")document.documentElement.classList.add("boat")}catch(e){}
+setTimeout(function(){var s=document.getElementById("status");if(s&&/^Loading latest/.test(s.textContent))s.textContent="Couldn't load OceanCast. Reload the page to try again."},45000);</script>
 <link rel="icon" href="favicon.svg" type="image/svg+xml"><link rel="icon" href="icon-192.png" sizes="192x192"><link rel="apple-touch-icon" href="apple-touch-icon.png">
 <style>
 @property --p{syntax:"<number>";inherits:false;initial-value:0}
@@ -889,6 +890,34 @@ select option,select optgroup{background-color:var(--card);color:var(--tx)}
 /* footer links */
 .appbar a.brand{color:inherit;text-decoration:none;border-radius:10px}
 .fnav{display:flex;flex-wrap:wrap;gap:2px 16px}
+/* layers panel: simple first, "More layers" for the rest */
+.morebtn{display:flex;align-items:center;justify-content:space-between;width:100%;min-height:44px;padding:0 12px;border:0;border-radius:10px;background:var(--fill);color:var(--tx);font:600 14px var(--sys,system-ui);cursor:pointer}
+.morebtn svg{width:18px;height:18px;transition:transform .2s}
+.morebtn[aria-expanded="true"] svg{transform:rotate(180deg)}
+.mapbar .overlays{display:grid;grid-template-columns:1fr;gap:14px;width:100%}
+.mapbar .overlays[hidden]{display:none}
+.lyr-g{display:grid;gap:6px}
+.lyr-g h4{margin:0;font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--mu);font-weight:700}
+.lyr{display:grid;grid-template-columns:1fr 44px;align-items:center;gap:0 4px}
+.lyr .lyr-x{grid-column:1/-1;margin:4px 2px 2px;font-size:13px;line-height:1.4;color:var(--mu)}
+.lyr-i{width:44px;height:44px;border:0;background:transparent;color:var(--mu);cursor:pointer;display:grid;place-items:center;font:italic 700 14px Georgia,serif;position:relative}
+.lyr-i::before{content:"";position:absolute;width:24px;height:24px;border-radius:50%;border:1.5px solid currentColor;left:10px;top:10px}
+.lyr-i[aria-expanded="true"]{color:var(--ac)}
+.overlays .lyr-f{display:flex}
+.overlays .lyr-f[hidden]{display:none}
+.seg.seg-wrap{grid-auto-flow:row;grid-template-columns:1fr 1fr;gap:2px}
+.seg.seg-wrap button{min-height:38px;padding:4px 6px;line-height:1.2}
+/* data age on the map */
+#agechip{position:absolute;top:12px;left:56px;z-index:1001;padding:5px 11px;border-radius:99px;background:var(--glass);color:var(--mu);font-size:12.5px;font-weight:500;
+ border:.5px solid var(--hair);box-shadow:0 2px 10px var(--shadow,rgba(0,0,0,.2));-webkit-backdrop-filter:saturate(180%) blur(20px);backdrop-filter:saturate(180%) blur(20px);pointer-events:none}
+#agechip[hidden],#mapcard.layers-open #agechip{display:none}
+#agechip.old{color:var(--r);font-weight:600}
+@media(max-width:899px){#mfchip{top:52px}}
+/* empty states with a next step */
+.empty-cta{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px 14px}
+.empty-cta h3{margin:0 0 2px}
+.empty-cta .t{min-height:44px;padding:0 16px}
+#loaderr h3{margin:0 0 6px}#loaderr .t{margin-top:10px;min-height:44px;padding:0 18px}
 .fnav a,.fnav .aboutlink{display:inline-flex;align-items:center;min-height:36px;font-size:14px}
 </style></head><body>
 <header class="appbar">
@@ -917,32 +946,28 @@ select option,select optgroup{background-color:var(--card);color:var(--tx)}
    <button type="button" class="fab" id="mapsize" aria-pressed="false" title="Full map" aria-label="Full map"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></button></div>
   <div id="ovnote" class="legend"></div>
   <div id="pinprev" hidden role="dialog" aria-label="Spot preview"></div>
+  <div id="agechip" hidden role="status"></div>
   <div id="mfchip" hidden><span id="mfchiptx"></span><button type="button" id="mfclear">Show all</button></div>
   <div class="note mapbar" id="mapbar"><div class="lp-head"><b>Map layers</b><button type="button" class="t" id="layersclose" aria-label="Close layers">✕</button></div>
    <label>Map <select id="basesel"><option value="street">Street map</option><option value="chart">Nautical chart (depths)</option><option value="shade">Depth shading</option></select></label>
    <div class="mfilt" id="mfilt" role="group" aria-label="Which spots to show on the map">
-    <div class="mf-row"><span class="mf-l">Show spots scoring</span><span class="seg" data-mf="min"><button type="button" data-v="0">All</button><button type="button" data-v="55">55+</button><button type="button" data-v="75">75+</button><button type="button" data-v="90">90+</button></span></div>
+    <div class="mf-row"><span class="mf-l">Show spots scoring</span><span class="seg seg-wrap" data-mf="min"><button type="button" data-v="0">All</button><button type="button" data-v="55">Good or better (55+)</button><button type="button" data-v="75">Excellent only (75+)</button><button type="button" data-v="90">Top scores (90+)</button></span></div>
     <div class="mf-row"><span class="mf-l">Water</span><span class="seg" data-mf="water"><button type="button" data-v="all">All</button><button type="button" data-v="inshore">Inshore</button><button type="button" data-v="offshore">Offshore</button></span></div>
     <label class="mf-chk"><input type="checkbox" id="mfmine"> Only my spots (starred and my own pins)</label>
    </div>
-   <label>Satellite layer <select id="satsel"><option value="">None</option><option value="sst">Sea temperature</option><option value="chl">Chlorophyll (water color)</option></select></label>
    <button type="button" class="t mapbtn" id="savemap">Save this area for offline</button><span class="note" id="savemapmsg" role="status"></span>
-   <span class="overlays" id="overlays" role="group" aria-label="Show on map">
-    <label><input type="checkbox" data-ov="breaks"> Temp breaks</label>
-    <label><input type="checkbox" data-ov="color"> Color lines</label>
-    <label><input type="checkbox" data-ov="ssh"> Loop Current &amp; eddies</label>
-    <label><input type="checkbox" data-ov="weeds"> Weedlines</label>
-    <label><input type="checkbox" data-ov="rigs"> Rigs</label>
-    <label><input type="checkbox" data-ov="reefs"> Reefs</label>
-    <label><input type="checkbox" data-ov="tropical"> Tropical storms</label>
-    <label><input type="checkbox" data-ov="radar"> Radar (live)</label>
-    <label><input type="checkbox" data-ov="deadzone"> Dead zone</label>
-    <label hidden><input type="checkbox" data-ov="friends"> Friends' spots</label>
-   </span>
+   <button type="button" class="morebtn" id="morebtn" aria-expanded="false" aria-controls="overlays"><span id="moretx">More layers</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+   <div class="overlays" id="overlays" hidden>
+    <label class="lyr-f" hidden><input type="checkbox" data-ov="friends"> Friends' spots</label>
+    <div class="lyr-g" role="group" aria-labelledby="lyg-water"><h4 id="lyg-water">Water</h4><div class="lyr"><label><input type="checkbox" data-sat="sst"> Sea temperature</label><button type="button" class="lyr-i" aria-expanded="false" aria-controls="lyx-sst" aria-label="What is Sea temperature?">i</button><p class="lyr-x" id="lyx-sst" hidden>Satellite map of surface water temperature; many fish follow their favorite temperature.</p></div><div class="lyr"><label><input type="checkbox" data-sat="chl"> Chlorophyll (water color)</label><button type="button" class="lyr-i" aria-expanded="false" aria-controls="lyx-chl" aria-label="What is Chlorophyll (water color)?">i</button><p class="lyr-x" id="lyx-chl" hidden>Shows green, plankton-rich water versus clear blue water; bait gathers where they meet.</p></div><div class="lyr"><label><input type="checkbox" id="depthcb"> Depth shading</label><button type="button" class="lyr-i" aria-expanded="false" aria-controls="lyx-depth" aria-label="What is Depth shading?">i</button><p class="lyr-x" id="lyx-depth" hidden>Colors the bottom by depth so drop-offs and channels stand out.</p></div><div class="lyr"><label><input type="checkbox" data-ov="breaks"> Temp breaks</label><button type="button" class="lyr-i" aria-expanded="false" aria-controls="lyx-breaks" aria-label="What is Temp breaks?">i</button><p class="lyr-x" id="lyx-breaks" hidden>Lines where warm and cool water meet. Bait and predators stack up along them.</p></div><div class="lyr"><label><input type="checkbox" data-ov="color"> Color lines</label><button type="button" class="lyr-i" aria-expanded="false" aria-controls="lyx-color" aria-label="What is Color lines?">i</button><p class="lyr-x" id="lyx-color" hidden>Edges between green and blue water, another place bait and predators gather.</p></div><div class="lyr"><label><input type="checkbox" data-ov="ssh"> Loop Current &amp; eddies</label><button type="button" class="lyr-i" aria-expanded="false" aria-controls="lyx-ssh" aria-label="What is Loop Current and eddies?">i</button><p class="lyr-x" id="lyx-ssh" hidden>The big warm current from the Caribbean and the swirls it sheds, which pull offshore fish closer.</p></div></div>
+    <div class="lyr-g" role="group" aria-labelledby="lyg-structure"><h4 id="lyg-structure">Structure</h4><div class="lyr"><label><input type="checkbox" data-ov="rigs"> Rigs</label><button type="button" class="lyr-i" aria-expanded="false" aria-controls="lyx-rigs" aria-label="What is Rigs?">i</button><p class="lyr-x" id="lyx-rigs" hidden>Oil and gas platforms; their legs act like reefs and hold fish all year.</p></div><div class="lyr"><label><input type="checkbox" data-ov="reefs"> Reefs</label><button type="button" class="lyr-i" aria-expanded="false" aria-controls="lyx-reefs" aria-label="What is Reefs?">i</button><p class="lyr-x" id="lyx-reefs" hidden>Artificial reefs and wrecks, permitted sites where fish gather.</p></div><div class="lyr"><label><input type="checkbox" data-ov="weeds"> Weedlines</label><button type="button" class="lyr-i" aria-expanded="false" aria-controls="lyx-weeds" aria-label="What is Weedlines?">i</button><p class="lyr-x" id="lyx-weeds" hidden>Floating sargassum lines that hold mahi, tripletail and bait.</p></div></div>
+    <div class="lyr-g" role="group" aria-labelledby="lyg-weather"><h4 id="lyg-weather">Weather</h4><div class="lyr"><label><input type="checkbox" data-ov="radar"> Radar (live)</label><button type="button" class="lyr-i" aria-expanded="false" aria-controls="lyx-radar" aria-label="What is Radar (live)?">i</button><p class="lyr-x" id="lyx-radar" hidden>Rain and storms happening now, from the National Weather Service.</p></div><div class="lyr"><label><input type="checkbox" data-ov="tropical"> Tropical storms</label><button type="button" class="lyr-i" aria-expanded="false" aria-controls="lyx-tropical" aria-label="What is Tropical storms?">i</button><p class="lyr-x" id="lyx-tropical" hidden>Active storms and the hurricane center's forecast cone.</p></div><div class="lyr"><label><input type="checkbox" data-ov="deadzone"> Dead zone</label><button type="button" class="lyr-i" aria-expanded="false" aria-controls="lyx-deadzone" aria-label="What is Dead zone?">i</button><p class="lyr-x" id="lyx-deadzone" hidden>Low-oxygen water near the bottom each summer, where fish move out.</p></div></div>
+   </div>
    <span id="basenote"></span><span id="satnote"></span>
   </div>
   <div class="note hint" id="depthinfo" role="status" style="padding:0 14px 10px">Tap the map anywhere for the water depth and GPS position.</div></section>
 <main id="main" hidden>
+ <section class="card" id="loaderr" hidden style="grid-column:1/-1" role="alert"></section>
 <section class="card" id="welcome" hidden style="grid-column:1/-1">
  <div class="w-eyebrow">Louisiana fishing forecast</div>
  <h2>Know where the fish are biting before you launch.</h2>
@@ -981,7 +1006,7 @@ select option,select optgroup{background-color:var(--card);color:var(--tx)}
 
  <section class="card" style="grid-column:1/-1">
   <div class="panel-tabs">
-   <button class="t on" type="button" data-panel="fish">Conditions</button>
+   <button class="t on" type="button" data-panel="fish">Today</button>
    <button class="t" type="button" data-panel="log">My catches</button>
    <button class="t" type="button" data-panel="friends">Friends<span class="badge" id="frbadge" hidden></span></button>
   </div>
@@ -1060,7 +1085,7 @@ select option,select optgroup{background-color:var(--card);color:var(--tx)}
 </main>
 <nav id="bnav" aria-label="Sections">
  <button type="button" data-nav="map"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 4 3 6.500v13.500l6-2.5 6 2.5 6-2.500V4l-6 2.500L9 4zm0 0v13.500m6-11v13.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>Map</button>
- <button type="button" class="on" data-panel="fish"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2.5 12c3-4.5 7-6 10.5-6 3 0 5.5 1.5 7 3.500l1.5-2v9l-1.5-2c-1.5 2-4 3.5-7 3.5-3.5 0-7.5-1.5-10.5-6z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><circle cx="8" cy="11" r="1" fill="currentColor"/></svg>Conditions</button>
+ <button type="button" class="on" data-panel="fish"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2.5 12c3-4.5 7-6 10.5-6 3 0 5.5 1.5 7 3.500l1.5-2v9l-1.5-2c-1.5 2-4 3.5-7 3.5-3.5 0-7.5-1.5-10.5-6z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><circle cx="8" cy="11" r="1" fill="currentColor"/></svg>Today</button>
  <button type="button" data-panel="log"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h9l4 4v14H6zM14 3v5h5M9 13h7M9 17h7" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"/></svg>My catches</button>
  <button type="button" data-panel="friends"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3.5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M2.5 20c1-3.5 3.5-5 6.5-5s5.5 1.5 6.5 5M16 5a3.5 3.5 0 0 1 0 6.500M18.5 15c1.8.7 2.7 2.2 3 5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>Friends<span class="badge" id="frbadge2" hidden></span></button>
 </nav>
@@ -2029,9 +2054,41 @@ async function setOverlay(k,on){
  $("ovnote").innerHTML=Object.values(OVLAYER).map(o=>o.note).join(" · ")+(Object.keys(OVLAYER).some(x=>x==="breaks"||x==="color"||x==="ssh"||x==="weeds")?" · Satellite analysis; lines move daily.":"");
  try{localStorage.setItem("la-fish-overlays",JSON.stringify(Object.keys(OVLAYER)))}catch(e){}
 }
+// "More layers": satellite pair, depth shading toggle, info buttons, open/closed state and the "· 2 on" count
+const SAT_KEY="oc-satlayer",MORE_KEY="oc-morelayers";
+function moreCount(){
+ let n=document.querySelectorAll("#overlays input:checked").length;
+ const t=$("moretx");if(t)t.textContent=n?`More layers · ${n} on`:"More layers";return n}
+function setMoreOpen(open,save){
+ const o=$("overlays"),b=$("morebtn");if(!o||!b)return;o.hidden=!open;b.setAttribute("aria-expanded",open);
+ if(save)try{localStorage.setItem(MORE_KEY,open?"1":"0")}catch(e){}}
+function initLayerPanel(){
+ const sats=[...document.querySelectorAll("#overlays [data-sat]")];
+ let sat="";try{sat=localStorage.getItem(SAT_KEY)||""}catch(e){}
+ if(!SATL[sat])sat="";
+ sats.forEach(cb=>{cb.checked=cb.dataset.sat===sat;cb.onchange=()=>{
+  const k=cb.checked?cb.dataset.sat:"";sats.forEach(o=>{if(o!==cb)o.checked=false});
+  try{if(k)localStorage.setItem(SAT_KEY,k);else localStorage.removeItem(SAT_KEY)}catch(e){}
+  setSat(k);moreCount()}});
+ if(sat)setSat(sat);
+ const dc=$("depthcb"),bs=$("basesel");
+ if(dc&&bs){dc.checked=bs.value==="shade";
+  dc.onchange=()=>{let prev="chart";try{prev=localStorage.getItem("oc-prevbase")||"chart"}catch(e){}
+   const k=dc.checked?"shade":(prev==="shade"?"chart":prev);if(dc.checked)try{localStorage.setItem("oc-prevbase",bs.value)}catch(e){}
+   bs.value=k;setBase(k);moreCount()};
+  bs.onchange=e=>{const v=e.target.value;if(v!=="shade")try{localStorage.setItem("oc-prevbase",v)}catch(x){}setBase(v);dc.checked=v==="shade";moreCount()}}
+ const box=$("overlays");
+ if(box)box.addEventListener("click",e=>{const b=e.target.closest(".lyr-i");if(!b)return;const x=$(b.getAttribute("aria-controls"));if(!x)return;
+  const open=x.hidden;x.hidden=!open;b.setAttribute("aria-expanded",open)});
+ if(box)box.addEventListener("change",()=>setTimeout(moreCount,0));
+ const mb=$("morebtn");if(mb)mb.onclick=()=>setMoreOpen($("overlays").hidden,true);
+ let open=false;try{open=localStorage.getItem(MORE_KEY)==="1"}catch(e){}
+ setMoreOpen(open||moreCount()>0,false);
+}
 function initOverlays(){
  let saved=[];try{saved=JSON.parse(localStorage.getItem("la-fish-overlays")||"[]")}catch(e){}
  document.querySelectorAll("#overlays [data-ov]").forEach(cb=>{cb.checked=saved.includes(cb.dataset.ov);cb.onchange=()=>setOverlay(cb.dataset.ov,cb.checked);if(cb.checked)setOverlay(cb.dataset.ov,true)});
+ moreCount();if(saved.length)setMoreOpen(true,false);
 }
 // ---- NWS marine forecast for the spot's zone ----
 function marinePanel(spot){
@@ -2127,7 +2184,7 @@ function mapInit(){
   let base="chart";try{base=localStorage.getItem("la-fish-mapbase")||"chart"}catch(e){}
   if(base==="gebco")base="shade";if(!BASES[base])base="street";$("basesel").value=base;setBase(base);
   $("basesel").onchange=e=>setBase(e.target.value);
-  $("satsel").onchange=e=>setSat(e.target.value);
+  initLayerPanel();
   if(innerWidth>=900)MAP.scrollWheelZoom.enable();
   $("mapsize").onclick=()=>{if(isPhoneLayout()){setMapFull(!document.body.classList.contains("mapfull"));return}
    const big=document.body.classList.toggle("bigmap");
@@ -2182,7 +2239,7 @@ function mapFilterUI(shown,total){
  document.querySelectorAll("#mfilt [data-mf]").forEach(g=>g.querySelectorAll("button").forEach(b=>{const on=String(f[g.dataset.mf])===b.dataset.v;b.classList.toggle("on",on);b.setAttribute("aria-pressed",on)}));
  const mm=$("mfmine");if(mm)mm.checked=f.mine;
  const active=f.min>0||f.water!=="all"||f.mine,chip=$("mfchip");
- if(chip){chip.hidden=!active;$("mfchiptx").textContent=`${shown} of ${total} spots`}}
+ if(chip){chip.hidden=!active;$("mfchiptx").textContent=`${f.min?({55:"Good or better",75:"Excellent only",90:"Top scores"})[f.min]+" · ":""}${shown} of ${total} spots`}}
 (()=>{const box=$("mfilt");if(!box)return;
  box.onclick=e=>{const b=e.target.closest("[data-mf] button");if(!b)return;const k=b.closest("[data-mf]").dataset.mf;setMapFilter({[k]:k==="min"?+b.dataset.v:b.dataset.v})};
  $("mfmine").onchange=e=>setMapFilter({mine:e.target.checked});
@@ -2539,7 +2596,8 @@ function alertHits(){
  AL_CACHE={k,hits};return hits}
 function renderAlerts(){
  const el=$("alertcard");if(!el)return;const rules=getAlerts();
- if(!rules.length){el.hidden=true;return}
+ if(!rules.length){el.hidden=false;el.classList.remove("has");el.onclick=null;
+  el.innerHTML=`<div class="empty-cta"><div><h3>My alerts</h3><p class="note">No alerts yet. Get told when a spot you care about turns on.</p></div><button type="button" class="t on" data-alerts>Create your first alert</button></div>`;return}
  const hits=alertHits();el.hidden=false;el.classList.toggle("has",hits.length>0);
  el.innerHTML=`<div class="al-h"><h3>My alerts${hits.length?` <span class="al-n">${hits.length}</span>`:""}</h3><button type="button" class="t" data-alerts>Manage</button></div>`+
   (hits.length?hits.slice(0,6).map(h=>`<button type="button" class="al-row al-${h.kind}" data-al-sp="${esc(h.sp)}" data-al-spot="${esc(h.spot.id)}"><span class="al-ic" aria-hidden="true">${h.kind==="warn"?"⚠️":h.kind==="now"?"🎣":"🕒"}</span><span>${esc(h.txt)}</span></button>`).join("")+(hits.length>6?`<div class="note">and ${hits.length-6} more</div>`:"")
@@ -2548,7 +2606,7 @@ function renderAlerts(){
 }
 function openAlerts(pre){
  const d=$("alertdlg"),draw=()=>{const rules=getAlerts(),P=pre||{},mine=alertSpots({where:"mine"}).length;
-  $("alertbody").innerHTML=`${rules.length?rules.map(r=>`<div class="al-rule"><span>${esc(alertTxt(r))}</span><button type="button" class="t" data-al-del="${esc(r.id)}">Remove</button></div>`).join(""):`<p class="note">No alerts yet. Add one below.</p>`}
+  $("alertbody").innerHTML=`${rules.length?rules.map(r=>`<div class="al-rule"><span>${esc(alertTxt(r))}</span><button type="button" class="t" data-al-del="${esc(r.id)}">Remove</button></div>`).join(""):`<p class="note">No alerts yet. Create your first one below.</p>`}
    <h4>New alert</h4>
    <div class="seg" id="altype"><button type="button" data-v="score" class="on" aria-pressed="true">Fishing score</button><button type="button" data-v="warn" aria-pressed="false">Weather warnings</button></div>
    <form id="alform">
@@ -2571,6 +2629,12 @@ function openAlerts(pre){
    a.push(rule);saveAlerts(a);pre=null;draw();renderAlerts();
    const m2=$("almsg");if(m2)m2.textContent=rule.where==="mine"&&!alertSpots(rule).length?"Added. Star a spot or save a pin so this alert has spots to watch.":"Added."}};
  draw();$("alertclose").onclick=()=>d.close();d.onclick=e=>{if(e.target===d)d.close()};if(d.showModal)d.showModal();else d.setAttribute("open","")}
+document.addEventListener("click",e=>{
+ if(e.target.closest("[data-findmap]")){if(document.body.classList.contains("nomap"))setMapHidden(false);
+  if(isPhoneLayout())setMapFull(true);else{const m=$("mapcard");if(m&&m.scrollIntoView)m.scrollIntoView({behavior:"smooth",block:"start"})}return}
+ if(e.target.closest("[data-firstcatch]")){const fm=$("logForm");if(fm){if(fm.closest("details"))fm.closest("details").open=true;fm.scrollIntoView({behavior:"smooth",block:"start"});const x=$("logSp");if(x)setTimeout(()=>x.focus({preventScroll:true}),350)}return}
+ if(e.target.closest("[data-addfriend]")){const x=$("frin");if(x){x.scrollIntoView({behavior:"smooth",block:"center"});setTimeout(()=>x.focus({preventScroll:true}),300)}return}
+});
 document.addEventListener("click",e=>{const b=e.target.closest("[data-alerts]");if(b){e.preventDefault();openAlerts(b.dataset.alerts?{sp:b.dataset.alSp0,where:b.dataset.alerts}:null)}});
 // ---- Catch photos: kept on this device only (IndexedDB), shrunk to 1280 px. Re-drawing the picture
 // onto a canvas and saving a new JPEG drops the camera's hidden metadata, including GPS location.
@@ -2627,7 +2691,7 @@ function renderLog(){
  const dateEl=$("logDate");if(dateEl&&!dateEl.value)dateEl.value=localDate();
  const logs=getLogs().slice().reverse();
  const list=$("logList");
- if(!logs.length){list.innerHTML=`<div class="note">No catches saved on this device yet.</div>`}
+ if(!logs.length){list.innerHTML=`<div class="empty-cta"><span class="note">No catches yet. Logging them shows which conditions work for you.</span><button type="button" class="t on" data-firstcatch>Log your first catch</button></div>`}
  else{
   list.innerHTML=logs.map((L,i)=>{
    const sp=SP[L.sp]?.name||L.sp, spot=DATA.spots.find(s=>s.id===L.spot)?.name||L.spot;
@@ -2793,7 +2857,7 @@ function openPicker(){
 function renderSaved(favs){
  const el=$("favs");if(!el)return;
  const ids=[...favs.filter(id=>DATA.spots.some(s=>s.id===id)),...DATA.spots.filter(s=>s.user&&!favs.includes(s.id)).map(s=>s.id)];
- if(!ids.length){el.innerHTML=`<div class="empty">Tap ★ next to a spot to save it here. To add your own spot, tap the map and choose “Save as my spot”.</div>`;return}
+ if(!ids.length){el.innerHTML=`<div class="empty empty-cta"><span>No saved spots yet. Tap ★ next to a spot to save it here, or tap the map and choose “Save as my spot”.</span><button type="button" class="t on" data-findmap>Find a spot on the map</button></div>`;return}
  el.innerHTML=ids.map(id=>{const s=DATA.spots.find(x=>x.id===id),r=score(sp,s),pin=!!s.user,star=favs.includes(id);
   return`<div class="row"><button type="button" class="open" data-id="${s.id}"><span class="nm">${esc(s.name)}</span><span class="kind">${pin?"My pin":"★ Starred"}</span>
    <span class="sc" style="color:${r.gate?"var(--mu)":col(r.total)}">${r.gate?"n/a":r.total}</span></button>
@@ -3036,7 +3100,7 @@ function friendsHTML(){
   ${inc.map(r=>`<div class="frow"><span><b>${nm(r.requester)}</b> wants to be friends</span><span><button class="t" type="button" data-acc="${r.requester}">Accept</button> <button class="t" type="button" data-del="${r.requester}">Decline</button></span></div>`).join("")}
   ${out.map(r=>`<div class="frow"><span>Waiting for <b>${nm(r.addressee)}</b> to accept</span><button class="t" type="button" data-del="${r.addressee}">Cancel</button></div>`).join("")}
   <h4>Your friends${fr.length?` (${fr.length})`:""}</h4>
-  ${fr.length?fr.map(card).join(""):`<p class="note">No friends yet. Ask yours for their username.</p>`}
+  ${fr.length?fr.map(card).join(""):`<div class="empty-cta"><span class="note">No friends yet. Ask yours for their username.</span><button type="button" class="t on" data-addfriend>Add a friend</button></div>`}
   <details class="fdefaults" data-k="defaults"><summary><b>Default sharing</b> <span class="note">for new friends and anyone you haven't set individually</span></summary>
    <label class="sw"><input type="checkbox" id="shspots" ${P.share_spots?"checked":""}> My pinned spots (names and positions)</label>
    <label class="sw"><input type="checkbox" id="shcatch" ${P.share_catches?"checked":""}> My catch log (species, spot, date and result only; never notes, sizes, counts, bait or photos)</label>
@@ -3239,22 +3303,39 @@ const LATEST_KEY="oc-latest-saved";
 function readSaved(){try{const d=JSON.parse(localStorage.getItem(LATEST_KEY)||"null");return d&&Array.isArray(d.spots)&&d.spots.length?d:null}catch(e){return null}}
 function writeSaved(d){try{localStorage.setItem(LATEST_KEY,JSON.stringify(d))}catch(e){}}
 let FRESH=null,FROM_SAVED=false;
+const LOAD_TIMEOUT=20000;let REFRESH_FAILED=false;
+// "Updated 12 min ago" in the header pill and on the map; refreshed every minute so it never goes stale.
+function showAge(){
+ if(!DATA)return;const age=(Date.now()-new Date(DATA.generated))/3600000,old=age>3;
+ $("status").innerHTML=(FROM_SAVED?`Saved scores from ${ago(DATA.generated)} · updating…`:`Updated ${ago(DATA.generated)}`)+(old?` · <span style="color:var(--r)">over 3 hours old</span>`:"")
+  +(REFRESH_FAILED?` · <span style="color:var(--o)">couldn't refresh</span>`:"")+(navigator.onLine?"":` · offline`);
+ const c=$("agechip");if(c){c.hidden=false;c.classList.toggle("old",old);c.textContent=old?`Scores are ${Math.round(age)} h old`:`Updated ${ago(DATA.generated)}`}
+}
+setInterval(showAge,60000);
+function showLoadErr(why){
+ $("status").innerHTML=`<span style="color:var(--r)">Couldn't load the latest scores</span>`;
+ const el=$("loaderr");if(!el)return;$("main").hidden=false;
+ el.innerHTML=`<h3>Couldn't load the latest scores</h3><p class="note">${esc(why)} Check your connection and try again.</p><button type="button" class="t on" id="retryload">Try again</button>`;
+ el.hidden=false;$("retryload").onclick=()=>{el.hidden=true;$("status").textContent="Loading latest readings…";load(false)};
+}
 async function load(isRefresh){
  const sk=$("skeleton");
  if(!isRefresh&&!DATA){document.body.classList.add("loading");$("main").hidden=false;if(sk)sk.hidden=false}
  if(isRefresh)$("status").textContent="Refreshing…";
+ {const le=$("loaderr");if(le)le.hidden=true}
  try{
   let d=null;
   if(isRefresh&&FRESH){d=FRESH;FRESH=null}
   else{
-   const net=fetch(dataPath("latest.json")+"?t="+Date.now()).then(r=>{if(!r.ok)throw new Error(r.status);return r.json()})
+   const ctl=typeof AbortController==="function"?new AbortController():null,tmo=setTimeout(()=>{if(ctl)ctl.abort()},LOAD_TIMEOUT);
+   const net=fetch(dataPath("latest.json")+"?t="+Date.now(),ctl?{signal:ctl.signal}:{}).finally(()=>clearTimeout(tmo)).then(r=>{if(!r.ok)throw new Error(r.status);return r.json()})
     .then(x=>{if(!x||!Array.isArray(x.spots)||!x.spots.length)throw new Error("empty");return x});
    const saved=!isRefresh&&!DATA?readSaved():null;
    if(saved){
     // Give the network a moment; if it's slower, show the saved scores now and swap when it arrives
     d=await Promise.race([net,new Promise(r=>setTimeout(()=>r(null),1200))]).catch(()=>null);
     if(!d){d=saved;FROM_SAVED=true;
-     net.then(x=>{FRESH=x;load(true)}).catch(()=>{FROM_SAVED=false;if(DATA)$("status").innerHTML=`Saved scores from ${ago(DATA.generated)} · <span style="color:var(--o)">couldn't refresh</span>`+(navigator.onLine?"":" · offline")})}
+     net.then(x=>{FRESH=x;load(true)}).catch(()=>{FROM_SAVED=false;REFRESH_FAILED=true;showAge()})}
    }else d=await net;
   }
   if(!d||!Array.isArray(d.spots)||!d.spots.length)throw new Error("empty");
@@ -3264,16 +3345,16 @@ async function load(isRefresh){
   DATA=d;
   setOffline(!navigator.onLine);
  }catch(e){
-  setOffline(true);
+  if(DATA)setOffline(true);   // with nothing saved there are no "last saved readings" to show
   if(!DATA){
-   $("status").innerHTML=`<span style="color:var(--r)">Could not load data.</span> ${navigator.onLine?"If this is a new site, run the Update workflow once from Actions.":"You appear offline and no cached data is available."}`;
+   showLoadErr(navigator.onLine?(e&&e.name==="AbortError"?"The connection is too slow right now.":"The data server didn't answer."):"You appear to be offline, and no saved scores are on this device yet.");
    if(sk)sk.hidden=true;document.body.classList.remove("loading");
    return;
   }
   // keep showing previous DATA when refresh fails
  }
- const age=(Date.now()-new Date(DATA.generated))/3600000;
- $("status").innerHTML=(FROM_SAVED?`Saved scores from ${ago(DATA.generated)} · updating…`:`Updated ${ago(DATA.generated)}`)+(age>3?` · <span style="color:var(--r)">over 3 hours old</span>`:"")+(navigator.onLine?"":` · offline`);
+ if(!isRefresh||!FROM_SAVED)REFRESH_FAILED=false;
+ showAge();
  tropBanner();
  if(!isRefresh){
   $("tabs").onclick=e=>{const b=e.target.closest("button");if(!b)return;if(b.dataset.all)openPicker();else if(b.dataset.k)setSpecies(b.dataset.k)};
@@ -3295,7 +3376,7 @@ async function load(isRefresh){
   addEventListener("hashchange",()=>{if(location.hash==="#tropical")showTropical();else if(readHash())render()});
   $("detail").onclick=e=>{const favBtn=e.target.closest("[data-fav]");if(favBtn){e.stopPropagation();toggleFav(favBtn.dataset.fav)}};
   $("refresh").onclick=()=>load(true);
-  // Panel switch: Conditions, My catches, Friends
+  // Panel switch: Today, My catches, Friends
   document.querySelectorAll(".panel-tabs [data-panel]").forEach(btn=>{btn.onclick=()=>showPanel(btn.dataset.panel)});
   // Bottom bar on phones: switch section and bring it into view under the map
   document.querySelectorAll("#bnav [data-panel]").forEach(btn=>{btn.onclick=()=>{setMapFull(false);showPanel(btn.dataset.panel);
@@ -3410,7 +3491,7 @@ $("install").onclick=()=>{if(ip){ip.prompt();ip=null;$("install").hidden=true}};
    <li>BOEM and NOAA: offshore platforms and artificial reefs</li>
   </ul>
   <h4>Changes to the scoring</h4>
-  <p class="note">Last changed <b id="modeldate"></b>: added 14 more fish, and estimated water temperature for lakes with no gauge nearby.</p>
+  <p class="note">Last changed <b id="modeldate">November 17, 2026</b>: added 14 more fish, and estimated water temperature for lakes with no gauge nearby.</p>
   <p class="note">Scores are estimates, not guarantees, and the readings can be hours old or miles from your spot. Always check the official marine forecast before you go out.</p>
  </div>
 </dialog>

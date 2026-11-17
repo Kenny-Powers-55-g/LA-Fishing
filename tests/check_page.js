@@ -35,5 +35,19 @@ if (!/fetch\(dataPath\(f\)/.test(html)) { bad++; console.error("Map-layer data i
 }
 for (const m of html.matchAll(/<script src="https:[^"]*"[^>]*>/g))
   if (!/integrity="sha(256|384|512)-/.test(m[0])) { bad++; console.error(`External script without an integrity hash: ${m[0]}`); }
+// First-time-user basics: the plain tab name, the three layer groups, and a plain explanation for every extra layer
+if (!/data-panel="fish">Today<\/button>/.test(html)) { bad++; console.error('The first tab should be called "Today"'); }
+for (const g of ["Water", "Structure", "Weather"]) if (!new RegExp(`<h4 id="lyg-${g.toLowerCase()}">${g}</h4>`).test(html)) { bad++; console.error(`Layer group "${g}" missing`); }
+for (const m of html.matchAll(/<input type="checkbox" (?:data-ov|data-sat)="(\w+)"/g)) {
+  if (m[1] === "friends") continue;
+  if (!new RegExp(`<p class="lyr-x" id="lyx-${m[1]}" hidden>[^<]{20,}</p>`).test(html)) { bad++; console.error(`Layer "${m[1]}" has no plain-language explanation`); }
+}
+// The "Last changed" date written in the page must match MODEL_UPDATED
+{
+  const mu = (/const MODEL_UPDATED="(\d{4}-\d\d-\d\d)"/.exec(html) || [])[1];
+  const shown = (/Last changed <b id="modeldate">([^<]+)<\/b>/.exec(html) || [])[1];
+  const want = mu && new Date(mu + "T12:00:00").toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
+  if (!shown || shown !== want) { bad++; console.error(`"Last changed" date is "${shown}", expected "${want}" (MODEL_UPDATED)`); }
+}
 console.log(bad ? `${bad} problem(s)` : `map.html OK (${scripts.length} script${scripts.length > 1 ? "s" : ""})`);
 process.exit(bad ? 1 : 0);
