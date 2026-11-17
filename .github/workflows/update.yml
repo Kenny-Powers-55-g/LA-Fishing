@@ -44,6 +44,7 @@ jobs:
         run: |
           python -m unittest discover -s tests -v
           node tests/check_page.js
+          node tests/check_site.js
 
       - name: Get history and the weekly map layers from the live site
         continue-on-error: true
@@ -80,15 +81,16 @@ jobs:
       - name: Collect the site files
         run: |
           mkdir site
-          cp index.html config.js latest.json forecast.json manifest.webmanifest sw.js site/
-          for f in icon-192.png icon-512.png status.json history.json ocean.json rigs.json reefs.json tropical.json deadzone.json alerts_state.json; do
+          cp index.html map.html about.html contact.html terms.html privacy.html site.css site.js forward.js config.js latest.json forecast.json manifest.webmanifest sw.js site/
+          for f in icon-192.png icon-512.png favicon.svg apple-touch-icon.png status.json history.json ocean.json rigs.json reefs.json tropical.json deadzone.json alerts_state.json; do
             [ -f "$f" ] && cp "$f" site/ || true
           done
           # Fail clearly if core data is missing
           test -f site/latest.json
           test -f site/index.html
+          test -f site/map.html
           # Refresh the security policy's inline-script fingerprints for the published page
-          node scripts/csp.js site/index.html
+          node scripts/csp.js site/map.html
 
       - uses: actions/configure-pages@v5
 

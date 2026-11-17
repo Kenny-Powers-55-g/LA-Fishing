@@ -3,7 +3,7 @@
   "name": "OceanCast: Louisiana fishing conditions",
   "short_name": "OceanCast",
   "description": "Live fishing scores and conditions for Louisiana inshore and offshore spots.",
-  "start_url": "./",
+  "start_url": "map.html",
   "scope": "./",
   "display": "standalone",
   "orientation": "portrait-primary",

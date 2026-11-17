@@ -7,7 +7,7 @@
 //   node scripts/csp.js --check [file]   exit 1 if the hashes are out of date
 const fs = require("fs"), path = require("path"), crypto = require("crypto");
 const args = process.argv.slice(2), check = args.includes("--check");
-const file = args.find(a => !a.startsWith("--")) || path.join(__dirname, "..", "index.html");
+const file = args.find(a => !a.startsWith("--")) || path.join(__dirname, "..", "map.html");
 
 function hashes(html) {
   return [...html.matchAll(/<script>([\s\S]*?)<\/script>/g)]
