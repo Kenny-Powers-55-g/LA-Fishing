@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://kenny-powers-55-g.github.io/LA-Fishing/sitemap.xml
