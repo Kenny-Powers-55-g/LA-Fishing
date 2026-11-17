@@ -44,18 +44,28 @@ for (const f of [...PAGES, "map.html", "site.css", "site.js", "forward.js", "fav
 // forward.js: which links go on to the app
 function run(hash, search, o = {}) {
   let to = null;
-  const ctx = { location: { hash, search, replace: u => { to = u; } }, document: { referrer: o.ref || "", documentElement: {} },
+  const ctx = { location: { hash, search, replace: u => { to = u; } }, document: { referrer: o.ref || "", documentElement: {}, addEventListener: () => {} },
     matchMedia: () => ({ matches: !!o.standalone }), navigator: {} };
   vm.runInNewContext(read("forward.js"), ctx);
   return to;
 }
 const cases = [
-  ["#redfish/calc", "", {}, "map.html#redfish/calc"], ["#tropical", "", {}, "map.html#tropical"],
+  ["#redfish/calc", "", {}, null], ["#tropical", "", {}, null],
   ["#access_token=x&type=recovery", "", {}, "map.html#access_token=x&type=recovery"],
   ["#error=access_denied&error_code=otp_expired", "", {}, "map.html#error=access_denied&error_code=otp_expired"],
   ["", "?code=abc", {}, "map.html?code=abc"], ["", "", { standalone: true }, "map.html"],
   ["#how", "", {}, null], ["", "", {}, null], ["", "", { standalone: true, ref: "https://x/LA-Fishing/map.html" }, null]];
 for (const [h, s, o, want] of cases) { const got = run(h, s, o); if (got !== want) fail(`forward.js ${JSON.stringify([h, s, o])}: got ${got}, want ${want}`); }
+
+// the one-tap banner for an old app link
+{
+  let ready = null, href = null; const p = { hidden: true, querySelector: () => ({ setAttribute: (k, v) => { href = v; } }) };
+  vm.runInNewContext(read("forward.js"), { location: { hash: "#redfish/calc", search: "", replace: () => fail("forwarded #redfish/calc") },
+    document: { referrer: "", documentElement: {}, addEventListener: (e, f) => { ready = f; }, getElementById: () => p }, matchMedia: () => ({ matches: false }), navigator: {} });
+  if (ready) ready();
+  if (href !== "map.html#redfish/calc" || p.hidden) fail(`resume banner: href ${href}, hidden ${p.hidden}`);
+  if (!/id="resume" hidden/.test(read("index.html"))) fail("index.html: resume banner missing");
+}
 
 console.log(bad ? `${bad} problem(s)` : `site pages OK (${PAGES.length} pages, forward.js ${cases.length} cases)`);
 process.exit(bad ? 1 : 0);
