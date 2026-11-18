@@ -48,6 +48,21 @@ function main() {
       if (r && !r.gate && typeof r.total === "number") today[`${spot.id}|${k}`] = Math.round(r.total);
     }
   }
+  // The landing page's "board": the six best public spots across all fish, from the same scores
+  const best = new Map();
+  for (const spot of latest.spots) {
+    if (spot.user) continue;
+    for (const k of Object.keys(api.SP)) {
+      let r; try { r = api.score(k, spot, now); } catch (e) { continue; }
+      if (!r || r.gate || typeof r.total !== "number" || (r.coverage != null && r.coverage < 0.65)) continue;
+      const cur = best.get(spot.id);
+      if (!cur || r.total > cur.score) best.set(spot.id, { id: spot.id, name: spot.name, fish: api.SP[k].name, score: Math.round(r.total), reason: r.reason || "" });
+    }
+  }
+  const board = [...best.values()].sort((a, b) => b.score - a.score).slice(0, 6);
+  const nSpots = latest.spots.filter(x => !x.user).length;
+  fs.writeFileSync(path.join(DIR, "board.json"), JSON.stringify({ generated: new Date(now).toISOString(), counts: { spots: nSpots, fish: Object.keys(api.SP).length }, spots: board }));
+
   const old = readJSON("scores-daily.json", {});
   const out = {};
   for (const d of Object.keys(old).sort().slice(-(KEEP - 1))) if (old[d] && typeof old[d] === "object") out[d] = old[d];

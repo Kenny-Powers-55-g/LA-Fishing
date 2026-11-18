@@ -27,10 +27,13 @@ for (const f of PAGES) {
   if (/terms|privacy/.test(f) && !/DRAFT &ndash; needs legal review|DRAFT – needs legal review/.test(h)) fail(`${f}: DRAFT banner missing`);
   if (!/<script src="site\.js">/.test(h)) fail(`${f}: site.js missing`);
   if (f === "index.html" && h.indexOf("forward.js") > h.indexOf("site.js")) fail("index.html: forward.js must load before site.js");
-  heads.add(block(h, /<header class="bar">[\s\S]*?<\/header>/));
+  // the landing page has its own header (handoff redesign); the other pages share one
+  if (f !== "index.html") heads.add(block(h, /<header class="bar">[\s\S]*?<\/header>/));
   foots.add(block(h, /<footer class="foot">[\s\S]*?<\/footer>/));
 }
-if (heads.size !== 1) fail("headers differ between pages");
+if (heads.size !== 1) fail("headers differ between the About, Contact, Terms and Privacy pages");
+if (!/id="themebtn"/.test(read("index.html"))) fail("landing page needs the theme button");
+if (!/<script src="board\.js"/.test(read("index.html"))) fail("landing page needs board.js");
 if (foots.size !== 1) fail("footers differ between pages");
 
 // manifest and service worker
