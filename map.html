@@ -3,7 +3,7 @@
 <!-- Security policy: which sites this page may load scripts, data and images from. The sha256 values
      are the inline scripts' fingerprints; scripts/csp.js updates them (the deploy does it automatically).
      Using a Supabase custom domain instead of *.supabase.co? Add it to connect-src. -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-2OVmCOTCLZW3ydBCA1PttjEADQgd3HA3mBFO2BjowpE=' 'sha256-dYjllzJK8kNBszTsWPltrIlMAJITu/H23qFAHQRXRx8=' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https://*.noaa.gov https://gibs.earthdata.nasa.gov https://tile.openstreetmap.org https://cdnjs.cloudflare.com; connect-src 'self' https://kenny-powers-55-g.github.io https://*.noaa.gov https://gibs.earthdata.nasa.gov https://tile.openstreetmap.org https://api.open-meteo.com https://*.supabase.co wss://*.supabase.co https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://fonts.googleapis.com https://fonts.gstatic.com; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-src 'none'; upgrade-insecure-requests">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-ap5MSQrXWR0reWT9leoroLT0xlM5zuuNBvia3r/cTEw=' 'sha256-BUloDxNmpJhZkj9OTfvB8mrbAbyvsft7IVxL0qdkW14=' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https://*.noaa.gov https://gibs.earthdata.nasa.gov https://tile.openstreetmap.org https://cdnjs.cloudflare.com; connect-src 'self' https://kenny-powers-55-g.github.io https://*.noaa.gov https://gibs.earthdata.nasa.gov https://tile.openstreetmap.org https://api.open-meteo.com https://*.supabase.co wss://*.supabase.co https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://fonts.googleapis.com https://fonts.gstatic.com; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-src 'none'; upgrade-insecure-requests">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -31,7 +31,7 @@
 <script src="config.js"></script>
 <link rel="manifest" href="manifest.webmanifest"><meta name="theme-color" content="#0b1014">
 <script>try{if(self!==top){document.documentElement.style.display="none";top.location=self.location}}catch(e){}
-try{var t=localStorage.getItem("oc-theme");if(t==="light"||t==="dark")document.documentElement.dataset.theme=t;if(localStorage.getItem("oc-boatmode")==="1")document.documentElement.classList.add("boat")}catch(e){}
+try{var t=localStorage.getItem("oc-theme");if(t==="auto"){}else document.documentElement.dataset.theme=(t==="dark"?"dark":"light");if(localStorage.getItem("oc-boatmode")==="1")document.documentElement.classList.add("boat")}catch(e){}
 setTimeout(function(){var s=document.getElementById("status");if(s&&/^Loading latest/.test(s.textContent))s.textContent="Couldn't load OceanCast. Reload the page to try again."},45000);</script>
 <link rel="icon" href="favicon.svg" type="image/svg+xml"><link rel="icon" href="icon-192.png" sizes="192x192"><link rel="apple-touch-icon" href="apple-touch-icon.png">
 <style>
@@ -901,25 +901,44 @@ select option,select optgroup{background-color:var(--card);color:var(--tx)}
 #alertbody .msg{font-size:13px;color:var(--mu)}#alertbody .msg.err{color:var(--r)}
 @media(max-width:600px){#alertdlg{width:100vw;max-width:100vw;margin:auto 0 0;border-radius:14px 14px 0 0;padding-bottom:calc(18px + env(safe-area-inset-bottom,0px))}}
 /* first-visit setup, best bets, sign-up */
-#setupdlg{border:0;border-radius:18px;padding:20px 22px;background:var(--card);color:var(--tx);width:min(560px,94vw);max-height:88vh;overflow:auto;box-shadow:0 20px 60px rgba(0,0,0,.3)}
-#setupdlg::backdrop{background:rgba(5,10,14,.55)}
-#setupdlg h2{margin:6px 0 4px;font-size:22px;line-height:1.2;letter-spacing:-.02em}
-.su-prog{display:flex;gap:6px;margin-bottom:6px}.su-prog i{flex:1;height:4px;border-radius:4px;background:var(--bd)}.su-prog i.on{background:var(--ac)}
+#setupdlg{border:1px solid var(--bd);border-radius:12px;padding:0;background:var(--card);color:var(--tx);width:min(560px,94vw);max-height:88vh;overflow:auto;display:flex;flex-direction:column;box-shadow:0 18px 50px rgba(4,16,26,.25)}
+#setupdlg::backdrop{background:rgba(5,10,14,.5)}
+.su-top{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;padding:16px 20px 14px;border-bottom:1px solid var(--bd)}
+.su-kicker{margin:0 0 2px;font-size:12.5px;color:var(--mu);font-weight:600}
+#setupdlg h2{margin:0;font-size:20px;line-height:1.25;letter-spacing:-.01em}
+.su-top .iconbtn{width:44px;height:44px;flex:none}
+.su-steps{list-style:none;margin:0;padding:0 20px;display:flex;border-bottom:1px solid var(--bd)}
+.su-steps li{display:flex;align-items:center;gap:8px;flex:1;padding:12px 0;font-size:14px;font-weight:600;color:var(--mu);border-bottom:3px solid transparent;margin-bottom:-1px}
+.su-steps li.cur{color:var(--tx);border-bottom-color:var(--ac)}
+.su-steps li.done{color:var(--tx)}
+.su-n{display:inline-grid;place-items:center;width:24px;height:24px;border-radius:50%;background:var(--s2);font-size:13px;font-weight:700;flex:none}
+.su-steps li.done .su-n,.su-steps li.cur .su-n{background:var(--ac);color:var(--onac)}
+.su-step{padding:16px 20px}
 .su-step[hidden]{display:none}
-.su-fish{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:12px 0 8px}
-.su-tile{min-height:64px;padding:8px 10px;border-radius:16px;border:2px solid var(--bd);background:var(--s2);color:var(--tx);font:700 17px/1.2 var(--sys,system-ui);cursor:pointer}
-.su-tile[aria-pressed="true"]{border-color:var(--ac);background:color-mix(in srgb,var(--ac) 16%,var(--s2))}
-.su-areas{display:grid;gap:8px;margin:12px 0}
-.su-area{display:grid;gap:2px;text-align:left;min-height:56px;padding:10px 14px;border-radius:14px;border:2px solid var(--bd);background:var(--s2);color:var(--tx);font:inherit;cursor:pointer}
-.su-area[aria-pressed="true"]{border-color:var(--ac);background:color-mix(in srgb,var(--ac) 16%,var(--s2))}
-.su-area b{font-size:16px}
-.su-res{list-style:none;margin:12px 0;padding:0;display:grid;gap:8px}
-.su-spot{display:grid;grid-template-columns:48px 1fr;gap:10px;align-items:center;width:100%;min-height:56px;padding:10px 12px;border:0;border-radius:14px;background:var(--s2);color:var(--tx);font:inherit;text-align:left;cursor:pointer}
-.su-spot .sc{font-size:24px;font-weight:800;text-align:center}
-.su-spot .bb-t{display:grid;gap:2px;min-width:0}
-.su-nav{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-top:14px}
-.su-nav .t{min-height:44px}
-@media(max-width:600px){#setupdlg{width:100vw;max-width:100vw;max-height:92vh;margin:auto 0 0;border-radius:18px 18px 0 0;padding-bottom:calc(18px + env(safe-area-inset-bottom,0px))}.su-fish{grid-template-columns:1fr 1fr}}
+.su-q{margin:0 0 2px;font-size:17px;font-weight:700}
+.su-step .note{margin:0 0 12px}
+.su-list{display:grid;gap:6px;margin-bottom:10px}
+.su-opt{display:grid;grid-template-columns:18px minmax(0,1fr) auto;gap:4px 12px;align-items:center;width:100%;min-height:48px;padding:10px 12px;border:1px solid var(--bd);border-radius:8px;background:var(--card);color:var(--tx);font:inherit;text-align:left;cursor:pointer}
+.su-opt:hover{border-color:var(--mu)}
+.su-opt[aria-checked="true"]{border-color:var(--ac);box-shadow:inset 3px 0 0 var(--ac)}
+.su-mark{width:18px;height:18px;border-radius:50%;border:2px solid var(--mu);box-sizing:border-box}
+.su-opt[aria-checked="true"] .su-mark{border-color:var(--ac);background:var(--ac);box-shadow:inset 0 0 0 3px var(--card)}
+.su-name{font-weight:600;overflow-wrap:anywhere}
+.su-grp{font-size:13px;color:var(--mu);text-align:right}
+.su-opt-area{grid-template-columns:18px minmax(0,1fr)}
+.su-opt-area .su-grp{grid-column:2;text-align:left}
+.su-loc{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:8px}
+.su-loc .note{margin:0}
+.su-res{list-style:none;margin:8px 0 0;padding:0;border-top:1px solid var(--bd)}
+.su-res li{border-bottom:1px solid var(--bd)}
+.su-row{display:grid;grid-template-columns:56px minmax(0,1fr);gap:12px;align-items:center;width:100%;min-height:60px;padding:10px 4px;border:0;background:transparent;color:var(--tx);font:inherit;text-align:left;cursor:pointer}
+.su-row:hover{background:var(--s2)}
+.su-sc{font-size:24px;font-weight:800;text-align:center;font-variant-numeric:tabular-nums}
+.su-txt{display:grid;gap:2px;min-width:0}
+.su-txt b{font-weight:600;overflow-wrap:anywhere}
+.su-nav{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;padding:14px 20px;border-top:1px solid var(--bd);margin-top:auto}
+.su-btns{display:flex;gap:8px;flex-wrap:wrap}
+@media(max-width:600px){#setupdlg{width:100vw;max-width:100vw;max-height:94vh;margin:auto 0 0;border-radius:14px 14px 0 0;border-left:0;border-right:0;padding-bottom:env(safe-area-inset-bottom,0px)}}
 .bb-h{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap}
 .bb-h h3{margin:0}
 .bb-list{list-style:none;margin:12px 0 0;padding:0;display:grid;gap:8px}
@@ -2485,17 +2504,18 @@ function renderBestBets(){
 function drawSetup(){
  const d=$("setupdlg");if(!d)return;
  document.querySelectorAll("#setupdlg .su-step").forEach(x=>x.hidden=+x.dataset.step!==SU.step);
- $("suprog").innerHTML=[1,2,3].map(n=>`<i class="${n<=SU.step?"on":""}"></i>`).join("");
+ $("suprog").innerHTML=["Fish","Launch area","Top spots"].map((t,i)=>`<li class="${i+1<SU.step?"done":i+1===SU.step?"cur":""}"${i+1===SU.step?' aria-current="step"':""}><span class="su-n">${i+1}</span>${t}</li>`).join("");
  const keys=SU.more?Object.keys(SP):SU_FISH.filter(k=>SP[k]);
- $("sufish").innerHTML=keys.map(k=>`<button type="button" class="su-tile" data-fish="${k}" aria-pressed="${k===SU.fish}">${esc(SP[k].name)}</button>`).join("");
- $("sumore").textContent=SU.more?"Fewer fish":"More fish";
- $("suareas").innerHTML=AREAS.map(a=>`<button type="button" class="su-area" data-area="${a.k}" aria-pressed="${a.k===SU.area}"><b>${esc(a.n)}</b><span class="note">${esc(a.sub)}</span></button>`).join("");
+ $("sufish").innerHTML=keys.map(k=>{const g=(SP_GROUPS.find(x=>x[0]===spGroup(k))||[])[1]||"";
+  return`<button type="button" class="su-opt" role="radio" aria-checked="${k===SU.fish}" data-fish="${k}"><span class="su-mark" aria-hidden="true"></span><span class="su-name">${esc(SP[k].name)}</span><span class="su-grp">${esc(g)}</span></button>`}).join("");
+ $("sumore").textContent=SU.more?"Show fewer fish":"Show all fish";
+ $("suareas").innerHTML=AREAS.map(a=>`<button type="button" class="su-opt su-opt-area" role="radio" aria-checked="${a.k===SU.area}" data-area="${a.k}"><span class="su-mark" aria-hidden="true"></span><span class="su-name">${esc(a.n)}</span><span class="su-grp">${esc(a.sub)}</span></button>`).join("");
  $("suback").hidden=SU.step===1;$("sunext").hidden=SU.step===3;$("sugo").hidden=SU.step!==3;
  if(SU.step===3){
   const list=bestCandidates(SU.fish,SU.area,3),a=AREAS.find(x=>x.k===SU.area);
   $("suresub").textContent=`${SP[SU.fish].name} · ${a?a.n:"all launch areas"}`;
   $("sures").innerHTML=list.map(({x,v,reason})=>{const w=windowTxt(x,SU.fish);
-   return`<li><button type="button" class="su-spot" data-id="${esc(x.id)}"><span class="sc" style="color:${col(v)}">${v}</span><span class="bb-t"><b>${esc(x.name)}</b><span class="note">${esc(reason||lab(v))}${w?` · best ${esc(w)}`:""}</span></span></button></li>`}).join("");
+   return`<li><button type="button" class="su-row" data-id="${esc(x.id)}"><span class="su-sc" style="color:${col(v)}">${v}</span><span class="su-txt"><b>${esc(x.name)}</b><span class="note">${esc(reason||lab(v))}${w?` · best ${esc(w)}`:""}</span></span></button></li>`}).join("");
   $("sunores").hidden=list.length>0;
  }
 }
@@ -2528,6 +2548,7 @@ function wireSetup(){
   $("sumore").onclick=()=>{SU.more=!SU.more;drawSetup()};
   $("suareas").onclick=e=>{const b=e.target.closest("[data-area]");if(!b)return;SU.area=b.dataset.area;drawSetup()};
   $("suskip").onclick=()=>finishSetup(false);
+  $("suskip2").onclick=()=>finishSetup(false);
   $("suback").onclick=()=>{SU.step=Math.max(1,SU.step-1);drawSetup()};
   $("sunext").onclick=()=>{SU.step=Math.min(3,SU.step+1);if(SU.step===2&&!SU.area)SU.area=null;drawSetup()};
   $("sugo").onclick=()=>finishSetup(true);
@@ -3427,7 +3448,7 @@ function drawAppear(){const t=themePref();document.querySelectorAll("#appear [da
 function toggleAppear(show){const m=$("appear"),b=$("themebtn");if(!m)return;const open=show??m.hidden;
  if(open){drawAppear();const r=b.getBoundingClientRect();m.style.top=(r.bottom+8)+"px";m.style.right=Math.max(8,innerWidth-r.right)+"px"}
  m.hidden=!open;b.setAttribute("aria-expanded",open);if(open)(m.querySelector("[data-theme-v].on")||m.querySelector("button")).focus()}
-function themePref(){try{const t=localStorage.getItem("oc-theme");return t==="light"||t==="dark"?t:"auto"}catch(e){return"auto"}}
+function themePref(){try{const t=localStorage.getItem("oc-theme");return t==="light"||t==="dark"||t==="auto"?t:"light"}catch(e){return"light"}}
 function applyTheme(t){
  const r=document.documentElement;if(!r||!r.dataset)return;if(t==="auto")delete r.dataset.theme;else r.dataset.theme=t;
  const dark=t==="dark"||(t==="auto"&&!(window.matchMedia&&matchMedia("(prefers-color-scheme: light)").matches));
@@ -3438,7 +3459,7 @@ function initTheme(){
  applyTheme(themePref());
  // The theme button opens a small Appearance menu: theme, plus boat mode (bigger, higher contrast)
  const b=$("themebtn");if(b){b.setAttribute("aria-haspopup","true");b.setAttribute("aria-expanded","false");b.onclick=e=>{e.stopPropagation();toggleAppear()}}
- const m=$("appear");if(m){m.onclick=e=>{const t=e.target.closest("[data-theme-v]");if(t){const n=t.dataset.themeV;try{if(n==="auto")localStorage.removeItem("oc-theme");else localStorage.setItem("oc-theme",n)}catch(x){}applyTheme(n);drawAppear()}};
+ const m=$("appear");if(m){m.onclick=e=>{const t=e.target.closest("[data-theme-v]");if(t){const n=t.dataset.themeV;try{localStorage.setItem("oc-theme",n)}catch(x){}applyTheme(n);drawAppear()}};
   $("boatchk").onchange=e=>{setBoatMode(e.target.checked)}}
  document.addEventListener("click",e=>{const m=$("appear");if(m&&!m.hidden&&!e.target.closest("#appear"))toggleAppear(false)});
  document.addEventListener("keydown",e=>{if(e.key==="Escape"&&$("appear")&&!$("appear").hidden){toggleAppear(false);$("themebtn").focus()}});
@@ -3612,30 +3633,30 @@ $("install").onclick=()=>{if(ip){ip.prompt();ip=null;$("install").hidden=true}};
  <div id="splist"></div>
 </dialog>
 <dialog id="setupdlg" aria-labelledby="setupt">
- <div class="su-prog" id="suprog" aria-hidden="true"></div>
+ <header class="su-top"><div><p class="su-kicker">Setup</p><h2 id="setupt">Set up OceanCast</h2></div><button type="button" class="iconbtn" id="suskip2" aria-label="Close setup" title="Close">&#10005;</button></header>
+ <ol class="su-steps" id="suprog" aria-label="Setup progress"></ol>
  <section class="su-step" data-step="1">
-  <h2 id="setupt">What do you fish for most?</h2>
+  <h3 class="su-q">Which fish do you target most?</h3>
   <p class="note">Pick one to start with. You can change it any time.</p>
-  <div class="su-fish" id="sufish"></div>
-  <button type="button" class="linkbtn" id="sumore">More fish</button>
+  <div class="su-list" id="sufish" role="radiogroup" aria-label="Fish"></div>
+  <button type="button" class="linkbtn" id="sumore">Show all fish</button>
  </section>
  <section class="su-step" data-step="2" hidden>
-  <h2>Where do you launch?</h2>
-  <p class="note">We'll show the best spots near you.</p>
-  <div class="su-areas" id="suareas"></div>
-  <button type="button" class="t" id="suloc">Use my location</button>
-  <p class="note" id="sulocmsg" role="status"></p>
+  <h3 class="su-q">Where do you launch from?</h3>
+  <p class="note">We'll rank the spots in the area you pick.</p>
+  <div class="su-list" id="suareas" role="radiogroup" aria-label="Launch area"></div>
+  <div class="su-loc"><button type="button" class="t" id="suloc">Use my location</button><p class="note" id="sulocmsg" role="status"></p></div>
  </section>
  <section class="su-step" data-step="3" hidden>
-  <h2>Your top spots today</h2>
+  <h3 class="su-q">Top spots today</h3>
   <p class="note" id="suresub"></p>
   <ol class="su-res" id="sures"></ol>
   <p class="note" id="sunores" hidden>No spots have enough data for this fish and area right now. Go back and try another area.</p>
  </section>
- <div class="su-nav">
+ <footer class="su-nav">
   <button type="button" class="t" id="suskip">Skip for now</button>
-  <span><button type="button" class="t" id="suback" hidden>Back</button> <button type="button" class="t on" id="sunext">Next</button> <button type="button" class="t on" id="sugo" hidden>Start on the map</button></span>
- </div>
+  <span class="su-btns"><button type="button" class="t" id="suback" hidden>Back</button><button type="button" class="t on" id="sunext">Next</button><button type="button" class="t on" id="sugo" hidden>Start on the map</button></span>
+ </footer>
 </dialog>
 <dialog id="alertdlg" aria-labelledby="alertt">
  <div class="sph"><h3 id="alertt">My alerts</h3><button type="button" class="t" id="alertclose" aria-label="Close">✕</button></div>

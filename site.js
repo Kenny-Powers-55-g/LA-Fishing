@@ -9,8 +9,8 @@
   try { if (self !== top) { root.style.display = "none"; top.location = self.location; } } catch (e) {}
 
   function pref() {
-    try { var t = localStorage.getItem("oc-theme"); return t === "light" || t === "dark" ? t : "auto"; }
-    catch (e) { return "auto"; }
+    try { var t = localStorage.getItem("oc-theme"); return t === "light" || t === "dark" || t === "auto" ? t : "light"; }
+    catch (e) { return "light"; }
   }
   function isDark(t) {
     return t === "dark" || (t === "auto" && !(window.matchMedia && matchMedia("(prefers-color-scheme: light)").matches));
@@ -43,7 +43,7 @@
       draw();
       btn.addEventListener("click", function () {
         var n = NEXT[pref()];
-        try { if (n === "auto") localStorage.removeItem("oc-theme"); else localStorage.setItem("oc-theme", n); } catch (e) {}
+        try { localStorage.setItem("oc-theme", n); } catch (e) {}
         apply(n); draw();
       });
     }
