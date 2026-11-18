@@ -1,12 +1,12 @@
 // Caches the app so it opens offline. Data files and the page are network-first with the
 // saved copy as backup; on a weak connection the saved copy is used after a few seconds.
 // The map library and fonts are cached the first time they load.
-const V = "la-fishing-v40";
+const V = "la-fishing-v39";
 const CDN_CACHE = "la-fishing-cdn-v2";          // kept across app versions
 const TILE_CACHE = "la-fishing-tiles";          // map areas saved for offline (kept too)
 const TILE_RE = /^https:\/\/(gis\.charttools\.noaa\.gov|gis\.ngdc\.noaa\.gov)\/.*(\/tile\/|exportImage)/;
-const ASSETS = ["./", "index.html", "map.html", "about.html", "contact.html", "terms.html", "privacy.html", "site.css", "site.js", "forward.js", "board.js", "logo-on-dark.png", "topo-header.svg", "topo-band.svg", "topo-hero.svg", "config.js", "manifest.webmanifest", "icon-192.png", "icon-512.png", "favicon.svg", "apple-touch-icon.png"];
-const DATA_RE = /\/(latest|forecast|status|history|scores-daily|board|ocean|rigs|reefs|tropical|deadzone)\.json$/;
+const ASSETS = ["./", "index.html", "map.html", "about.html", "contact.html", "terms.html", "privacy.html", "site.css", "site.js", "forward.js", "config.js", "manifest.webmanifest", "icon-192.png", "icon-512.png", "favicon.svg", "apple-touch-icon.png"];
+const DATA_RE = /\/(latest|forecast|status|history|scores-daily|ocean|rigs|reefs|tropical|deadzone)\.json$/;
 const CDN_RE = /^https:\/\/(cdnjs\.cloudflare\.com|fonts\.googleapis\.com|fonts\.gstatic\.com|cdn\.jsdelivr\.net\/npm\/@supabase)\//;
 const SLOW_MS = 4000;                            // give up waiting on the network after this
 
