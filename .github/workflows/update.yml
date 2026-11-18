@@ -85,7 +85,7 @@ jobs:
       - name: Collect the site files
         run: |
           mkdir site
-          cp index.html map.html about.html contact.html terms.html privacy.html site.css site.js forward.js sitemap.xml robots.txt og-image.png config.js latest.json forecast.json manifest.webmanifest sw.js site/
+          cp index.html map.html about.html contact.html terms.html privacy.html site.css site.js forward.js sitemap.xml robots.txt og-image.png hero.jpg config.js latest.json forecast.json manifest.webmanifest sw.js site/
           for f in icon-192.png icon-512.png favicon.svg apple-touch-icon.png status.json history.json scores-daily.json ocean.json rigs.json reefs.json tropical.json deadzone.json alerts_state.json; do
             [ -f "$f" ] && cp "$f" site/ || true
           done
