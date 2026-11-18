@@ -245,7 +245,7 @@ select,input,textarea{accent-color:var(--ac)}
 .tabs{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;margin:0 -16px 12px;padding:2px 16px 6px;scroll-snap-type:x proximity}
 .tabs::-webkit-scrollbar{display:none}
 .tabs button.t{flex:none;scroll-snap-align:start;min-height:38px;padding:6px 14px}
-.tabs .note{width:auto!important;flex:none;align-self:center;margin:0 2px 0 6px!important;text-transform:uppercase;font-size:10.5px;letter-spacing:.09em;font-weight:700}
+.tabs .note{width:auto!important;flex:none;align-self:center;margin:0 2px 0 6px!important;text-transform:none;font-size:10.5px;letter-spacing:0;font-weight:700}
 /* best-right-now: swipeable cards */
 #top{flex-wrap:nowrap!important;overflow-x:auto;scrollbar-width:none;padding-bottom:4px}
 #top::-webkit-scrollbar{display:none}
@@ -282,7 +282,7 @@ section.card:has(.panel-tabs){padding:8px;background:transparent;border:0}
 .lp-head{display:flex;justify-content:space-between;align-items:center}
 .lp-head b{font-size:15px}
 .lp-head .t{min-height:32px;padding:2px 10px}
-.mapbar>label{display:grid;gap:4px;color:var(--mu);font-size:12px;text-transform:uppercase;letter-spacing:.06em;font-weight:700}
+.mapbar>label{display:grid;gap:4px;color:var(--mu);font-size:12px;text-transform:none;letter-spacing:0;font-weight:700}
 .mapbar select{width:100%;background:var(--s2);border:1px solid var(--bd);border-radius:10px;padding:8px 10px;font-size:14px;text-transform:none;letter-spacing:0;font-weight:500;color:var(--tx)}
 .overlays{display:grid;grid-template-columns:1fr 1fr;gap:6px}
 .overlays label{padding:8px 10px;border-radius:10px;background:var(--s2);border:1px solid var(--bd);white-space:normal;font-weight:500;line-height:1.25}
@@ -423,18 +423,18 @@ body.nomap #mapcard{display:none!important}
 .sppick .ic{width:40px;height:40px;border-radius:12px;display:grid;place-items:center;background:color-mix(in srgb,var(--ac) 18%,transparent);color:var(--ac);flex:none}
 .sppick .ic svg{width:24px;height:24px}
 .sppick .tx{flex:1;min-width:0}
-.sppick .lbl{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--mu);font-weight:700}
+.sppick .lbl{font-size:11px;text-transform:none;letter-spacing:0;color:var(--mu);font-weight:700}
 .sppick .nm{display:block;font-size:19px;font-weight:800;letter-spacing:-.01em}
 .sppick .bst{display:block;font-size:12.5px;color:var(--mu);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .sppick .chev{font-size:13px;color:var(--ac);font-weight:700;white-space:nowrap}
-.tabs .qlbl{font-size:10.5px;text-transform:uppercase;letter-spacing:.09em;font-weight:700;color:var(--mu);align-self:center;flex:none;margin-right:2px}
+.tabs .qlbl{font-size:10.5px;text-transform:none;letter-spacing:0;font-weight:700;color:var(--mu);align-self:center;flex:none;margin-right:2px}
 #spdlg{border:1px solid var(--bd);border-radius:20px;padding:16px;background:var(--card);color:var(--tx);width:min(680px,94vw);max-height:86vh;
  box-shadow:0 24px 64px rgba(0,0,0,.5);overflow:auto}
 #spdlg::backdrop{background:rgba(5,10,14,.55);backdrop-filter:blur(2px)}
 .sph{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
 .sph h3{font-size:18px;margin:0}
 #spsearch{width:100%;padding:11px 14px;border-radius:12px;border:1px solid var(--bd);background:var(--s2);color:var(--tx);font:inherit;font-size:16px;margin-bottom:12px}
-.spgrp{margin:12px 0 6px;font-size:11px;text-transform:uppercase;letter-spacing:.09em;font-weight:700;color:var(--mu)}
+.spgrp{margin:12px 0 6px;font-size:11px;text-transform:none;letter-spacing:0;font-weight:700;color:var(--mu)}
 .spgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:8px}
 .spitem{display:flex;align-items:center;gap:10px;text-align:left;padding:10px 12px;border-radius:12px;border:1px solid var(--bd);background:var(--s2);color:var(--tx);font:inherit;cursor:pointer;min-height:56px}
 .spitem:hover,.spitem:focus-visible{border-color:var(--ac);outline:none}
@@ -491,7 +491,7 @@ body.nomap #mapcard{display:none!important}
 #friendsbody .fhead{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:8px;font-size:16px}
 #friendsbody .fhead .t{font-size:13px;padding:4px 12px}
 #friendsbody .fcols{display:grid;grid-template-columns:1fr 1fr;gap:14px}
-#friendsbody h5{margin:0 0 6px;font-size:12px;text-transform:uppercase;letter-spacing:.04em;color:var(--mu)}
+#friendsbody h5{margin:0 0 6px;font-size:12px;text-transform:none;letter-spacing:0;color:var(--mu)}
 #friendsbody .fcols .t{font-size:13px;padding:3px 10px;margin-left:4px}
 #friendsbody details.fcl{margin-top:6px}#friendsbody details.fcl>summary{cursor:pointer}
 #friendsbody details.fdefaults{margin-top:16px;border-top:1px solid var(--bd);padding-top:12px}
@@ -509,11 +509,11 @@ body.nomap #mapcard{display:none!important}
 @media(prefers-color-scheme:light){:root:not([data-theme="dark"]){--lift:rgba(15,40,55,.10)}}
 section.card:has(.panel-tabs){box-shadow:none}
 h3{letter-spacing:-.015em}
-h3.dh{margin:18px 0 8px;font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--mu);font-weight:700}
+h3.dh{margin:18px 0 8px;font-size:12px;text-transform:none;letter-spacing:0;color:var(--mu);font-weight:700}
 /* landing for first-time visitors */
 #welcome{padding:22px 20px;border-color:color-mix(in srgb,var(--ac) 40%,var(--bd));background:linear-gradient(150deg,color-mix(in srgb,var(--ac) 13%,var(--card)),var(--card) 55%)}
 #welcome[hidden]{display:none}
-.w-eyebrow{font-size:11.5px;text-transform:uppercase;letter-spacing:.1em;font-weight:700;color:var(--ac);margin-bottom:6px}
+.w-eyebrow{font-size:11.5px;text-transform:none;letter-spacing:0;font-weight:700;color:var(--ac);margin-bottom:6px}
 #welcome h2{margin:0 0 8px;font-size:clamp(22px,5.4vw,26px);line-height:1.15;letter-spacing:-.025em;font-weight:800}
 #welcome p{margin:0 0 14px;font-size:14.5px;color:var(--mu)}
 .w-feats{list-style:none;margin:0 0 16px;padding:0;display:grid;gap:12px}
@@ -946,7 +946,7 @@ select option,select optgroup{background-color:var(--card);color:var(--tx)}
 .mapbar .overlays{display:grid;grid-template-columns:1fr;gap:14px;width:100%}
 .mapbar .overlays[hidden]{display:none}
 .lyr-g{display:grid;gap:6px}
-.lyr-g h4{margin:0;font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--mu);font-weight:700}
+.lyr-g h4{margin:0;font-size:12px;letter-spacing:0;text-transform:none;color:var(--mu);font-weight:700}
 .lyr{display:grid;grid-template-columns:1fr 44px;align-items:center;gap:0 4px}
 .lyr .lyr-x{grid-column:1/-1;margin:4px 2px 2px;font-size:13px;line-height:1.4;color:var(--mu)}
 .lyr-i{width:44px;height:44px;border:0;background:transparent;color:var(--mu);cursor:pointer;display:grid;place-items:center;font:italic 700 14px Georgia,serif;position:relative}
@@ -1023,9 +1023,9 @@ select option,select optgroup{background-color:var(--card);color:var(--tx)}
  <h2>Know where the fish are biting before you launch.</h2>
  <p>OceanCast turns live tide, wind, water temperature and clarity readings into a simple 0 to 100 score for each spot and each kind of fish. Free, and no account needed.</p>
  <ul class="w-feats">
-  <li><span class="w-ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19V10M10 19V5M16 19v-7M21 19H3" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></span><div><b><span id="wspots">27</span> spots, <span id="wspecies">20</span> kinds of fish</b><span>Scores update every hour, with the best time window for the next 7 days.</span></div></li>
-  <li><span class="w-ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 2 8l10 5 10-5-10-5zm-10 9 10 5 10-5M2 16l10 5 10-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg></span><div><b>A real fishing map</b><span>Nautical charts, depths, rigs, reefs, live radar, sea temperature and water color.</span></div></li>
-  <li><span class="w-ic"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M2.5 20c1-3.5 3.5-5 6.5-5s5.5 1.5 6.5 5M16 5a3.5 3.5 0 0 1 0 6.5M18.5 15c1.8.7 2.7 2.2 3 5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></span><div><b>Your spots, catches and friends</b><span>Save your own pins, log catches, and share them only with the friends you choose.</span></div></li>
+  <li><div><b><span id="wspots">27</span> spots, <span id="wspecies">20</span> kinds of fish</b><span>Scores update every hour, with the best time window for the next 7 days.</span></div></li>
+  <li><div><b>A real fishing map</b><span>Nautical charts, depths, rigs, reefs, live radar, sea temperature and water color.</span></div></li>
+  <li><div><b>Your spots, catches and friends</b><span>Save your own pins, log catches, and share them only with the friends you choose.</span></div></li>
  </ul>
  <div class="w-actions"><button type="button" class="t" id="welcomeok">Start exploring</button><span class="note">Tap any spot or map pin for the details.</span></div></section>
  <div id="skeleton" class="card" style="grid-column:1/-1" aria-busy="true" aria-label="Loading the latest scores">
