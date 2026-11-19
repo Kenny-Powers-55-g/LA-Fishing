@@ -3,7 +3,7 @@
 <!-- Security policy: which sites this page may load scripts, data and images from. The sha256 values
      are the inline scripts' fingerprints; scripts/csp.js updates them (the deploy does it automatically).
      Using a Supabase custom domain instead of *.supabase.co? Add it to connect-src. -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-ap5MSQrXWR0reWT9leoroLT0xlM5zuuNBvia3r/cTEw=' 'sha256-BUloDxNmpJhZkj9OTfvB8mrbAbyvsft7IVxL0qdkW14=' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https://*.noaa.gov https://gibs.earthdata.nasa.gov https://tile.openstreetmap.org https://cdnjs.cloudflare.com; connect-src 'self' https://kenny-powers-55-g.github.io https://*.noaa.gov https://gibs.earthdata.nasa.gov https://tile.openstreetmap.org https://api.open-meteo.com https://*.supabase.co wss://*.supabase.co https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://fonts.googleapis.com https://fonts.gstatic.com; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-src 'none'; upgrade-insecure-requests">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-ap5MSQrXWR0reWT9leoroLT0xlM5zuuNBvia3r/cTEw=' 'sha256-04CCBj9LsCsAR1fmPeTDu9gUBZ4mx0dybmIsRNdrYdQ=' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https://*.noaa.gov https://gibs.earthdata.nasa.gov https://tile.openstreetmap.org https://cdnjs.cloudflare.com; connect-src 'self' https://kenny-powers-55-g.github.io https://*.noaa.gov https://gibs.earthdata.nasa.gov https://tile.openstreetmap.org https://api.open-meteo.com https://*.supabase.co wss://*.supabase.co https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://fonts.googleapis.com https://fonts.gstatic.com; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-src 'none'; upgrade-insecure-requests">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -956,6 +956,33 @@ select option,select optgroup{background-color:var(--card);color:var(--tx)}
 .appbar .brand{min-height:44px;align-items:center}
 @media(max-width:600px){#detail .t,#detail .linkbtn,#panel-fish .t,#panel-log .t,#panel-friends .t,.fnav .aboutlink,.mapbar .t,#alertdlg .t,#howdlg .t,#detail .share-row .t,.fnav a{min-height:44px}
  #detail a,#detail .linkbtn,.marinefc a,.fnav a{display:inline-block;padding:8px 0;margin:-8px 0}}
+
+/* ---- Map clean-up: no sideways scrolling, amber dropdown arrows, calmer header and spot list ---- */
+.tabs{flex-wrap:wrap;overflow:visible;margin:0 0 12px;padding:0;scroll-snap-type:none}
+.tabs button.t{flex:0 0 auto;scroll-snap-align:none}
+#top{flex-wrap:wrap!important;overflow:visible!important}
+.cmp{width:100%;table-layout:fixed}
+.cmp th,.cmp td{overflow-wrap:anywhere;vertical-align:top}
+.cmp select{width:100%;max-width:100%}
+#compare>div{overflow:visible!important}
+.cmp select{font-size:12.5px;padding-left:8px!important;min-width:0;width:100%;box-sizing:border-box}
+.cmp th,.cmp td{min-width:0}
+.cmp th,.cmp td{padding-left:4px;padding-right:4px}
+table.scal{width:100%;table-layout:fixed;font-size:12px}
+table.scal th,table.scal td{padding:4px 2px;overflow-wrap:anywhere;text-align:center}
+table.scal td.note{font-size:11px}
+select:not(#basesel){appearance:none;-webkit-appearance:none;padding-right:34px!important;background-color:var(--card);background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M6 9l6 6 6-6' fill='none' stroke='%23F59E0B' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center;background-size:16px 16px;max-width:100%}
+.hdr-actions{gap:6px}
+.appbar .hdr-actions .t{min-height:40px;border-radius:999px;background:var(--fill);border:1px solid var(--hair);color:var(--tx)}
+.rank{display:grid;grid-template-columns:52px minmax(0,1fr) 36px;align-items:center;gap:10px;padding:10px 8px 10px 10px;background:var(--s2)}
+.rank.on{outline:none;border-color:var(--ac);background:color-mix(in srgb,var(--ac) 14%,var(--s2))}
+.rk-sc{font-size:24px;font-weight:800;text-align:center;font-variant-numeric:tabular-nums;line-height:1}
+.rk-sc.na{font-size:13px;font-weight:600;color:var(--mu)}
+.rk-t{display:grid;gap:2px;min-width:0}
+.rk-t b{font-weight:600;overflow-wrap:anywhere}
+.rk-t .note{font-size:13px}
+.rank .fav{justify-self:end;min-width:36px;min-height:36px;border:0;background:transparent;color:var(--mu);font-size:18px;cursor:pointer}
+.rank .fav.on{color:var(--ac)}
 /* footer links */
 .appbar a.brand{color:inherit;text-decoration:none;border-radius:10px}
 .fnav{display:flex;flex-wrap:wrap;gap:2px 16px}
@@ -2575,8 +2602,9 @@ function render(){
   return (b.r.total??-1)-(a.r.total??-1);
  });
  const rankRow=({s,r})=>`<div class="rank ${s.id===sel?"on":""}" data-id="${s.id}" role="button" tabindex="0" aria-current="${s.id===sel}" style="--w:${r.gate?0:r.total}%;--c:${r.gate?"var(--mu)":col(r.total)}">
-  <span><button class="fav ${favs.includes(s.id)?"on":""}" data-fav="${s.id}" title="Pin spot" aria-label="Pin ${esc(s.name)}" aria-pressed="${favs.includes(s.id)}">★</button>${esc(s.name)}${s.user?' <span class="note">(yours)</span>':""}</span>
-  ${r.gate?`<span class="note">n/a</span>`:`<span><b style="color:${col(r.total)}">${r.total}</b> <span class="note">${lab(r.total)}</span></span>`}</div>`;
+  ${r.gate?`<span class="rk-sc na">n/a</span>`:`<span class="rk-sc" style="color:${col(r.total)}">${r.total}</span>`}
+  <span class="rk-t"><b>${esc(s.name)}</b><span class="note">${r.gate?"Not scored for this fish":lab(r.total)}${s.user?" · yours":""}</span></span>
+  <button class="fav ${favs.includes(s.id)?"on":""}" data-fav="${s.id}" title="Pin spot" aria-label="Pin ${esc(s.name)}" aria-pressed="${favs.includes(s.id)}">★</button></div>`;
  // Spots this species can't be scored at fold away; long lists show the best 8 first
  const okL=list.filter(x=>!x.r.gate),naL=list.filter(x=>x.r.gate),CAP=8;
  const shown=RANK_ALL||okL.length<=CAP+2?okL:okL.filter((x,i)=>i<CAP||x.s.id===sel||favs.includes(x.s.id));
