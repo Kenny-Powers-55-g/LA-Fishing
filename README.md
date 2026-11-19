@@ -15,6 +15,10 @@ Live Louisiana fishing conditions and scores, built from public NOAA, USGS and w
 - To add the phone screenshot to the landing page, save it as `phone-map.png` and replace the `<div class="shot">` block
   (the HTML comment in `index.html` shows the exact `<img>`). Add `phone-map.png` to the `cp` list in `.github/workflows/update.yml` and to `ASSETS` in `sw.js`.
 - Weather data from Open-Meteo is used under CC BY 4.0 and its free tier is for non-commercial use: check its terms before charging for the app or showing ads.
+- Wind, gusts, wind direction and waves come from the National Weather Service's gridded forecast (api.weather.gov)
+  wherever it covers a spot: bays, sounds, Lake Pontchartrain and the coastal waters out to about 60 miles. It's official,
+  free and needs no key. Inland lakes get wind only, and spots farther offshore use the Open-Meteo marine model instead.
+  The data job looks up each spot's NWS grid cell once and keeps it in `stations_cache.json`.
 
 ## Accounts (optional)
 

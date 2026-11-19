@@ -101,6 +101,44 @@ class FullRun(unittest.TestCase):
         f = self.forecast["spots"]["barat"]
         self.assertEqual(len(f["wind"]), 168)
 
+    def test_wind_and_waves_forecast(self):
+        f = self.forecast["spots"]["barat"]
+        self.assertEqual(len(f["gust"]), 168)                # Open-Meteo gusts and direction for every spot
+        self.assertEqual(len(f["wdir"]), 168)
+        sea = f["sea"]                                       # NWS grid: wind, gusts, direction, waves
+        self.assertEqual(sea["src"], "nws")
+        self.assertEqual(sea["office"], "LIX")
+        for k in ("wind", "gust", "dir", "wave", "per"):
+            self.assertEqual(len(sea[k]), 168, k)
+        self.assertEqual(sea["wind"][0], 12)                 # 20 km/h -> 12 mph, from a span that began earlier
+        self.assertEqual(sea["wind"][3], 19)                 # 30 km/h -> 19 mph
+        self.assertEqual(sea["gust"][0], 25)
+        self.assertEqual(sea["dir"][0], 45)
+        self.assertEqual(sea["wave"][0], 2.0)                # 0.6096 m -> 2.0 ft
+        self.assertIsNone(sea["wave"][15])                   # the gap stays empty
+        self.assertEqual(sea["wave"][30], 4.0)
+        self.assertIsNone(sea["wave"][120])                  # past the last span
+
+    def test_no_nws_grid_far_offshore(self):
+        f = self.forecast["spots"]["off_deep"]
+        self.assertNotIn("sea", f)                           # beyond the NWS grid: model forecast only
+        self.assertEqual(len(f["wdir"]), 168)
+        self.assertTrue(any(v is not None for v in f["wave"]))
+        with open(ingest.STATION_CACHE) as fh:
+            disk = json.load(fh)
+        self.assertEqual(disk.get("ngrid|off_deep"), [])     # remembered, so it isn't asked again
+        self.assertEqual(disk.get("ngrid|barat"), ["LIX", 70, 60])
+
+    def test_grid_time_spans(self):
+        self.assertEqual(ingest.iso_span("2026-11-19T09:00:00+00:00/PT3H")[1], 3)
+        self.assertEqual(ingest.iso_span("2026-11-19T09:00:00+00:00/P1DT6H")[1], 30)
+        self.assertEqual(ingest.iso_span("2026-11-19T09:00:00+00:00/P2D")[1], 48)
+        self.assertIsNone(ingest.iso_span("nonsense"))
+        start = ingest.parse_iso("2026-11-19T09:00:00+00:00")
+        h = ingest.grid_hourly({"uom": "wmoUnit:furlongs", "values": [{"validTime": "2026-11-19T09:00:00+00:00/PT3H", "value": 1}]},
+                               start, ingest._LEN_TO_FT, hours=6)
+        self.assertEqual(h, [None] * 6)                      # unknown unit: no values rather than wrong ones
+
     def test_visibility_methods(self):
         self.assertEqual(self.spots["atch"]["quality"]["vis_method"], "turbidity gauge")
         self.assertTrue(self.spots["barat"]["quality"]["vis_method"].startswith("satellite"))
