@@ -25,6 +25,7 @@
 <link rel="manifest" href="manifest.webmanifest">
 <script src="forward.js"></script>
 <script src="site.js"></script>
+<script src="board.js" defer></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Russo+One&display=swap">
@@ -40,32 +41,85 @@
 </div>
 </header>
 <main id="main">
-<section class="hero"><div class="hero-photo" aria-hidden="true"><img src="hero.jpg" alt="" width="1600" height="900"></div><div class="wrap hero-grid">
+<section class="hero"><div class="hero-photo" aria-hidden="true"><img src="hero.jpg" alt="" width="1600" height="900"></div>
+<div class="wrap hero-grid">
 <div>
 <p class="resume" id="resume" hidden><a href="map.html" data-cta>Looking for a spot? <b>Open it on the map &rarr;</b></a></p>
 <h1>Know where the bite is before you leave the dock.</h1>
 <p class="lede">Hourly fishing scores for every Louisiana spot, built from NOAA buoys, satellites and tides.</p>
-<div class="cta"><a class="btn" href="map.html" data-cta>Open the map, free</a><p class="fine">No account needed</p></div>
+<div class="cta"><a class="btn" href="map.html" data-cta>Open the map, free</a><p class="fine">No account needed. Works on your phone or computer.</p></div>
 </div>
-<div class="shot-slot">
-<!-- Replace this box with <img src="phone-map.png" alt="The OceanCast map with fishing scores"> when the screenshot is ready. -->
-<p>Map screenshot goes here</p>
+<figure class="demo" id="demo" hidden aria-labelledby="democap">
+<figcaption id="democap" class="demo-cap"><span class="demo-live">Live</span> Top spot right now</figcaption>
+<div class="demo-main">
+<p class="demo-score" id="demoscore" aria-label="Score">--</p>
+<div class="demo-info"><p class="demo-name" id="demoname"></p><p class="demo-fish" id="demofish"></p><p class="demo-band" id="demoband"></p></div>
 </div>
+<p class="demo-why" id="demowhy"></p>
+<p class="demo-up" id="demoup"></p>
+</figure>
 </div></section>
 <section class="sect"><div class="wrap">
-<h2>What it's for</h2>
+<h2>Why anglers use it</h2>
 <ul class="benefits">
-<li><b>Pick a spot faster.</b> Every spot gets a score for the fish you're after, updated every hour.</li>
-<li><b>Skip wasted fuel offshore.</b> See which offshore spots are worth the run before you leave the dock.</li>
-<li><b>Get an alert when your spot turns on.</b> Save your spots and fish. Alerts show inside OceanCast today. Phone notifications arrive with the iPhone app.</li>
+<li><b>Pick a spot faster.</b> Every spot gets a score for the fish you're after, updated every hour, so you can compare the whole coast in one look.</li>
+<li><b>Skip wasted fuel offshore.</b> See which offshore spots look worth the run before you leave the dock.</li>
+<li><b>Get an alert when your spot turns on.</b> Save your spots and fish. Alerts show inside OceanCast today; phone notifications arrive with the iPhone app.</li>
 </ul>
+</div></section>
+<section class="sect sect-alt"><div class="wrap">
+<h2>What's in OceanCast</h2>
+<div class="cols">
+<div><h3>Scores for 39 kinds of fish</h3><p>Redfish, speckled trout, flounder, tarpon, mahi-mahi and more, each scored separately for every spot.</p></div>
+<div><h3>Best time windows</h3><p>The best three-hour window over the next seven days, so you know when to go, not just where.</p></div>
+<div><h3>Nautical charts and depth</h3><p>NOAA charts with soundings, depth shading, and tap-for-depth on the map.</p></div>
+<div><h3>Live radar and tropical storms</h3><p>Rain on radar and active storms from the National Weather Service and National Hurricane Center.</p></div>
+<div><h3>Water temperature and color</h3><p>Satellite views of sea temperature and water color, which show where bait and fish gather.</p></div>
+<div><h3>Your spots, catches and alerts</h3><p>Save spots, log what you catch, and share with the friends you choose.</p></div>
+</div>
 </div></section>
 <section class="sect" id="how"><div class="wrap">
 <h2>How it works</h2>
-<ol class="steps"><li>Choose your fish.</li><li>See the scores for every spot.</li><li>Go fishing.</li></ol>
+<ol class="steps">
+<li><b>Choose your fish.</b> Pick the species you target, or start with a few common ones.</li>
+<li><b>See the scores.</b> Every spot is ranked from current water, wind, tide and moon readings.</li>
+<li><b>Go fishing.</b> Head for the spot that's turning on, then log your catch to learn what works for you.</li>
+</ol>
+</div></section>
+<section class="sect sect-alt" id="score"><div class="wrap">
+<h2>How the score is built</h2>
+<p class="lede-s">A score from 0 to 100 for each spot and each fish. Higher means the conditions match what that fish likes right now.</p>
+<div class="scale" aria-hidden="true"><i class="b1"></i><i class="b2"></i><i class="b3"></i><i class="b4"></i></div>
+<div class="scale-l"><span>Poor 0–34</span><span>Fair 35–54</span><span>Good 55–74</span><span>Excellent 75–100</span></div>
+<dl class="factors">
+<div><dt>Water</dt><dd>Temperature, clarity and salinity, compared with what each fish prefers.</dd></div>
+<div><dt>Wind</dt><dd>Speed and direction, and how they change through the day.</dd></div>
+<div><dt>Tide</dt><dd>Water movement and level, where the data allows.</dd></div>
+<div><dt>Moon</dt><dd>Moon phase and light, which affect when fish feed.</dd></div>
+</dl>
+<p class="fine">Scores are estimates from public data. They are not guarantees that you'll catch fish.</p>
 </div></section>
 <section class="sect"><div class="wrap">
-<p class="fine">Built from public data from NOAA, USGS, the National Weather Service and NASA. OceanCast is an independent project and is not affiliated with or endorsed by these agencies.</p>
+<h2>Where the data comes from</h2>
+<div class="table-wrap"><table class="src">
+<thead><tr><th scope="col">Source</th><th scope="col">What we use it for</th></tr></thead>
+<tbody>
+<tr><th scope="row">NOAA</th><td>Buoys, tide predictions, nautical charts and depth data</td></tr>
+<tr><th scope="row">USGS</th><td>River and bayou gauges, water temperature and flow</td></tr>
+<tr><th scope="row">National Weather Service</th><td>Forecasts, marine zones, radar and warnings</td></tr>
+<tr><th scope="row">NASA</th><td>Satellite sea surface temperature and water color</td></tr>
+<tr><th scope="row">Open-Meteo</th><td>Weather and marine forecast models (CC BY 4.0)</td></tr>
+</tbody></table></div>
+<p class="fine">OceanCast is an independent project. It is not affiliated with or endorsed by these agencies.</p>
+</div></section>
+<section class="sect sect-alt"><div class="wrap">
+<h2>Questions</h2>
+<div class="faq">
+<details><summary>Is it free?</summary><p>Yes. You can use the map and see every score without an account.</p></details>
+<details><summary>How accurate are the scores?</summary><p>They're estimates built from public readings and simple rules. Use them to decide where to start, not as a promise. Your own log will show what works for you.</p></details>
+<details><summary>Is my information private?</summary><p>Your catches and saved spots stay with you. Friends only see what you choose to share with them. See the Privacy page for details.</p></details>
+<details><summary>Can I use it for navigation or safety?</summary><p>No. OceanCast is not for navigation or safety decisions. Check official forecasts and use your own judgment on the water.</p></details>
+</div>
 </div></section>
 </main>
 <footer class="foot"><div class="wrap">
