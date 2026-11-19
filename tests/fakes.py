@@ -60,8 +60,25 @@ def fake_json(url, params=None, tries=3, timeout=15, headers=None):
         n=len(times)
         return {"current":{"time":base.strftime("%Y-%m-%dT%H:%M"),"wind_speed_10m":11,"wind_direction_10m":200,"cloud_cover":40,"surface_pressure":1012.0,"temperature_2m":64},
           "hourly":{"time":[t.strftime("%Y-%m-%dT%H:%M") for t in times],"wind_speed_10m":[8+4*math.sin(i/5) for i in range(n)],
-           "wind_direction_10m":[180]*n,"cloud_cover":[50]*n,"surface_pressure":[1016-i*0.02 for i in range(n)],
+           "wind_direction_10m":[180]*n,"wind_gusts_10m":[14+4*math.sin(i/5) for i in range(n)],"cloud_cover":[50]*n,"surface_pressure":[1016-i*0.02 for i in range(n)],
            "precipitation":[0.0]*n,"temperature_2m":[65+5*math.sin(i/24*6.28) for i in range(n)]}}
+    if "api.weather.gov/points/" in url:
+        bump("nws-points"); lat = float(url.split("/points/")[1].split(",")[0])
+        if lat < 28.0:                                  # beyond the coastal waters: no grid cell
+            return {"properties": {"gridId": None, "gridX": None, "gridY": None}}
+        return {"properties": {"gridId": "LIX", "gridX": 70, "gridY": 60}}
+    if "api.weather.gov/gridpoints/" in url:
+        bump("nws-grid"); t0 = now.replace(minute=0)
+        iso = lambda h: (t0 + timedelta(hours=h)).strftime("%Y-%m-%dT%H:%M:%S+00:00")
+        return {"properties": {
+            "windSpeed": {"uom": "wmoUnit:km_h-1", "values": [{"validTime": f"{iso(-2)}/PT6H", "value": 20.0},
+                                                               {"validTime": f"{iso(4)}/P1DT6H", "value": 30.0},
+                                                               {"validTime": f"{iso(34)}/P6DT12H", "value": 10.0}]},
+            "windGust": {"uom": "wmoUnit:km_h-1", "values": [{"validTime": f"{iso(0)}/P7DT12H", "value": 40.0}]},
+            "windDirection": {"uom": "wmoUnit:degree_(angle)", "values": [{"validTime": f"{iso(0)}/P7DT12H", "value": 45}]},
+            "waveHeight": {"uom": "wmoUnit:m", "values": [{"validTime": f"{iso(0)}/PT12H", "value": 0.6096},
+                                                         {"validTime": f"{iso(24)}/P3D", "value": 1.2192}]},   # gap from h12 to h24
+            "wavePeriod": {"uom": "wmoUnit:s", "values": [{"validTime": f"{iso(0)}/P4D", "value": 4}]}}}
     if "api.weather.gov/zones" in url:
         bump("zones"); lat = float(p["point"].split(",")[0])
         if p["type"] == "coastal" and lat > 28.6:

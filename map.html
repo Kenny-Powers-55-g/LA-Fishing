@@ -3,7 +3,7 @@
 <!-- Security policy: which sites this page may load scripts, data and images from. The sha256 values
      are the inline scripts' fingerprints; scripts/csp.js updates them (the deploy does it automatically).
      Using a Supabase custom domain instead of *.supabase.co? Add it to connect-src. -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-ap5MSQrXWR0reWT9leoroLT0xlM5zuuNBvia3r/cTEw=' 'sha256-CievM5s71lSrNFRmJcMRCYRJqKrbcJuci6vRO7JSNaY=' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https://*.noaa.gov https://gibs.earthdata.nasa.gov https://tile.openstreetmap.org https://cdnjs.cloudflare.com; connect-src 'self' https://kenny-powers-55-g.github.io https://*.noaa.gov https://gibs.earthdata.nasa.gov https://tile.openstreetmap.org https://api.open-meteo.com https://*.supabase.co wss://*.supabase.co https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://fonts.googleapis.com https://fonts.gstatic.com; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-src 'none'; upgrade-insecure-requests">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-ap5MSQrXWR0reWT9leoroLT0xlM5zuuNBvia3r/cTEw=' 'sha256-fn7A4ZumgGaatIbkjLpqVMCcm4UWDyqC0Ym4yRqQ2kU=' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https://*.noaa.gov https://gibs.earthdata.nasa.gov https://tile.openstreetmap.org https://cdnjs.cloudflare.com; connect-src 'self' https://kenny-powers-55-g.github.io https://*.noaa.gov https://gibs.earthdata.nasa.gov https://tile.openstreetmap.org https://api.open-meteo.com https://*.supabase.co wss://*.supabase.co https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://fonts.googleapis.com https://fonts.gstatic.com; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-src 'none'; upgrade-insecure-requests">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -813,7 +813,7 @@ html.boat .note{color:var(--mu)}
 .dcard>summary b{font-size:17px;font-weight:600;letter-spacing:-.015em}
 .dcard[open]>summary{margin-bottom:12px}
 .dcard[hidden]{display:none}
-#compare>h3,#seastate h3{display:none}
+#compare>h3{display:none}
 .more7>summary{cursor:pointer;color:var(--ac);font-size:15px;min-height:40px;display:flex;align-items:center;list-style:none}
 .more7>summary::-webkit-details-marker{display:none}
 .more7[open]>summary{display:none}
@@ -968,6 +968,79 @@ select option,select optgroup{background-color:var(--card);color:var(--tx)}
 .dcard[open]>summary::after{top:10px!important}
 :root[data-theme="dark"] .dcard>summary::after,:root[data-theme="dark"] .dsec>summary::after{border-color:#F59E0B!important}
 @media(prefers-color-scheme:dark){:root:not([data-theme]) .dcard>summary::after,:root:not([data-theme]) .dsec>summary::after{border-color:#F59E0B!important}}
+/* ---- Wind and waves ---- */
+.ww{margin:18px 0 6px;padding-top:16px;border-top:1px solid var(--bd)}
+.ww[hidden]{display:none}
+.ww-top{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px 12px;margin-bottom:6px}
+.ww-top h3{margin:0;font-size:18px}
+.ww-ctl{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.ww-unit{display:inline-flex;border-radius:10px;background:var(--fill);padding:2px}
+.ww-unit button{min-height:40px;min-width:48px;border:0;background:transparent;color:var(--tx);font:600 14px var(--sys,system-ui);border-radius:8px;cursor:pointer}
+.ww-unit button[aria-pressed="true"]{background:var(--card);box-shadow:0 1px 4px rgba(0,0,0,.18)}
+.ww-ctl select{min-height:40px;max-width:100%}
+.ww-line{margin:6px 0;font-size:15.5px;line-height:1.45}
+.ww-line b{margin-right:4px}
+.ww-stretch{margin:8px 0 4px}
+.ww-b{display:inline-block;padding:2px 8px;border-radius:99px;font-size:12px;font-weight:700;line-height:1.4;color:#fff;white-space:nowrap}
+.ww-b.l2{background:#2E7D32}.ww-b.l1{background:#F59E0B;color:#1c1200}.ww-b.l0{background:#C8423B}
+.wa{width:16px;height:16px;vertical-align:-3px;flex:none;color:var(--tx)}
+.ww-days{list-style:none;margin:10px 0 0;padding:0;border-top:1px solid var(--bd)}
+.ww-day{border-bottom:1px solid var(--bd)}
+.ww-dh{display:grid;grid-template-columns:64px minmax(0,1fr) auto 18px;gap:8px;align-items:center;width:100%;min-height:54px;padding:8px 2px;border:0;background:transparent;color:var(--tx);font:inherit;text-align:left;cursor:pointer}
+.ww-dn{display:grid;gap:3px;font-weight:700;font-size:15px}
+.ww-dn .ww-b{justify-self:start;font-size:11px;padding:1px 7px}
+.ww-dw{min-width:0;font-size:14.5px;overflow-wrap:anywhere}
+.ww-dw small,.ww-h small{color:var(--mu);font-size:12.5px}
+.ww-dv{font-size:14.5px;font-weight:600;white-space:nowrap}
+.ww-chev{width:18px;height:18px;color:#D97706;transition:transform .18s}
+.ww-dh[aria-expanded="true"] .ww-chev{transform:rotate(180deg)}
+.ww-hours{padding:0 0 10px}
+.ww-hours[hidden]{display:none}
+.ww-h{display:grid;grid-template-columns:52px 62px minmax(0,1fr) auto;gap:6px;align-items:center;padding:6px 4px 6px 8px;font-size:14px;border-left:3px solid transparent}
+.ww-h.l2{border-left-color:#2E7D32}.ww-h.l1{border-left-color:#F59E0B}.ww-h.l0{border-left-color:#C8423B}
+.ww-h.night{color:var(--mu)}
+.ww-hh{font-size:12px;color:var(--mu);font-weight:600;border-left-color:transparent!important}
+.ww-chart{margin-top:14px}
+.ww-chart svg{width:100%;height:auto;display:block}
+.ww-t{font-size:12px;fill:var(--mu)}
+.ww-grid{stroke:var(--bd);stroke-width:1}
+.ww-go{fill:#2E7D32;opacity:.12}.ww-nogo{fill:#C8423B;opacity:.1}
+.ww-gust{fill:#2a6fb8;opacity:.18}
+.ww-wind{fill:none;stroke:#2a6fb8;stroke-width:2.4}
+.ww-wave{fill:none;stroke:#D97706;stroke-width:2.6}
+.ww-nowl{stroke:var(--tx);stroke-width:1.2;stroke-dasharray:4 3}
+:root[data-theme="dark"] .ww-wind{stroke:#7fb8ff}:root[data-theme="dark"] .ww-gust{fill:#7fb8ff}
+.ww-legend{display:flex;flex-wrap:wrap;gap:4px 14px;margin:6px 0 0}
+.ww-legend i{display:inline-block;width:14px;height:4px;border-radius:2px;margin-right:6px;vertical-align:middle}
+.lg-w{background:#2a6fb8}.lg-g{background:#2a6fb8;opacity:.35;height:10px!important}.lg-h{background:#D97706}.lg-go{background:#2E7D32;opacity:.35;height:10px!important}.lg-ng{background:#C8423B;opacity:.3;height:10px!important}
+.ww-src{margin:8px 0 0}
+@media(prefers-reduced-motion:reduce){.ww-chev{transition:none}}
+/* ---- Wind forecast map layer ---- */
+.wpin span{background:var(--wc,#5d6b73)!important;color:#fff;gap:3px;padding:0 8px 0 6px}
+.wpin span b{font-weight:800}
+.wpin span .wa{width:15px;height:15px;color:#fff;vertical-align:0}
+.wpin.w0{--wc:#1f8a7a}.wpin.w1{--wc:#2a6fb8}.wpin.w2{--wc:#C77700}.wpin.w3{--wc:#C8423B}.wpin.wn{--wc:#5d6b73}
+.windbar{position:absolute;left:12px;right:12px;bottom:24px;z-index:1001;max-width:560px;margin:0 auto;display:grid;grid-template-columns:44px minmax(0,1fr) 44px;gap:6px 8px;align-items:center;
+ padding:8px 10px;border-radius:14px;background:var(--glass);border:.5px solid var(--hair);box-shadow:0 6px 18px var(--shadow,rgba(0,0,0,.2));
+ -webkit-backdrop-filter:saturate(180%) blur(20px);backdrop-filter:saturate(180%) blur(20px)}
+.windbar[hidden]{display:none}
+.wb-step{width:44px;height:44px;border:0;border-radius:50%;background:var(--fill);color:var(--tx);font-size:24px;line-height:1;cursor:pointer}
+.wb-mid{min-width:0}
+.wb-row{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.wb-row b{font-size:15px}
+.wb-now[hidden]{display:none}
+.wb-now{min-height:32px;padding:0 12px;border:0;border-radius:99px;background:var(--ac);color:var(--onac);font:600 13px var(--sys,system-ui);cursor:pointer}
+#wbrange{width:100%;min-height:28px;accent-color:#D97706;margin:2px 0 0}
+.wb-key{grid-column:1/-1;display:flex;flex-wrap:wrap;justify-content:center;gap:2px 12px;font-size:12px;color:var(--mu)}
+.wb-key i{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:4px;vertical-align:-1px}
+.wk0{background:#1f8a7a}.wk1{background:#2a6fb8}.wk2{background:#C77700}.wk3{background:#C8423B}
+.wb-u{font-weight:600}
+#mapcard:has(#windbar:not([hidden])) #depthinfo{display:none}
+#mapcard:has(#windbar:not([hidden])) .legend{bottom:136px}
+#mapcard.layers-open #windbar,#mapcard:has(#pinprev:not([hidden])) #windbar{display:none}
+body.mapfull #windbar{bottom:calc(74px + env(safe-area-inset-bottom,0px))}
+body.mapfull #mapcard:has(#windbar:not([hidden])) .legend{bottom:calc(186px + env(safe-area-inset-bottom,0px))}
+@media(max-width:899px){body:not(.mapfull) .wb-key{display:none}body:not(.mapfull) #mapcard:has(#windbar:not([hidden])) .legend{display:none}}
 /* ---- Map clean-up: no sideways scrolling, amber dropdown arrows, calmer header and spot list ---- */
 .tabs{flex-wrap:wrap;overflow:visible;margin:0 0 12px;padding:0;scroll-snap-type:none}
 .tabs button.t{flex:0 0 auto;scroll-snap-align:none}
@@ -1053,6 +1126,13 @@ select:not(#basesel){appearance:none;-webkit-appearance:none;padding-right:34px!
    <button type="button" class="fab" id="locate" title="Show my location" aria-label="Show my location"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M12 2v4M12 18v4M2 12h4M18 12h4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></button>
    <button type="button" class="fab" id="mapsize" aria-pressed="false" title="Full map" aria-label="Full map"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></button></div>
   <div id="ovnote" class="legend"></div>
+  <div id="windbar" class="windbar" hidden role="group" aria-label="Wind forecast time">
+   <button type="button" class="wb-step" data-wstep="-3" aria-label="3 hours earlier">&#8249;</button>
+   <div class="wb-mid"><div class="wb-row"><b id="wbtime" aria-live="polite">Now</b><button type="button" class="wb-now" id="wbnow">Now</button></div>
+    <input type="range" id="wbrange" min="0" max="167" value="0" step="1" aria-label="Forecast hour"></div>
+   <button type="button" class="wb-step" data-wstep="3" aria-label="3 hours later">&#8250;</button>
+   <div class="wb-key" id="wbkey"></div>
+  </div>
   <div id="pinprev" hidden role="dialog" aria-label="Spot preview"></div>
   <div id="agechip" hidden role="status"></div>
   <div id="mfchip" hidden><span id="mfchiptx"></span><button type="button" id="mfclear">Show all</button></div>
@@ -1069,7 +1149,7 @@ select:not(#basesel){appearance:none;-webkit-appearance:none;padding-right:34px!
     <label class="lyr-f" hidden><input type="checkbox" data-ov="friends"> Friends' spots</label>
     <div class="lyr-g" role="group" aria-labelledby="lyg-water"><h4 id="lyg-water">Water</h4><div class="lyr"><label><input type="checkbox" data-sat="sst"> Sea temperature</label><button type="button" class="lyr-i" aria-expanded="false" aria-controls="lyx-sst" aria-label="What is Sea temperature?">i</button><p class="lyr-x" id="lyx-sst" hidden>Satellite map of surface water temperature; many fish follow their favorite temperature.</p></div><div class="lyr"><label><input type="checkbox" data-sat="chl"> Chlorophyll (water color)</label><button type="button" class="lyr-i" aria-expanded="false" aria-controls="lyx-chl" aria-label="What is Chlorophyll (water color)?">i</button><p class="lyr-x" id="lyx-chl" hidden>Shows green, plankton-rich water versus clear blue water; bait gathers where they meet.</p></div><div class="lyr"><label><input type="checkbox" id="depthcb"> Depth shading</label><button type="button" class="lyr-i" aria-expanded="false" aria-controls="lyx-depth" aria-label="What is Depth shading?">i</button><p class="lyr-x" id="lyx-depth" hidden>Colors the bottom by depth so drop-offs and channels stand out.</p></div><div class="lyr"><label><input type="checkbox" data-ov="breaks"> Temp breaks</label><button type="button" class="lyr-i" aria-expanded="false" aria-controls="lyx-breaks" aria-label="What is Temp breaks?">i</button><p class="lyr-x" id="lyx-breaks" hidden>Lines where warm and cool water meet. Bait and predators stack up along them.</p></div><div class="lyr"><label><input type="checkbox" data-ov="color"> Color lines</label><button type="button" class="lyr-i" aria-expanded="false" aria-controls="lyx-color" aria-label="What is Color lines?">i</button><p class="lyr-x" id="lyx-color" hidden>Edges between green and blue water, another place bait and predators gather.</p></div><div class="lyr"><label><input type="checkbox" data-ov="ssh"> Loop Current &amp; eddies</label><button type="button" class="lyr-i" aria-expanded="false" aria-controls="lyx-ssh" aria-label="What is Loop Current and eddies?">i</button><p class="lyr-x" id="lyx-ssh" hidden>The big warm current from the Caribbean and the swirls it sheds, which pull offshore fish closer.</p></div></div>
     <div class="lyr-g" role="group" aria-labelledby="lyg-structure"><h4 id="lyg-structure">Structure</h4><div class="lyr"><label><input type="checkbox" data-ov="rigs"> Rigs</label><button type="button" class="lyr-i" aria-expanded="false" aria-controls="lyx-rigs" aria-label="What is Rigs?">i</button><p class="lyr-x" id="lyx-rigs" hidden>Oil and gas platforms; their legs act like reefs and hold fish all year.</p></div><div class="lyr"><label><input type="checkbox" data-ov="reefs"> Reefs</label><button type="button" class="lyr-i" aria-expanded="false" aria-controls="lyx-reefs" aria-label="What is Reefs?">i</button><p class="lyr-x" id="lyx-reefs" hidden>Artificial reefs and wrecks, permitted sites where fish gather.</p></div><div class="lyr"><label><input type="checkbox" data-ov="weeds"> Weedlines</label><button type="button" class="lyr-i" aria-expanded="false" aria-controls="lyx-weeds" aria-label="What is Weedlines?">i</button><p class="lyr-x" id="lyx-weeds" hidden>Floating sargassum lines that hold mahi, tripletail and bait.</p></div></div>
-    <div class="lyr-g" role="group" aria-labelledby="lyg-weather"><h4 id="lyg-weather">Weather</h4><div class="lyr"><label><input type="checkbox" data-ov="radar"> Radar (live)</label><button type="button" class="lyr-i" aria-expanded="false" aria-controls="lyx-radar" aria-label="What is Radar (live)?">i</button><p class="lyr-x" id="lyx-radar" hidden>Rain and storms happening now, from the National Weather Service.</p></div><div class="lyr"><label><input type="checkbox" data-ov="tropical"> Tropical storms</label><button type="button" class="lyr-i" aria-expanded="false" aria-controls="lyx-tropical" aria-label="What is Tropical storms?">i</button><p class="lyr-x" id="lyx-tropical" hidden>Active storms and the hurricane center's forecast cone.</p></div><div class="lyr"><label><input type="checkbox" data-ov="deadzone"> Dead zone</label><button type="button" class="lyr-i" aria-expanded="false" aria-controls="lyx-deadzone" aria-label="What is Dead zone?">i</button><p class="lyr-x" id="lyx-deadzone" hidden>Low-oxygen water near the bottom each summer, where fish move out.</p></div></div>
+    <div class="lyr-g" role="group" aria-labelledby="lyg-weather"><h4 id="lyg-weather">Weather</h4><div class="lyr"><label><input type="checkbox" data-ov="wind"> Wind forecast</label><button type="button" class="lyr-i" aria-expanded="false" aria-controls="lyx-wind" aria-label="What is Wind forecast?">i</button><p class="lyr-x" id="lyx-wind" hidden>Forecast wind at each spot. Arrows point the way the wind blows; the number is its speed. Use the time bar to look ahead.</p></div><div class="lyr"><label><input type="checkbox" data-ov="radar"> Radar (live)</label><button type="button" class="lyr-i" aria-expanded="false" aria-controls="lyx-radar" aria-label="What is Radar (live)?">i</button><p class="lyr-x" id="lyx-radar" hidden>Rain and storms happening now, from the National Weather Service.</p></div><div class="lyr"><label><input type="checkbox" data-ov="tropical"> Tropical storms</label><button type="button" class="lyr-i" aria-expanded="false" aria-controls="lyx-tropical" aria-label="What is Tropical storms?">i</button><p class="lyr-x" id="lyx-tropical" hidden>Active storms and the hurricane center's forecast cone.</p></div><div class="lyr"><label><input type="checkbox" data-ov="deadzone"> Dead zone</label><button type="button" class="lyr-i" aria-expanded="false" aria-controls="lyx-deadzone" aria-label="What is Dead zone?">i</button><p class="lyr-x" id="lyx-deadzone" hidden>Low-oxygen water near the bottom each summer, where fish move out.</p></div></div>
    </div>
    <span id="basenote"></span><span id="satnote"></span>
   </div>
@@ -1131,7 +1211,6 @@ select:not(#basesel){appearance:none;-webkit-appearance:none;padding-right:34px!
  <div class="card" id="outlook" style="margin-top:14px"></div>
  <details class="card dcard" data-fold="compare" style="margin-top:14px"><summary><b>Compare spots</b> <span class="note">side by side for this fish</span></summary><div id="compare"></div></details>
  <details class="card dcard" id="seasoncal" data-fold="season" style="margin-top:14px"><summary><b>Season calendar</b> <span class="note">what's worth targeting each month</span></summary><div id="seasonbody"></div></details>
- <details class="card dcard" data-fold="sea" style="margin-top:14px"><summary><b>Sea state and go windows</b> <span class="note" id="seasum"></span></summary><div id="seastate"></div></details>
  <p class="note fnav"><button type="button" class="aboutlink" id="aboutlink">Quick intro</button><button type="button" class="aboutlink" data-howto>How scores work</button><a href="about.html">About</a><a href="contact.html">Contact</a><a href="terms.html">Terms</a><a href="privacy.html">Privacy</a></p>
  <p class="note">Scores are estimates from public NOAA, USGS and Open-Meteo data, which can be hours old or miles from your spot. Seasons, size and bag limits change: confirm with the Louisiana Dept. of Wildlife &amp; Fisheries (wlf.louisiana.gov). Check marine forecasts and advisories before going out.</p>
  <details class="card dcard" id="health" data-fold="health"><summary><b>Data health</b> <span class="note" id="healthsum"></span></summary><div id="healthbody"></div></details></section>
@@ -1970,6 +2049,7 @@ const OVCOL={weed:"#c9a227",breaks:"#ff4d2e",color03:"#1aa5c8",color1:"#3c9a3c",
 async function ovData(f){if(!(f in OVDATA))OVDATA[f]=fetch(dataPath(f)+"?t="+Math.floor(Date.now()/36e5)).then(r=>r.ok?r.json():null).then(d=>d&&deepClean(d)).catch(()=>null);return OVDATA[f]}
 const ovDate=t=>{const d=new Date(t);return isNaN(d)?"":d.toLocaleDateString([],{month:"short",day:"numeric"})};
 async function buildOverlay(k){
+ if(k==="wind")return{layer:L.layerGroup(),note:"Wind forecast: pins show wind, not scores. Turn it off to see scores again."};
  if(k==="radar")return radarOverlay();
  if(k==="friends")return friendOverlay();
  const d=await ovData(OVF[k]);if(!d)return{layer:null,note:k==="deadzone"
@@ -2161,6 +2241,7 @@ async function setOverlay(k,on){
  if(on){const o=await buildOverlay(k);if(o.layer){o.layer.addTo(MAP);OVLAYER[k]=o}else OVLAYER[k]={layer:L.layerGroup(),note:`${{breaks:"Temp breaks",color:"Color lines",ssh:"Loop Current",rigs:"Rigs",reefs:"Reefs",tropical:"Tropical storms",radar:"Radar",deadzone:"Dead zone",friends:"Friends' spots"}[k]}: ${o.note}`}}
  $("ovnote").innerHTML=Object.values(OVLAYER).map(o=>o.note).join(" · ")+(Object.keys(OVLAYER).some(x=>x==="breaks"||x==="color"||x==="ssh"||x==="weeds")?" · Satellite analysis; lines move daily.":"");
  try{localStorage.setItem("la-fish-overlays",JSON.stringify(Object.keys(OVLAYER)))}catch(e){}
+ if(k==="wind")windMapRefresh();
 }
 // "More layers": satellite pair, depth shading toggle, info buttons, open/closed state and the "· 2 on" count
 const SAT_KEY="oc-satlayer",MORE_KEY="oc-morelayers";
@@ -2328,6 +2409,7 @@ function mapInit(){
 // Map pins are score badges: the number is the score for the chosen species, colored by rating
 const PINCOL=v=>v>=75?"#3ddc84":v>=55?"#f2c94c":v>=35?"#ff8f3d":"#ff5a4e";
 function pinIcon(s,r){
+ if(OVLAYER.wind)return windIcon(s);
  const na=!r||r.gate,v=na?"–":r.total;
  return L.divIcon({className:`pin${na?" na":""}${!na&&r.total>=90?" top":""}${s.id===sel?" sel":""}${s.user?" user":""}${s.zone==="offshore"?" off":""}`,iconSize:[0,0],
   html:`<span style="--pc:${na?"#5d6b73":PINCOL(r.total)}">${v}</span>`});
@@ -2359,48 +2441,153 @@ function mapUpdate(list){
   const ok=s.id===sel||passesFilter(s,r,f,favs);if(ok)shown++;
   if(ok&&!MAP.hasLayer(m))m.addTo(MAP);else if(!ok&&MAP.hasLayer(m)){MAP.removeLayer(m);return}else if(!ok)return;
   m.setIcon(pinIcon(s,r));m.setZIndexOffset(s.id===sel?1000:0);
-  m.unbindTooltip().bindTooltip(`${esc(s.name)}: ${r.gate?"n/a":r.total+" "+lab(r.total)}`,{direction:"top",offset:[0,-16]})});
+  m.unbindTooltip().bindTooltip(OVLAYER.wind?windTip(s):`${esc(s.name)}: ${r.gate?"n/a":r.total+" "+lab(r.total)}`,{direction:"top",offset:[0,-16]})});
+ if(OVLAYER.wind)windBarSync();
  mapFilterUI(shown,list.length);
 }
 
-// ---- Sea state: 7-day wind and wave chart with "go windows" ----
+// ---- Wind forecast on the map: while it's on, pins show wind (arrow and speed) for a chosen hour ----
+let WIND_I=null;                                     // forecast hour shown (from the forecast start); null = now
+function windRef(){const a=FC&&FC.spots&&Object.values(FC.spots).find(x=>x&&x.start&&x.wind);return a?{t0:Date.parse(a.start),n:a.wind.length}:null}
+function windIdx(){const r=windRef();if(!r)return 0;const i=WIND_I==null?Math.round((Date.now()-r.t0)/36e5):WIND_I;return Math.max(0,Math.min(r.n-1,i))}
+const WCLS=v=>v==null?"wn":v<10?"w0":v<15?"w1":v<20?"w2":"w3";      // mph: calm, breezy, windy, strong
+function windAt(s){const f=FC&&FC.spots&&FC.spots[s.id];if(!f||!f.wind)return null;const S=seaSeries(f),i=windIdx();
+ return{w:S.wind[i],g:S.gust[i],d:S.dir[i],h:S.wave[i]}}
+function windIcon(s){const x=windAt(s)||{};
+ return L.divIcon({className:`pin wpin ${WCLS(x.w)}${s.id===sel?" sel":""}${s.user?" user":""}`,iconSize:[0,0],
+  html:`<span>${x.d!=null?windArrow(x.d):""}<b>${x.w==null?"–":wspd(x.w)}</b></span>`})}
+function windTip(s){const x=windAt(s);if(!x||x.w==null)return`${esc(s.name)}: no wind forecast`;const u=windUnit();
+ return`${esc(s.name)}: ${x.d!=null?windCompass(x.d)+" ":""}${wspd(x.w)} ${u}${x.g!=null&&x.g>=x.w+5?`, gusts ${wspd(x.g)}`:""}${x.h!=null?` · waves ${ftTxt(x.h)}`:""}`}
+function windBarSync(){
+ const r=windRef(),rg=$("wbrange"),tl=$("wbtime");if(!rg||!tl)return;
+ if(r){const i=windIdx(),nowI=Math.round((Date.now()-r.t0)/36e5);rg.max=r.n-1;rg.value=i;
+  const atNow=i===Math.max(0,Math.min(r.n-1,nowI));tl.textContent=atNow?"Now":new Date(r.t0+i*36e5).toLocaleString([],{weekday:"short",hour:"numeric"});
+  const nb=$("wbnow");if(nb)nb.hidden=atNow}
+ const kt=windUnit()==="kt",cuts=kt?["under 9","9–13","13–17","17+"]:["under 10","10–15","15–20","20+"];
+ const k=$("wbkey");if(k)k.innerHTML=cuts.map((c,j)=>`<span><i class="wk${j}"></i>${c}</span>`).join("")+`<span class="wb-u">${kt?"knots":"mph"}</span>`}
+function windPins(){if(!MAP||!DATA)return;
+ for(const s of DATA.spots){const m=MK[s.id];if(m&&MAP.hasLayer(m)){m.setIcon(windIcon(s));m.unbindTooltip().bindTooltip(windTip(s),{direction:"top",offset:[0,-16]})}}
+ windBarSync()}
+function windMapRefresh(){
+ const on=!!OVLAYER.wind,bar=$("windbar");if(bar)bar.hidden=!on;
+ if(!on)WIND_I=null;
+ if(DATA)render();else if(on)windBarSync();
+}
+document.addEventListener("DOMContentLoaded",()=>{
+ const rg=$("wbrange");if(!rg)return;
+ rg.addEventListener("input",()=>{WIND_I=+rg.value;windPins()});
+ document.querySelectorAll("#windbar [data-wstep]").forEach(b=>b.onclick=()=>{const r=windRef();if(!r)return;WIND_I=Math.max(0,Math.min(r.n-1,windIdx()+ +b.dataset.wstep));windPins()});
+ $("wbnow").onclick=()=>{WIND_I=null;windPins()};
+});
+// ---- Boat sizes for the wind and waves go/no-go ----
 const BOATS={small:{n:"Small boat (under 25 ft)",go:[3,15],cau:[5,20]},mid:{n:"Mid-size (25-35 ft)",go:[4,17],cau:[6,22]},large:{n:"Large offshore (35 ft+)",go:[6,22],cau:[8,28]}};
 function boat(){try{return localStorage.getItem("boat")||"mid"}catch(e){return"mid"}}
 function setBoat(v){try{localStorage.setItem("boat",v)}catch(e){}seaState()}
+// ---- Wind and waves: the forecast many people come for ----
+// The NWS gridded forecast comes first (official, and it forecasts waves for bays, sounds and Lake
+// Pontchartrain); the model forecast (Open-Meteo wind; marine-model waves offshore) fills any gaps.
+const WU_KEY="oc-windunit";
+function windUnit(){try{return localStorage.getItem(WU_KEY)==="kt"?"kt":"mph"}catch(e){return"mph"}}
+function setWindUnit(u){try{localStorage.setItem(WU_KEY,u==="kt"?"kt":"mph")}catch(e){}seaState();if(typeof windMapRefresh==="function")windMapRefresh()}
+const wspd=v=>v==null?null:Math.round(windUnit()==="kt"?v*0.868976:v);
+function seaSeries(f){
+ const S=f&&f.sea,n=f&&f.wind?f.wind.length:0;
+ const pick=(a,b)=>{const o=new Array(n);for(let i=0;i<n;i++)o[i]=a&&a[i]!=null?a[i]:b&&b[i]!=null?b[i]:null;return o};
+ return{nws:!!S,office:S&&S.office,n,wind:pick(S&&S.wind,f&&f.wind),gust:pick(S&&S.gust,f&&f.gust),
+  dir:pick(S&&S.dir,f&&f.wdir),wave:pick(S&&S.wave,f&&f.wave),per:pick(S&&S.per,null)}}
+// Arrow points the way the wind blows (NWS directions are where it comes from)
+const windArrow=d=>d==null?"":`<svg class="wa" viewBox="0 0 24 24" aria-hidden="true" style="transform:rotate(${Math.round(d)}deg)"><path d="M12 3v16M6 13l6 7 6-7" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+// 2 = go, 1 = caution, 0 = no-go, null = unknown. Gusts over the caution wind limit turn "go" into "caution".
+function seaLevel(B,w,g,h,hasW){
+ if(w==null||(hasW&&h==null))return null;
+ const hh=hasW?h:0;let lv=(hh<=B.go[0]&&w<=B.go[1])?2:(hh<=B.cau[0]&&w<=B.cau[1])?1:0;
+ if(lv===2&&g!=null&&g>B.cau[1])lv=1;return lv}
+const LV_TXT=["No-go","Caution","Go"];
+const ftTxt=v=>v==null?"":v<1?"under 1 ft":Math.round(v)+" ft";
+function ftRange(a){const v=a.filter(x=>x!=null);if(!v.length)return"";const lo=Math.round(Math.min(...v)),hi=Math.round(Math.max(...v));
+ return hi<1?"under 1 ft":lo===hi?hi+" ft":`${lo<1?0:lo}–${hi} ft`}
+function spdRange(a){const v=a.filter(x=>x!=null).map(wspd);if(!v.length)return"";const lo=Math.min(...v),hi=Math.max(...v);return lo===hi?`${hi}`:`${lo}–${hi}`}
+function mainDir(a){const c={};let best=null;for(const d of a){if(d==null)continue;const k=windCompass(d);c[k]=(c[k]||0)+1;if(!best||c[k]>c[best])best=k}return best||""}
 function seaState(){
- const el=$("seastate"),spot=DATA.spots.find(s=>s.id===sel),f=FC&&FC.spots&&FC.spots[sel];
- if(!f||!f.wind){el.innerHTML="";const w=el.closest("details");if(w)w.hidden=true;return}
- {const w=el.closest("details");if(w)w.hidden=false}
- const B=BOATS[boat()]||BOATS.mid,t0=Date.parse(f.start),n=f.wind.length,hasW=!!(f.wave&&f.wave.some(v=>v!=null));
- const L=f.wind.map((w,i)=>{const h=hasW?f.wave[i]:0;if(w==null||(hasW&&h==null))return null;
-  return(h<=B.go[0]&&w<=B.go[1])?2:(h<=B.cau[0]&&w<=B.cau[1])?1:0});
- const runs=(v)=>{const r=[];let a=null;for(let i=0;i<=n;i++){if(i<n&&L[i]===v){if(a==null)a=i}else if(a!=null){r.push([a,i]);a=null}}return r};
- const go=runs(2),bestRun=go.reduce((b,r)=>!b||r[1]-r[0]>b[1]-b[0]?r:b,null);
- const fd=ts=>new Date(ts).toLocaleString([],{weekday:"short",hour:"numeric"});
- const hrs=bestRun?bestRun[1]-bestRun[0]:0;
- const summary=bestRun&&hrs>=6?`Longest calm window: <b>${fd(t0+bestRun[0]*36e5)} to ${fd(t0+bestRun[1]*36e5)}</b> (${hrs} hours).`:`No stretch of 6 or more hours meets the "go" limits for this boat in the next 7 days.`;
- // per-day chips, daylight hours only
- const days={};
- for(let i=0;i<n;i++){const ts=t0+i*36e5;if(lightNow(spot,ts)==="Night"||L[i]==null)continue;
-  const k=new Date(ts).toDateString(),d=days[k]||(days[k]={ts,lv:2,w:0,h:0});
-  d.lv=Math.min(d.lv,L[i]);d.w=Math.max(d.w,f.wind[i]);if(hasW)d.h=Math.max(d.h,f.wave[i])}
- const lab=["No-go","Caution","Go"],cc=["var(--r)","var(--y)","var(--g)"];
- const chips=Object.values(days).map((d,i)=>`<div class="chip" style="--c:${cc[d.lv]};${i>=3?"opacity:.65":""}"><span class="note">${new Date(d.ts).toLocaleDateString([],{weekday:"short",day:"numeric"})}</span><b>${lab[d.lv]}</b>${hasW?Math.round(d.h)+" ft · ":""}${Math.round(d.w)} mph</div>`).join("");
- // chart
- const W=700,H=150,x=i=>i*W/(n-1),mw=Math.max(8,...(hasW?f.wave:[0]).filter(v=>v!=null)),mx=Math.max(25,...f.wind.filter(v=>v!=null));
- const line=(a,m)=>a.map((v,i)=>v==null?"":`${i&&a[i-1]!=null?"L":"M"}${x(i).toFixed(1)} ${(H-6-(H-12)*Math.min(v,m)/m).toFixed(1)}`).join("");
- const band=(r,c,o)=>r.map(([a,b])=>`<rect x="${x(a).toFixed(1)}" y="0" width="${Math.max(2,x(b-1)-x(a)).toFixed(1)}" height="${H}" fill="${c}" opacity="${o}"/>`).join("");
- let ticks="";for(let i=0;i<n;i++){const d=new Date(t0+i*36e5);if(d.getHours()===0)ticks+=`<line x1="${x(i)}" x2="${x(i)}" y1="0" y2="${H}" stroke="var(--bd)"/><text x="${x(i)+4}" y="${H-4}" font-size="11" fill="var(--mu)">${d.toLocaleDateString([],{weekday:"short"})}</text>`}
- const svg=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Seven-day wave and wind forecast">${band(go,"var(--g)",.16)}${band(runs(0),"var(--r)",.10)}${ticks}
-  ${hasW?`<path d="${line(f.wave,mw)}" fill="none" stroke="var(--ac)" stroke-width="2.5"/>`:""}<path d="${line(f.wind,mx)}" fill="none" stroke="var(--o)" stroke-width="1.8" stroke-dasharray="5 3"/></svg>`;
- const q=spot.quality||{},bs=(q.sources||{}).temp_f,buoy=bs&&bs.source.startsWith("ndbc")?` · <a href="https://www.ndbc.noaa.gov/station_page.php?station=${bs.source.slice(5)}" target="_blank" rel="noopener">Buoy ${bs.source.slice(5)}</a>`:"";
- el.innerHTML=`<div class="ss"><div class="row" style="flex-wrap:wrap;align-items:center"><h3 style="margin:0">Sea state and go windows</h3>
-  <select aria-label="Boat size" id="boatsel">${Object.entries(BOATS).map(([k,b])=>`<option value="${k}" ${k===boat()?"selected":""}>${b.n}</option>`).join("")}</select></div>
-  <div class="note" style="margin:6px 0">${summary}</div><div class="chips">${chips}</div>${svg}
-  <div class="note" style="margin-top:6px"><span style="color:var(--ac)">&#9632;</span> ${hasW?"Waves (0-"+Math.round(mw)+" ft) &nbsp;":""}<span style="color:var(--o)">&#9632;</span> Wind (0-${Math.round(mx)} mph, dashed) &nbsp; Green = go, red = no-go.</div>
-  <div class="note" style="margin-top:6px">"Go" for this boat size means waves up to ${B.go[0]} ft and wind up to ${B.go[1]} mph; "caution" up to ${B.cau[0]} ft and ${B.cau[1]} mph. These are rough guides I chose, not safety standards. Wind and waves are model forecasts and are less reliable after about day 3. <a href="https://marine.weather.gov/MapClick.php?lat=${spot.lat}&lon=${spot.lon}" target="_blank" rel="noopener">Official NWS marine forecast</a>${buoy}</div></div>`;
+ const el=$("windwaves");if(!el)return;
+ const spot=DATA.spots.find(s=>s.id===sel),f=FC&&FC.spots&&FC.spots[sel];
+ if(!spot||!f||!f.wind){el.hidden=true;el.innerHTML="";return}
+ el.hidden=false;
+ const B=BOATS[boat()]||BOATS.mid,S=seaSeries(f),n=S.n,t0=Date.parse(f.start),u=windUnit(),now=Date.now();
+ const hasW=S.wave.some(v=>v!=null);
+ const L=S.wind.map((w,i)=>seaLevel(B,w,S.gust[i],S.wave[i],hasW));
+ const tsOf=i=>t0+i*36e5,dayKey=ts=>new Date(ts).toDateString();
+ let i0=0;while(i0<n-1&&tsOf(i0)<now-18e5)i0++;
+ // Now, and the rest of today's daylight (or tomorrow's, after dark)
+ const g0=S.gust[i0],w0=S.wind[i0];
+ const nowTxt=w0==null?"":`<b>Now</b> ${windArrow(S.dir[i0])} ${S.dir[i0]!=null?windCompass(S.dir[i0])+" ":""}${wspd(w0)} ${u}${g0!=null&&g0>=w0+5?`, gusts ${wspd(g0)}`:""}${S.wave[i0]!=null?` · waves ${ftTxt(S.wave[i0])}`:""}`;
+ const daylight=(from,key)=>{const o=[];for(let i=from;i<n;i++){const ts=tsOf(i);if(dayKey(ts)!==key)break;if(lightNow(spot,ts)!=="Night")o.push(i)}return o};
+ let label="Today",idx=daylight(i0,dayKey(now));
+ if(!idx.length){const k=dayKey(now+864e5);let j=i0;while(j<n&&dayKey(tsOf(j))!==k)j++;idx=daylight(j,k);label="Tomorrow"}
+ const pickI=(a,ix)=>ix.map(i=>a[i]);
+ const lvOf=ix=>{const v=ix.map(i=>L[i]).filter(x=>x!=null);return v.length?Math.min(...v):null};
+ const dayLine=(ix)=>{const gs=pickI(S.gust,ix).filter(x=>x!=null),ws=pickI(S.wind,ix);const gmax=gs.length?Math.max(...gs):null,wmax=Math.max(...ws.filter(x=>x!=null));
+  return`${mainDir(pickI(S.dir,ix))} ${spdRange(ws)} ${u}${gmax!=null&&gmax>=wmax+5?`, gusts to ${wspd(gmax)}`:""}${hasW&&pickI(S.wave,ix).some(x=>x!=null)?` · waves ${ftRange(pickI(S.wave,ix))}`:""}`};
+ const lt=lvOf(idx);
+ const todayTxt=idx.length?`<b>${label}</b> ${dayLine(idx)}${lt!=null?` · <span class="ww-b l${lt}">${LV_TXT[lt]}</span> for a ${({small:"small boat",mid:"mid-size boat",large:"large offshore boat"})[boat()]||"boat"}`:""}`:"";
+ // Best stretch of "go" hours
+ const runs=[];{let a=null;for(let i=i0;i<=n;i++){if(i<n&&L[i]===2){if(a==null)a=i}else if(a!=null){runs.push([a,i]);a=null}}}
+ const known=L.slice(i0).filter(x=>x!=null).length,best=runs.reduce((b,r)=>!b||r[1]-r[0]>b[1]-b[0]?r:b,null);
+ const tm=ts=>new Date(ts).toLocaleTimeString([],{hour:"numeric"}),dn=ts=>new Date(ts).toLocaleDateString([],{weekday:"short"});
+ let stretch;
+ if(best&&best[1]-best[0]>=known-1&&known>24)stretch="Calm enough for this boat for the whole forecast.";
+ else if(best&&best[1]-best[0]>=3){const a=tsOf(best[0]),z=tsOf(best[1]);
+  stretch=`Best stretch: <b>${dn(a)} ${tm(a)}${dayKey(a)===dayKey(z)?"–"+tm(z):" to "+dn(z)+" "+tm(z)}</b> (${best[1]-best[0]} hours).`}
+ else stretch="No stretch of 3 or more hours is calm enough for this boat in the next 7 days.";
+ if(!hasW)stretch+=" No wave forecast here, so this uses wind only.";
+ // Day rows with 3-hour detail
+ const days=[];{let cur=null;for(let i=i0;i<n;i++){const k=dayKey(tsOf(i));if(!cur||cur.k!==k){cur={k,ts:tsOf(i),all:[]};days.push(cur)}cur.all.push(i)}}
+ const chev=`<svg class="ww-chev" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+ const rows=days.slice(0,7).map((d,di)=>{
+  const dl=d.all.filter(i=>lightNow(spot,tsOf(i))!=="Night"),ix=dl.length?dl:d.all,lv=lvOf(ix);
+  const ws=pickI(S.wind,ix),gs=pickI(S.gust,ix).filter(x=>x!=null),wv=pickI(S.wave,ix);
+  const gmax=gs.length?Math.max(...gs):null,wmax=Math.max(...ws.filter(x=>x!=null),0);
+  const name=di===0&&d.k===dayKey(now)?"Today":new Date(d.ts).toLocaleDateString([],{weekday:"short"});
+  const hrs=d.all.filter(i=>new Date(tsOf(i)).getHours()%3===0).map(i=>{const ts=tsOf(i),w=S.wind[i],g=S.gust[i],h=S.wave[i],p=S.per[i];
+   return`<div class="ww-h${L[i]!=null?" l"+L[i]:""}${lightNow(spot,ts)==="Night"?" night":""}"><span>${new Date(ts).toLocaleTimeString([],{hour:"numeric"})}</span>
+    <span>${windArrow(S.dir[i])} ${S.dir[i]!=null?windCompass(S.dir[i]):""}</span><span>${w==null?"–":wspd(w)}${g!=null&&w!=null&&g>=w+5?` <small>g ${wspd(g)}</small>`:""}</span>
+    <span>${h!=null?ftTxt(h):""}${p?` <small>${p}s</small>`:""}</span></div>`}).join("");
+  const open=di===0;
+  return`<li class="ww-day"><button type="button" class="ww-dh" aria-expanded="${open}" aria-controls="wwd${di}">
+   <span class="ww-dn">${name}${lv!=null?`<span class="ww-b l${lv}">${LV_TXT[lv]}</span>`:""}</span>
+   <span class="ww-dw">${windArrow(S.dir[ix[Math.floor(ix.length/2)]])} ${mainDir(pickI(S.dir,ix))} ${spdRange(ws)} ${u}${gmax!=null&&gmax>=wmax+5?` <small>gusts ${wspd(gmax)}</small>`:""}</span>
+   <span class="ww-dv">${hasW?ftRange(wv):""}</span>${chev}</button>
+   <div class="ww-hours" id="wwd${di}"${open?"":" hidden"}><div class="ww-h ww-hh"><span>Time</span><span>From</span><span>Wind (${u})</span><span>${hasW?"Waves":""}</span></div>${hrs}</div></li>`}).join("");
+ // Chart: wind with a gust band, waves, go/no-go background, scales, day lines and "now"
+ const W=Math.max(300,Math.min(900,Math.round(el.clientWidth||700))),H=W<520?170:190,P={l:34,r:28,t:18,b:14},iw=W-P.l-P.r,ih=H-P.t-P.b,X=i=>P.l+(i-i0)*iw/Math.max(1,n-1-i0);
+ const nice=(v,st)=>Math.max(st,Math.ceil(v/st)*st);
+ const mxW=nice(Math.max(...S.gust.slice(i0).concat(S.wind.slice(i0)).filter(x=>x!=null).map(wspd),wspd(20)),10),mxH=nice(Math.max(...S.wave.slice(i0).filter(x=>x!=null),3),2);
+ const yW=v=>P.t+ih-ih*Math.min(v,mxW)/mxW,yH=v=>P.t+ih-ih*Math.min(v,mxH)/mxH;
+ const path=(a,y,cv)=>{let d="",pen=false;for(let i=i0;i<n;i++){const v=a[i];if(v==null){pen=false;continue}d+=`${pen?"L":"M"}${X(i).toFixed(1)} ${y(cv?cv(v):v).toFixed(1)}`;pen=true}return d};
+ let band="";{let seg=[];const flush=()=>{if(seg.length>1)band+=`<path d="M${seg.map(i=>`${X(i).toFixed(1)} ${yW(wspd(S.gust[i])).toFixed(1)}`).join("L")}L${seg.slice().reverse().map(i=>`${X(i).toFixed(1)} ${yW(wspd(S.wind[i])).toFixed(1)}`).join("L")}Z" class="ww-gust"/>`;seg=[]};
+  for(let i=i0;i<n;i++){if(S.wind[i]!=null&&S.gust[i]!=null)seg.push(i);else flush()}flush()}
+ const bg=runs.map(([a,z])=>`<rect x="${X(a).toFixed(1)}" y="${P.t}" width="${Math.max(1,X(z-1)-X(a)).toFixed(1)}" height="${ih}" class="ww-go"/>`).join("")
+  +(()=>{let o="",a=null;for(let i=i0;i<=n;i++){if(i<n&&L[i]===0){if(a==null)a=i}else if(a!=null){o+=`<rect x="${X(a).toFixed(1)}" y="${P.t}" width="${Math.max(1,X(i-1)-X(a)).toFixed(1)}" height="${ih}" class="ww-nogo"/>`;a=null}}return o})();
+ let grid="";for(let i=i0+1;i<n;i++){const d=new Date(tsOf(i));if(d.getHours()===0)grid+=`<line x1="${X(i).toFixed(1)}" x2="${X(i).toFixed(1)}" y1="${P.t}" y2="${P.t+ih}" class="ww-grid"/>${X(i)+30<W-P.r-14?`<text x="${(X(i)+4).toFixed(1)}" y="${P.t-5}" class="ww-t">${d.toLocaleDateString([],{weekday:"short"})}</text>`:""}`}
+ const yl=[0,.5,1].map(k=>`<text x="${P.l-6}" y="${(yW(mxW*k)+4).toFixed(1)}" class="ww-t" text-anchor="end">${Math.round(mxW*k)}</text>`+(hasW?`<text x="${W-P.r+6}" y="${(yH(mxH*k)+4).toFixed(1)}" class="ww-t">${Math.round(mxH*k)}</text>`:"")).join("");
+ const svg=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Wind and wave forecast for the next 7 days">${bg}${grid}
+  <line x1="${P.l}" x2="${W-P.r}" y1="${P.t+ih}" y2="${P.t+ih}" class="ww-grid"/>${band}
+  <path d="${path(S.wind,yW,wspd)}" class="ww-wind"/>${hasW?`<path d="${path(S.wave,yH)}" class="ww-wave"/>`:""}
+  <line x1="${X(i0)}" x2="${X(i0)}" y1="${P.t}" y2="${P.t+ih}" class="ww-nowl"/><text x="${X(i0)+4}" y="${P.t+ih-6}" class="ww-t">Now</text>
+  ${yl}<text x="4" y="${P.t-5}" class="ww-t">${u}</text>${hasW?`<text x="${W-30}" y="${P.t-5}" class="ww-t">ft</text>`:""}</svg>`;
+ const cv=v=>wspd(v);
+ el.innerHTML=`<div class="ww-top"><h3 id="wwt">Wind and waves</h3><div class="ww-ctl">
+   <div class="ww-unit" role="group" aria-label="Wind speed unit"><button type="button" data-wu="mph" aria-pressed="${u==="mph"}">mph</button><button type="button" data-wu="kt" aria-pressed="${u==="kt"}">kt</button></div>
+   <select aria-label="Boat size" id="boatsel">${Object.entries(BOATS).map(([k,b])=>`<option value="${k}" ${k===boat()?"selected":""}>${b.n}</option>`).join("")}</select></div></div>
+  ${nowTxt?`<p class="ww-line">${nowTxt}</p>`:""}${todayTxt?`<p class="ww-line">${todayTxt}</p>`:""}
+  <p class="note ww-stretch">${stretch}</p>
+  <ul class="ww-days">${rows}</ul>
+  <div class="ww-chart">${svg}<p class="note ww-legend"><span><i class="lg-w"></i>Wind</span><span><i class="lg-g"></i>Gusts</span>${hasW?`<span><i class="lg-h"></i>Waves</span>`:""}<span><i class="lg-go"></i>Go</span><span><i class="lg-ng"></i>No-go</span></p></div>
+  <p class="note ww-src">${S.nws?`National Weather Service forecast (${esc(S.office||"")} office)`:"Model forecast (Open-Meteo)"}${!hasW?". No wave forecast for this spot":""}. <a href="https://forecast.weather.gov/MapClick.php?lat=${spot.lat}&amp;lon=${spot.lon}" target="_blank" rel="noopener">Official NWS forecast</a></p>
+  <p class="note ww-src">"Go" for this boat means waves up to ${B.go[0]} ft and wind up to ${cv(B.go[1])} ${u}; "caution" up to ${B.cau[0]} ft and ${cv(B.cau[1])} ${u}, or gusts over ${cv(B.cau[1])} ${u}. Rough guides, not safety standards. Forecasts get less reliable after about day 3.</p>`;
  const bsel=$("boatsel");if(bsel)bsel.onchange=e=>setBoat(e.target.value);
- {const ss=$("seasum");if(ss)ss.textContent=String(summary).replace(/<[^>]+>/g,"")}
+ el.querySelectorAll("[data-wu]").forEach(b=>b.onclick=()=>setWindUnit(b.dataset.wu));
+ el.querySelectorAll(".ww-dh").forEach(b=>b.onclick=()=>{const p=$(b.getAttribute("aria-controls"));if(!p)return;const o=p.hidden;p.hidden=!o;b.setAttribute("aria-expanded",o)});
 }
 // Fold-away sections of the detail card. Open/closed is remembered per section.
 function secState(){try{return JSON.parse(localStorage.getItem("oc-secs")||"{}")||{}}catch(e){return{}}}
@@ -2668,6 +2855,7 @@ function render(){
  if(!r.gate&&r.coverage<0.7)h+=`<div class="warn bad"><b>Low confidence.</b> Score uses only ${r.used} of ${r.all} factors. Missing: ${r.missing.join(", ")}.</div>`;
  // ---- 2. When to go, and what's driving the score
  h+=bestToday;
+ h+=`<section class="ww" id="windwaves" aria-labelledby="wwt"></section>`;
  if(!r.gate)h+=driversHTML(r);
  // ---- 3. The readings that matter most for this kind of water; everything else one tap away
  const depthTxt=spot.depth_ft!=null?`${spot.depth_ft.toLocaleString()} ft <span class="note">(${spot.depth_src==="published"?"published":"model"})</span>`:null;
@@ -3100,7 +3288,7 @@ function setMapHidden(h,save=true){
 
 // ---- Accounts (optional): sign in with an emailed link; saved spots, your own pins, the catch log
 // and settings then follow you to any device. Off unless config.js has a Supabase project. ----
-const SYNC_KEYS=["oc-setup","oc-area","oc-alerts","oc-boatmode","oc-myfish","oc-myfish-asked","oc-mapfilter","la-fish-favs","la-fish-myspots","la-fish-catches-v1","oc-recent-sp","oc-theme","boat","la-fish-depth","la-fish-overlays","la-fish-mapbase","oc-nomap","la-fish-tune"];
+const SYNC_KEYS=["oc-windunit","oc-setup","oc-area","oc-alerts","oc-boatmode","oc-myfish","oc-myfish-asked","oc-mapfilter","la-fish-favs","la-fish-myspots","la-fish-catches-v1","oc-recent-sp","oc-theme","boat","la-fish-depth","la-fish-overlays","la-fish-mapbase","oc-nomap","la-fish-tune"];
 const PERSONAL_KEYS=["oc-alerts","la-fish-favs","la-fish-myspots","la-fish-catches-v1","oc-recent-sp","la-fish-tune"];
 const ACCT={sb:null,user:null,state:"idle",msg:"",applying:false,timer:null,last:null};
 const acctCfg=()=>{const c=window.OC_CONFIG||{};return c.supabaseUrl&&c.supabaseKey?c:null};

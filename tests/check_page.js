@@ -9,7 +9,7 @@ scripts.forEach((code, i) => {
   try { new Function(code); }
   catch (e) { bad++; console.error(`Script ${i + 1}: ${e.message}`); }
 });
-for (const id of ["map", "detail", "ranks", "tabs", "outlook", "seastate", "status"]) {
+for (const id of ["map", "detail", "ranks", "tabs", "outlook", "status"]) {
   if (!html.includes(`id="${id}"`)) { bad++; console.error(`Missing element #${id}`); }
 }
 // Security policy: inline scripts only run if their fingerprints are listed. The deploy refreshes
@@ -49,6 +49,12 @@ for (const m of html.matchAll(/<input type="checkbox" (?:data-ov|data-sat)="(\w+
   const want = mu && new Date(mu + "T12:00:00").toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
   if (!shown || shown !== want) { bad++; console.error(`"Last changed" date is "${shown}", expected "${want}" (MODEL_UPDATED)`); }
 }
+// Wind and waves: the card is drawn inside the spot details, the map has a wind layer and its time bar
+if (/Sea state and go windows/.test(html)) { bad++; console.error('The old "Sea state and go windows" card should be gone'); }
+if (!/id="windwaves"/.test(html)) { bad++; console.error("Missing the Wind and waves section"); }
+if (!/data-wu="kt"/.test(html)) { bad++; console.error("Missing the mph/kt switch"); }
+for (const id of ["windbar", "wbrange", "wbnow"]) if (!html.includes(`id="${id}"`)) { bad++; console.error(`Missing #${id}`); }
+if (!/data-ov="wind"/.test(html)) { bad++; console.error("Missing the Wind forecast layer"); }
 // First-visit setup and best bets
 for (const id of ["setupdlg", "bestbets", "bblist", "sufish", "suareas", "sures"]) if (!html.includes(`id="${id}"`)) { bad++; console.error(`Missing #${id}`); }
 if (/Best right now/.test(html)) { bad++; console.error('"Best right now" should be replaced by Today\'s best bets'); }

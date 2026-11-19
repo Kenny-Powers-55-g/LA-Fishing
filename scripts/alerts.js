@@ -25,7 +25,9 @@ function loadScoring() {
     document: { getElementById: el, querySelector: el, querySelectorAll: () => [], createElement: el,
                 addEventListener() {}, body: el(), hidden: false },
     navigator: { onLine: true }, localStorage: { getItem: () => null, setItem() {}, removeItem() {} },
-    fetch: () => Promise.reject(new Error("no network in alerts")), setTimeout, clearTimeout,
+    fetch: () => Promise.reject(new Error("no network in alerts")),
+    // the page's own timers (like its 45 s "still loading" watchdog) must not keep this script running
+    setTimeout: (fn, ms) => { const t = setTimeout(fn, ms); if (t && t.unref) t.unref(); return t; }, clearTimeout,
     setInterval: () => 0, console, location: { hash: "", href: "", hostname: "", pathname: "/" },
     history: { replaceState() {} }, addEventListener() {}, innerWidth: 1000, matchMedia: () => ({ matches: false }),
   };

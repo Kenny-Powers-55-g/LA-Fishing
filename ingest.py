@@ -62,7 +62,7 @@ def save_station_cache(cache):
     # only persist the discovery keys (sites / buoys), not live readings
     out = {}
     for k, v in cache.items():
-        if isinstance(k, tuple) and k and k[0] in ("sites", "buoys", "depth", "mzone", "cstn"):
+        if isinstance(k, tuple) and k and k[0] in ("sites", "buoys", "depth", "mzone", "cstn", "ngrid"):
             # JSON keys must be strings
             out["|".join(str(x) for x in k)] = v
         elif k in ("buoys", "deadbuoys", "cstations"):
@@ -305,7 +305,7 @@ SPOTS = [
 
 # ---------------------------------------------------------------- HTTP
 # Hosts that time out when hit by several workers at once get a small concurrency limit.
-_HOST_GATES = {"open-meteo.com": threading.Semaphore(2)}
+_HOST_GATES = {"open-meteo.com": threading.Semaphore(2), "api.weather.gov": threading.Semaphore(3)}
 
 # NOAA ERD's ERDDAP is sometimes busy (HTTP 503); upwell is its sister server with the same datasets.
 ERDDAP_MIRRORS = ("https://coastwatch.pfeg.noaa.gov/erddap", "https://upwell.pfeg.noaa.gov/erddap")
@@ -597,7 +597,7 @@ def weather(lat, lon):
     j = get_json("https://api.open-meteo.com/v1/forecast", dict(
         latitude=lat, longitude=lon,
         current="wind_speed_10m,wind_direction_10m,cloud_cover,surface_pressure,temperature_2m",
-        hourly="surface_pressure,temperature_2m,precipitation,wind_speed_10m,wind_direction_10m,cloud_cover",
+        hourly="surface_pressure,temperature_2m,precipitation,wind_speed_10m,wind_direction_10m,wind_gusts_10m,cloud_cover",
         past_hours=48, forecast_hours=169,
         wind_speed_unit="mph", temperature_unit="fahrenheit", precipitation_unit="inch",
         timezone="GMT"))
@@ -620,9 +620,100 @@ def weather(lat, lon):
                 "pres": trend, "pres_delta_hpa": delta, "air_d24": air_d24, "rain48": rain48,
                 "series": {"t": times, "pres": H["surface_pressure"], "air": H["temperature_2m"], "rain": H["precipitation"],
                            "wind": H["wind_speed_10m"], "cloud": H["cloud_cover"],
-                           "wdir": H.get("wind_direction_10m") or [None] * len(times)}}
+                           "wdir": H.get("wind_direction_10m") or [None] * len(times),
+                           "gust": H.get("wind_gusts_10m") or [None] * len(times)}}
     except (TypeError, KeyError, ValueError):
         return None
+
+# ---------------------------------------------------------------- NWS gridded wind and wave forecast
+# The National Weather Service's gridded forecast (the numbers behind its point and marine forecasts).
+# Unlike the Open-Meteo marine model, which snaps a bay to the nearest Gulf grid cell, it forecasts
+# waves for protected waters: bays, sounds and Lake Pontchartrain. Inland lakes get wind only, and
+# points beyond the coastal waters (about 60 nautical miles out) have no grid cell at all.
+NWS_API = "https://api.weather.gov"
+_ISO_DUR = re.compile(r"P(?:(\d+)D)?(?:T(?:(\d+)H)?(?:(\d+)M)?)?$")
+_SPEED_TO_MPH = {"km_h-1": 0.621371, "m_s-1": 2.23694, "kt": 1.15078, "mi_h-1": 1.0}
+_LEN_TO_FT = {"m": 3.28084, "ft": 1.0, "cm": 0.0328084}
+
+def iso_span(s):
+    """'2026-11-19T09:00:00+00:00/PT3H' -> (start as UTC datetime, whole hours). None if unreadable."""
+    try:
+        a, _, d = (s or "").partition("/")
+        t = datetime.fromisoformat(a.replace("Z", "+00:00")).astimezone(UTC)
+        m = _ISO_DUR.match(d)
+        if not m or not any(m.groups()):
+            return None
+        hrs = int(m.group(1) or 0) * 24 + int(m.group(2) or 0) + (1 if int(m.group(3) or 0) >= 30 else 0)
+        return t, max(1, hrs)
+    except (AttributeError, TypeError, ValueError):
+        return None
+
+def grid_hourly(prop, start, factors=None, hours=168, nd=0):
+    """Spread one NWS grid property (a list of time spans with values) over hourly slots from `start`.
+    `factors` maps the property's unit to a multiplier; an unknown unit gives no values."""
+    out = [None] * hours
+    if not isinstance(prop, dict):
+        return out
+    k = 1.0
+    if factors is not None:
+        k = factors.get(str(prop.get("uom") or "").split(":")[-1])
+        if k is None:
+            return out
+    for v in prop.get("values") or []:
+        sp, x = iso_span(v.get("validTime")), v.get("value")
+        if sp is None or not isinstance(x, (int, float)):
+            continue
+        t, n = sp
+        i0 = int(round((t - start).total_seconds() / 3600))
+        val = round(x * k, nd) if nd else round(x * k)
+        for i in range(max(0, i0), min(hours, i0 + n)):
+            out[i] = val
+    return out
+
+def nws_grid_cell(spot, cache):
+    """NWS forecast office and grid cell for a spot, looked up once and cached. None if there is none."""
+    key = ("ngrid", spot["id"])
+    if key in cache:
+        v = cache[key]
+        return tuple(v) if v else None
+    j = get_json(f"{NWS_API}/points/{spot['lat']:.4f},{spot['lon']:.4f}", tries=2,
+                 headers={"Accept": "application/geo+json"})
+    if j is None:
+        return None                                   # service down: try again next run
+    p = j.get("properties") or {}
+    cell = (p.get("gridId"), p.get("gridX"), p.get("gridY"))
+    if not cell[0] or cell[1] is None or cell[2] is None:
+        cache[key] = []                               # beyond the NWS grid (far offshore): don't ask again
+        return None
+    cache[key] = list(cell)
+    return cell
+
+def nws_grid(spot, cache, start, hours=168):
+    """Hourly NWS wind (mph), gusts (mph), direction (degrees from), waves (ft) and wave period (s)
+    for a spot from `start`. Spots in the same grid cell share one request. None if unavailable."""
+    cell = nws_grid_cell(spot, cache)
+    if not cell:
+        return None
+    gkey = ("ngridfc",) + tuple(cell)
+    if gkey not in cache:
+        cache[gkey] = get_json(f"{NWS_API}/gridpoints/{cell[0]}/{cell[1]},{cell[2]}", tries=2, timeout=25,
+                               headers={"Accept": "application/geo+json"})
+    g = cache[gkey]
+    P = g.get("properties") if isinstance(g, dict) else None
+    if not P:
+        return None
+    out = {"src": "nws", "office": cell[0],
+           "wind": grid_hourly(P.get("windSpeed"), start, _SPEED_TO_MPH, hours),
+           "gust": grid_hourly(P.get("windGust"), start, _SPEED_TO_MPH, hours),
+           "dir": grid_hourly(P.get("windDirection"), start, None, hours),
+           "wave": grid_hourly(P.get("waveHeight"), start, _LEN_TO_FT, hours, nd=1),
+           "per": grid_hourly(P.get("wavePeriod"), start, None, hours)}
+    if all(v is None for v in out["wind"]):
+        return None
+    for k in ("wave", "per", "gust"):                 # inland lakes have no waves: leave the arrays out
+        if all(v is None for v in out[k]):
+            del out[k]
+    return out
 
 # ---------------------------------------------------------------- cold fronts
 NORTHERLY = lambda d: d is not None and (d >= 290 or d <= 60)      # NW through NE
@@ -1112,7 +1203,7 @@ def stage_at(pts, t):
         return "Slack", rng
     return ("Incoming" if nx[2] == "H" else "Outgoing"), rng
 
-def build_forecast(cond, wx, pts, now, mar=None, bias=None, cev=None):
+def build_forecast(cond, wx, pts, now, mar=None, bias=None, cev=None, sea=None):
     """Hourly conditions for the next 168 h. Wind, cloud, rain, pressure and tide are forecasts;
     water temp is a damped guess from forecast air temp; salinity and level are held at today's value."""
     S = wx["series"]
@@ -1130,7 +1221,7 @@ def build_forecast(cond, wx, pts, now, mar=None, bias=None, cev=None):
         a = a24(t)
         return None if cond["temp"] is None or a is None or base is None else cond["temp"] + 0.3 * (a - base)
     start = now_h + H(1)
-    o = {k: [] for k in ("temp", "wind", "cloud", "pres", "tide", "trange", "front", "dtemp", "rain", "clar")}
+    o = {k: [] for k in ("temp", "wind", "gust", "wdir", "cloud", "pres", "tide", "trange", "front", "dtemp", "rain", "clar")}
     for n in range(168):
         t = start + H(n)
         p, p3 = at("pres", t), at("pres", t - H(3))
@@ -1154,6 +1245,9 @@ def build_forecast(cond, wx, pts, now, mar=None, bias=None, cev=None):
                 o.setdefault(nm, []).append(None if v_ is None else round(v_, 1))
         wind, cloud = at("wind", t), at("cloud", t)
         o["wind"].append(None if wind is None else round(wind))
+        gu, wd = at("gust", t), at("wdir", t)
+        o["gust"].append(None if gu is None else round(gu))
+        o["wdir"].append(None if wd is None else round(wd))
         o["cloud"].append(None if cloud is None else round(cloud))
         st, rg = stage_at(pts, t) if pts else (None, None)
         o["tide"].append(st)
@@ -1163,6 +1257,8 @@ def build_forecast(cond, wx, pts, now, mar=None, bias=None, cev=None):
             cv = current_at(cev, t)
             o.setdefault("tcur", []).append(None if cv is None else round(abs(cv), 1))
     o["start"] = start.isoformat()
+    if sea:                                       # NWS gridded wind and waves, same hourly slots
+        o["sea"] = sea
     return o
 
 # ---------------------------------------------------------------- collection
@@ -1421,6 +1517,11 @@ def collect(spot, now, cache):
     applicable = len(cond) - len(na)
     depth_ft, depth_src = bottom_depth(spot, cache)
     mzone = marine_zone(spot, cache)
+    try:                                          # wind and waves from the NWS grid; optional
+        sea = nws_grid(spot, cache, now.replace(minute=0, second=0, microsecond=0) + timedelta(hours=1))
+    except Exception:
+        log.exception("NWS grid for %s failed", spot["id"])
+        sea = None
     return {"id": spot["id"], "name": spot["name"], "lat": spot["lat"], "lon": spot["lon"],
             "depth_ft": depth_ft, "depth_src": depth_src, "note": spot.get("note"), "river": spot.get("river"), "mzone": mzone,
             "updated": now.isoformat(),
@@ -1429,7 +1530,8 @@ def collect(spot, now, cache):
             "tides": tides,
             "current": {k: v for k, v in tcur.items() if k != "_ev"} if tcur else None,
             "fronts": find_fronts(wx["series"], now) if wx and wx.get("series") else [],
-            "forecast": build_forecast(cond, wx, pts, now, mar, sbias, tcur["_ev"] if tcur else None) if wx and wx.get("series") else None,
+            "forecast": build_forecast(cond, wx, pts, now, mar, sbias, tcur["_ev"] if tcur else None,
+                                       sea=sea) if wx and wx.get("series") else None,
             "conditions": cond,
             "quality": {"missing": missing, "sources": src,
                         "estimated": (["clar"] if clar_kind in ("estimated", "satellite") else []) + est,
