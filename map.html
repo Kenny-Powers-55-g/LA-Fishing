@@ -963,7 +963,11 @@ select option,select optgroup{background-color:var(--card);color:var(--tx)}
 .appbar .sub .st-long,header .sub span.st-long{display:inline;color:inherit!important}
 @media(max-width:600px){.appbar .sub .st-long{display:none}}
 /* amber arrows on the fold-out cards too (the layers panel keeps its own) */
-.dcard>summary::after,.dsec>summary::after{border-color:#F59E0B!important}
+.dcard>summary::after,.dsec>summary::after{border-color:#D97706!important;border-right-width:3px!important;border-bottom-width:3px!important;width:11px!important;height:11px!important}
+.dcard>summary::after{right:6px!important;top:4px!important}
+.dcard[open]>summary::after{top:10px!important}
+:root[data-theme="dark"] .dcard>summary::after,:root[data-theme="dark"] .dsec>summary::after{border-color:#F59E0B!important}
+@media(prefers-color-scheme:dark){:root:not([data-theme]) .dcard>summary::after,:root:not([data-theme]) .dsec>summary::after{border-color:#F59E0B!important}}
 /* ---- Map clean-up: no sideways scrolling, amber dropdown arrows, calmer header and spot list ---- */
 .tabs{flex-wrap:wrap;overflow:visible;margin:0 0 12px;padding:0;scroll-snap-type:none}
 .tabs button.t{flex:0 0 auto;scroll-snap-align:none}
