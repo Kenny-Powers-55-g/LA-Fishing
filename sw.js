@@ -1,7 +1,7 @@
 // Caches the app so it opens offline. Data files and the page are network-first with the
 // saved copy as backup; on a weak connection the saved copy is used after a few seconds.
 // The map library and fonts are cached the first time they load.
-const V = "la-fishing-v42";
+const V = "la-fishing-v43";
 const CDN_CACHE = "la-fishing-cdn-v2";          // kept across app versions
 const TILE_CACHE = "la-fishing-tiles";          // map areas saved for offline (kept too)
 const TILE_RE = /^https:\/\/(gis\.charttools\.noaa\.gov|gis\.ngdc\.noaa\.gov)\/.*(\/tile\/|exportImage)/;
@@ -27,7 +27,15 @@ self.addEventListener("activate", e => {
 // Network first. If the network fails, or is slower than SLOW_MS and a saved copy exists,
 // use the saved copy. The network response still updates the cache when it arrives.
 function networkFirst(req, key, fallback) {
-  const net = fetch(req).then(r => {
+  // Always ask the server whether the file changed ("no-cache" revalidates; it doesn't skip the cache),
+  // so a new version shows up on the next open instead of up to 10 minutes later.
+  let fresh = req;
+  try {
+    fresh = req.mode === "navigate"
+      ? new Request(req.url, { cache: "no-cache", credentials: "same-origin" })
+      : new Request(req, { cache: "no-cache" });
+  } catch (e) {}
+  const net = fetch(fresh).then(r => {
     if (r.ok) { const c = r.clone(); caches.open(V).then(x => x.put(key, c)); }
     return r;
   });

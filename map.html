@@ -3,7 +3,7 @@
 <!-- Security policy: which sites this page may load scripts, data and images from. The sha256 values
      are the inline scripts' fingerprints; scripts/csp.js updates them (the deploy does it automatically).
      Using a Supabase custom domain instead of *.supabase.co? Add it to connect-src. -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-ap5MSQrXWR0reWT9leoroLT0xlM5zuuNBvia3r/cTEw=' 'sha256-zEXDOT0cJD5aZ1rzip0972CSTtlksJmCSQSGjOC4ld8=' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https://*.noaa.gov https://gibs.earthdata.nasa.gov https://tile.openstreetmap.org https://cdnjs.cloudflare.com; connect-src 'self' https://kenny-powers-55-g.github.io https://*.noaa.gov https://gibs.earthdata.nasa.gov https://tile.openstreetmap.org https://api.open-meteo.com https://*.supabase.co wss://*.supabase.co https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://fonts.googleapis.com https://fonts.gstatic.com; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-src 'none'; upgrade-insecure-requests">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-ap5MSQrXWR0reWT9leoroLT0xlM5zuuNBvia3r/cTEw=' 'sha256-CievM5s71lSrNFRmJcMRCYRJqKrbcJuci6vRO7JSNaY=' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https://*.noaa.gov https://gibs.earthdata.nasa.gov https://tile.openstreetmap.org https://cdnjs.cloudflare.com; connect-src 'self' https://kenny-powers-55-g.github.io https://*.noaa.gov https://gibs.earthdata.nasa.gov https://tile.openstreetmap.org https://api.open-meteo.com https://*.supabase.co wss://*.supabase.co https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://fonts.googleapis.com https://fonts.gstatic.com; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-src 'none'; upgrade-insecure-requests">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -3654,7 +3654,12 @@ document.addEventListener("visibilitychange",()=>{if(!document.hidden&&DATA&&Dat
 setInterval(()=>{if(!document.hidden&&DATA&&Date.now()-LAST_LOAD>STALE_MS)load(true)},60e3);
 addEventListener("online",()=>{setOffline(false);load(true)});
 addEventListener("offline",()=>setOffline(true));
-if("serviceWorker"in navigator)addEventListener("load",()=>navigator.serviceWorker.register("sw.js").catch(()=>{}));
+// Offline support. If a new version of the app takes over in the first few seconds after opening
+// (the usual case right after an update), reload once so the new version shows straight away.
+// Later than that, the new version simply applies next time, so nothing typed is lost.
+if("serviceWorker"in navigator){const had=!!navigator.serviceWorker.controller,t0=Date.now();let swReloaded=false;
+ navigator.serviceWorker.addEventListener("controllerchange",()=>{if(had&&!swReloaded&&Date.now()-t0<15000){swReloaded=true;location.reload()}});
+ addEventListener("load",()=>navigator.serviceWorker.register("sw.js").then(r=>{try{r.update()}catch(e){}}).catch(()=>{}))}
 let ip=null;addEventListener("beforeinstallprompt",e=>{e.preventDefault();ip=e;$("install").hidden=false});
 $("install").onclick=()=>{if(ip){ip.prompt();ip=null;$("install").hidden=true}};
 </script><dialog id="spdlg" aria-labelledby="spdlgt">
