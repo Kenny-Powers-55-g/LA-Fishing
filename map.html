@@ -3,7 +3,7 @@
 <!-- Security policy: which sites this page may load scripts, data and images from. The sha256 values
      are the inline scripts' fingerprints; scripts/csp.js updates them (the deploy does it automatically).
      Using a Supabase custom domain instead of *.supabase.co? Add it to connect-src. -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-ap5MSQrXWR0reWT9leoroLT0xlM5zuuNBvia3r/cTEw=' 'sha256-04CCBj9LsCsAR1fmPeTDu9gUBZ4mx0dybmIsRNdrYdQ=' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https://*.noaa.gov https://gibs.earthdata.nasa.gov https://tile.openstreetmap.org https://cdnjs.cloudflare.com; connect-src 'self' https://kenny-powers-55-g.github.io https://*.noaa.gov https://gibs.earthdata.nasa.gov https://tile.openstreetmap.org https://api.open-meteo.com https://*.supabase.co wss://*.supabase.co https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://fonts.googleapis.com https://fonts.gstatic.com; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-src 'none'; upgrade-insecure-requests">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-ap5MSQrXWR0reWT9leoroLT0xlM5zuuNBvia3r/cTEw=' 'sha256-zEXDOT0cJD5aZ1rzip0972CSTtlksJmCSQSGjOC4ld8=' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https://*.noaa.gov https://gibs.earthdata.nasa.gov https://tile.openstreetmap.org https://cdnjs.cloudflare.com; connect-src 'self' https://kenny-powers-55-g.github.io https://*.noaa.gov https://gibs.earthdata.nasa.gov https://tile.openstreetmap.org https://api.open-meteo.com https://*.supabase.co wss://*.supabase.co https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://fonts.googleapis.com https://fonts.gstatic.com; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-src 'none'; upgrade-insecure-requests">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -957,6 +957,8 @@ select option,select optgroup{background-color:var(--card);color:var(--tx)}
 @media(max-width:600px){#detail .t,#detail .linkbtn,#panel-fish .t,#panel-log .t,#panel-friends .t,.fnav .aboutlink,.mapbar .t,#alertdlg .t,#howdlg .t,#detail .share-row .t,.fnav a{min-height:44px}
  #detail a,#detail .linkbtn,.marinefc a,.fnav a{display:inline-block;padding:8px 0;margin:-8px 0}}
 
+.appbar .sub .st-long{display:inline}
+@media(max-width:600px){.appbar .sub .st-long{display:none}}
 /* ---- Map clean-up: no sideways scrolling, amber dropdown arrows, calmer header and spot list ---- */
 .tabs{flex-wrap:wrap;overflow:visible;margin:0 0 12px;padding:0;scroll-snap-type:none}
 .tabs button.t{flex:0 0 auto;scroll-snap-align:none}
@@ -3506,7 +3508,7 @@ const LOAD_TIMEOUT=20000;let REFRESH_FAILED=false;
 // "Updated 12 min ago" in the header pill and on the map; refreshed every minute so it never goes stale.
 function showAge(){
  if(!DATA)return;const age=(Date.now()-new Date(DATA.generated))/3600000,old=age>3;
- $("status").innerHTML=(FROM_SAVED?`Saved scores from ${ago(DATA.generated)} · updating…`:`Updated ${ago(DATA.generated)}`)+(old?` · <span style="color:var(--r)">over 3 hours old</span>`:"")
+ $("status").innerHTML=(FROM_SAVED?`Saved ${ago(DATA.generated)} · updating…`:`<span class="st-long">Updated </span>${ago(DATA.generated)}`)+(old?` · <span style="color:var(--r)">over 3 hours old</span>`:"")
   +(REFRESH_FAILED?` · <span style="color:var(--o)">couldn't refresh</span>`:"")+(navigator.onLine?"":` · offline`);
  const c=$("agechip");if(c){c.hidden=false;c.classList.toggle("old",old);c.textContent=old?`Scores are ${Math.round(age)} h old`:`Updated ${ago(DATA.generated)}`}
 }
