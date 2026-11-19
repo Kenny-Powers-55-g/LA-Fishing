@@ -3,7 +3,7 @@
 <!-- Security policy: which sites this page may load scripts, data and images from. The sha256 values
      are the inline scripts' fingerprints; scripts/csp.js updates them (the deploy does it automatically).
      Using a Supabase custom domain instead of *.supabase.co? Add it to connect-src. -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-ap5MSQrXWR0reWT9leoroLT0xlM5zuuNBvia3r/cTEw=' 'sha256-fn7A4ZumgGaatIbkjLpqVMCcm4UWDyqC0Ym4yRqQ2kU=' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https://*.noaa.gov https://gibs.earthdata.nasa.gov https://tile.openstreetmap.org https://cdnjs.cloudflare.com; connect-src 'self' https://kenny-powers-55-g.github.io https://*.noaa.gov https://gibs.earthdata.nasa.gov https://tile.openstreetmap.org https://api.open-meteo.com https://*.supabase.co wss://*.supabase.co https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://fonts.googleapis.com https://fonts.gstatic.com; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-src 'none'; upgrade-insecure-requests">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-ap5MSQrXWR0reWT9leoroLT0xlM5zuuNBvia3r/cTEw=' 'sha256-ykyOZChWGoLejT37y5Wo8FqYVBljrneNFT4AJkHMj0U=' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https://*.noaa.gov https://gibs.earthdata.nasa.gov https://tile.openstreetmap.org https://cdnjs.cloudflare.com; connect-src 'self' https://kenny-powers-55-g.github.io https://*.noaa.gov https://gibs.earthdata.nasa.gov https://tile.openstreetmap.org https://api.open-meteo.com https://*.supabase.co wss://*.supabase.co https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://fonts.googleapis.com https://fonts.gstatic.com; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-src 'none'; upgrade-insecure-requests">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -969,6 +969,9 @@ select option,select optgroup{background-color:var(--card);color:var(--tx)}
 :root[data-theme="dark"] .dcard>summary::after,:root[data-theme="dark"] .dsec>summary::after{border-color:#F59E0B!important}
 @media(prefers-color-scheme:dark){:root:not([data-theme]) .dcard>summary::after,:root:not([data-theme]) .dsec>summary::after{border-color:#F59E0B!important}}
 /* ---- Wind and waves ---- */
+.ww-fold{margin:0;padding-top:4px;border-top:0}
+.ww-fold .ww-top h3{display:none}
+.ww-fold .ww-top{justify-content:flex-start}
 .ww{margin:18px 0 6px;padding-top:16px;border-top:1px solid var(--bd)}
 .ww[hidden]{display:none}
 .ww-top{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px 12px;margin-bottom:6px}
@@ -2585,6 +2588,7 @@ function seaState(){
   <div class="ww-chart">${svg}<p class="note ww-legend"><span><i class="lg-w"></i>Wind</span><span><i class="lg-g"></i>Gusts</span>${hasW?`<span><i class="lg-h"></i>Waves</span>`:""}<span><i class="lg-go"></i>Go</span><span><i class="lg-ng"></i>No-go</span></p></div>
   <p class="note ww-src">${S.nws?`National Weather Service forecast (${esc(S.office||"")} office)`:"Model forecast (Open-Meteo)"}${!hasW?". No wave forecast for this spot":""}. <a href="https://forecast.weather.gov/MapClick.php?lat=${spot.lat}&amp;lon=${spot.lon}" target="_blank" rel="noopener">Official NWS forecast</a></p>
   <p class="note ww-src">"Go" for this boat means waves up to ${B.go[0]} ft and wind up to ${cv(B.go[1])} ${u}; "caution" up to ${B.cau[0]} ft and ${cv(B.cau[1])} ${u}, or gusts over ${cv(B.cau[1])} ${u}. Rough guides, not safety standards. Forecasts get less reliable after about day 3.</p>`;
+ {const sm=$("wwsum");if(sm)sm.textContent=todayTxt?"· "+todayTxt.replace(/<[^>]+>/g,"").replace(/\s+/g," ").replace(/^(Today|Tomorrow) /,"$1: ").trim():""}
  const bsel=$("boatsel");if(bsel)bsel.onchange=e=>setBoat(e.target.value);
  el.querySelectorAll("[data-wu]").forEach(b=>b.onclick=()=>setWindUnit(b.dataset.wu));
  el.querySelectorAll(".ww-dh").forEach(b=>b.onclick=()=>{const p=$(b.getAttribute("aria-controls"));if(!p)return;const o=p.hidden;p.hidden=!o;b.setAttribute("aria-expanded",o)});
@@ -2855,7 +2859,8 @@ function render(){
  if(!r.gate&&r.coverage<0.7)h+=`<div class="warn bad"><b>Low confidence.</b> Score uses only ${r.used} of ${r.all} factors. Missing: ${r.missing.join(", ")}.</div>`;
  // ---- 2. When to go, and what's driving the score
  h+=bestToday;
- h+=`<section class="ww" id="windwaves" aria-labelledby="wwt"></section>`;
+ const offshore=spot.zone==="offshore";
+ if(offshore)h+=`<section class="ww" id="windwaves" aria-labelledby="wwt"></section>`;
  if(!r.gate)h+=driversHTML(r);
  // ---- 3. The readings that matter most for this kind of water; everything else one tap away
  const depthTxt=spot.depth_ft!=null?`${spot.depth_ft.toLocaleString()} ft <span class="note">(${spot.depth_src==="published"?"published":"model"})</span>`:null;
@@ -2886,6 +2891,7 @@ function render(){
   h+=sec("tides","Tides and current",tideChart(spot)+`<div class="solunar">`+tt.map(x=>`<span><b>${x.type==="H"?"High":"Low"}</b> ${tf(x.t)} · ${x.v} ft</span>`).join("")+`</div>`+currentPanel(spot),false)}
  else h+=sec("current","Tidal current",currentPanel(spot).replace(/^<h3[^>]*>[\s\S]*?<\/h3>/,""),false);
  // ---- 6. Deeper detail, folded; what was left open is remembered
+ if(!offshore)h+=sec("wind",`Wind and waves <span class="note" id="wwsum"></span>`,`<section class="ww ww-fold" id="windwaves" aria-labelledby="wwt"></section>`,false);
  h+=sec("marine","NWS marine forecast",marinePanel(spot),false);
  h+=sec("trends","Recent trends",trendsPanel(spot).replace(/^<h3[^>]*>[\s\S]*?<\/h3>/,""),false);
  const sol=solunarTimes(spot);
@@ -2914,6 +2920,7 @@ function render(){
  if(!r.gate)h+=`<div class="share-row"><button type="button" class="t on" id="quickLogBtn">Log a catch here</button><button type="button" class="t" data-alerts="${esc(spot.id)}" data-al-sp0="${esc(sp)}">Alert me</button><button type="button" class="t" id="shareBtn">Share this score</button><span class="note" id="shareMsg" role="status" style="align-self:center"></span></div>`;
  $("detail").innerHTML=h;
  $("detail").querySelectorAll("details.dsec").forEach(d=>d.ontoggle=()=>{const st=secState();st[d.dataset.sec]=d.open;try{localStorage.setItem("oc-secs",JSON.stringify(st))}catch(e){}});
+ {const wd=$("detail").querySelector('details.dsec[data-sec="wind"]');if(wd)wd.addEventListener("toggle",()=>{if(wd.open)seaState()})}
  const ql=$("quickLogBtn");if(ql)ql.onclick=()=>quickLog(sp,spot.id);
  const sh=$("shareBtn");if(sh)sh.onclick=()=>shareScore(p.name,spot.name,r.total,lab(r.total));
  const rm=document.querySelector("[data-rmspot]");if(rm)rm.onclick=()=>removeMySpot(rm.dataset.rmspot);
