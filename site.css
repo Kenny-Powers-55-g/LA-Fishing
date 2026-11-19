@@ -127,3 +127,49 @@ img,svg{max-width:100%}
 /* keep text links easy to tap without changing how the text sits on the page */
 .doc p a,.doc li a,.fine a,.foot-note a,.foot-small a{display:inline-block;padding:10px 0;margin:-10px 0}
 .bar .brand{min-height:44px}
+
+/* ---- Landing: detail sections and the live example card ---- */
+.demo{position:relative;z-index:1;margin:0;background:var(--card);color:var(--tx);border-radius:14px;padding:22px;box-shadow:0 18px 40px rgba(4,16,26,.35);max-width:380px;justify-self:center;width:100%}
+.demo[hidden]{display:none}
+.demo-cap{display:flex;align-items:center;gap:10px;font-size:14px;font-weight:600;color:var(--mu);margin-bottom:14px}
+.demo-live{background:var(--g);color:#fff;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;padding:3px 8px;border-radius:99px}
+.demo-main{display:flex;align-items:center;gap:18px}
+.demo-score{margin:0;font-size:64px;line-height:1;font-weight:800;letter-spacing:-.03em;font-variant-numeric:tabular-nums;min-width:2.2ch}
+.demo-name{margin:0;font-size:18px;font-weight:700;line-height:1.25}
+.demo-fish{margin:2px 0 0;font-size:15px;color:var(--mu)}
+.demo-band{margin:6px 0 0;font-size:14px;font-weight:700}
+.demo-why{margin:16px 0 0;padding-top:14px;border-top:1px solid var(--bd);font-size:15px;color:var(--tx)}
+.demo-up{margin:10px 0 0;font-size:13px;color:var(--mu)}
+.demo .c-ex{color:#2E7D32}.demo .c-gd{color:#4C7A1E}.demo .c-fr{color:#B45309}.demo .c-po{color:#B23A33}
+.demo .d-ex{background:#2E7D32}.demo .d-gd{background:#7FB548}.demo .d-fr{background:#F59E0B}.demo .d-po{background:#C8423B}
+.demo-band i{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:6px;vertical-align:middle}
+.sect-alt{background:var(--card)}
+.sect-alt .sect{background:transparent}
+.cols{display:grid;gap:22px 28px;grid-template-columns:1fr}
+.cols h3{margin:0 0 6px;font-size:17px;font-weight:700;letter-spacing:-.01em}
+.cols p{margin:0;color:var(--mu);font-size:15.5px;line-height:1.55}
+.steps{margin:0;padding:0;list-style:none;display:grid;gap:18px;counter-reset:st}
+.steps li{counter-increment:st;position:relative;padding-left:44px;font-size:16.5px;line-height:1.5}
+.steps li::before{content:counter(st);position:absolute;left:0;top:0;width:30px;height:30px;border-radius:50%;background:var(--ac);color:var(--onac);font-weight:800;display:grid;place-items:center;font-size:15px}
+.steps b{display:block;font-size:17px;margin-bottom:2px}
+.lede-s{font-size:17px;color:var(--mu);max-width:40em;margin:0 0 20px}
+.scale{display:flex;height:14px;border-radius:99px;overflow:hidden;max-width:520px}
+.scale i{display:block}.scale .b1{flex:35;background:#C8423B}.scale .b2{flex:20;background:#F59E0B}.scale .b3{flex:20;background:#7FB548}.scale .b4{flex:25;background:#2E7D32}
+.scale-l{display:grid;grid-template-columns:35fr 20fr 20fr 25fr;max-width:520px;font-size:12.5px;color:var(--mu);margin:8px 0 22px}
+.factors{display:grid;gap:14px 28px;margin:0 0 16px;grid-template-columns:1fr}
+.factors dt{font-weight:700;margin:0 0 2px}
+.factors dd{margin:0;color:var(--mu);font-size:15.5px;line-height:1.5}
+.table-wrap{overflow-x:auto;margin:0 0 14px}
+table.src{width:100%;border-collapse:collapse;font-size:15.5px}
+table.src th,table.src td{text-align:left;padding:12px 14px 12px 0;border-bottom:1px solid var(--bd);vertical-align:top}
+table.src thead th{font-size:13px;color:var(--mu);font-weight:600}
+table.src tbody th{font-weight:700;white-space:nowrap;padding-right:20px}
+table.src td{color:var(--mu)}
+.faq{display:grid;gap:10px}
+.faq details{background:var(--bg);border:1px solid var(--bd);border-radius:10px;padding:0 16px}
+.faq summary{cursor:pointer;min-height:52px;display:flex;align-items:center;font-weight:600;list-style:none}
+.faq summary::-webkit-details-marker{display:none}
+.faq summary::after{content:"+";margin-left:auto;font-size:22px;color:var(--ac);line-height:1}
+.faq details[open] summary::after{content:"\2212"}
+.faq details p{margin:0 0 14px;color:var(--mu);font-size:15.5px;line-height:1.55}
+@media(min-width:760px){.cols{grid-template-columns:repeat(3,minmax(0,1fr))}.factors{grid-template-columns:repeat(2,minmax(0,1fr))}}
