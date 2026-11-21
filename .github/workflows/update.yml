@@ -24,7 +24,7 @@ jobs:
     runs-on: ubuntu-latest
     environment:
       name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
+      url: ${{ steps.deployment.outputs.page_url || steps.deployment_retry.outputs.page_url }}
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
@@ -103,4 +103,15 @@ jobs:
           path: site
 
       - id: deployment
+        uses: actions/deploy-pages@v4
+        # GitHub Pages sometimes can't find the upload it was just given ("Fetching artifact metadata
+        # failed"). That's on GitHub's side, so wait a minute and try once more before giving up.
+        continue-on-error: true
+
+      - name: Wait before retrying the deploy
+        if: steps.deployment.outcome == 'failure'
+        run: sleep 60
+
+      - id: deployment_retry
+        if: steps.deployment.outcome == 'failure'
         uses: actions/deploy-pages@v4
