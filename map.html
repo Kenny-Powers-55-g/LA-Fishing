@@ -3,7 +3,7 @@
 <!-- Security policy: which sites this page may load scripts, data and images from. The sha256 values
      are the inline scripts' fingerprints; scripts/csp.js updates them (the deploy does it automatically).
      Using a Supabase custom domain instead of *.supabase.co? Add it to connect-src. -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-ap5MSQrXWR0reWT9leoroLT0xlM5zuuNBvia3r/cTEw=' 'sha256-K+3Zq6m/7tXzRMISF5Z84DLIb9yCeweM+Ya+1lxzZb8=' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https://*.noaa.gov https://gibs.earthdata.nasa.gov https://tile.openstreetmap.org https://cdnjs.cloudflare.com; connect-src 'self' https://kenny-powers-55-g.github.io https://*.noaa.gov https://gibs.earthdata.nasa.gov https://tile.openstreetmap.org https://api.open-meteo.com https://*.supabase.co wss://*.supabase.co https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://fonts.googleapis.com https://fonts.gstatic.com; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-src 'none'; upgrade-insecure-requests">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-ap5MSQrXWR0reWT9leoroLT0xlM5zuuNBvia3r/cTEw=' 'sha256-mFMGPB/uiJeros/XAVfQKqm9fqE3HYGJJuBAOKGcCeA=' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https://*.noaa.gov https://gibs.earthdata.nasa.gov https://tile.openstreetmap.org https://cdnjs.cloudflare.com; connect-src 'self' https://kenny-powers-55-g.github.io https://*.noaa.gov https://gibs.earthdata.nasa.gov https://tile.openstreetmap.org https://api.open-meteo.com https://*.supabase.co wss://*.supabase.co https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://fonts.googleapis.com https://fonts.gstatic.com; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-src 'none'; upgrade-insecure-requests">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -380,10 +380,10 @@ main::before{background:var(--handle)}
 @media(max-width:360px){.appbar .sub{display:none}}
 /* light palette: used when chosen, or when the device is in light mode and no choice was made */
 :root[data-theme="light"]{color-scheme:light;--bg:#eef3f5;--card:#ffffff;--s2:#f3f7f9;--tx:#0f1b22;--mu:#5a6a73;--bd:#d6e0e5;--ac:#d97a00;--onac:#ffffff;
- --g:#1f9d5c;--y:#c79200;--o:#e06a12;--r:#d63c2f;--track:#e2eaee;--glass:rgba(255,255,255,.94);--appbg:rgba(255,255,255,.95);--mapbg:#dfe9ee;
+ --g:#2E7D32;--y:#8A6100;--o:#B45309;--r:#B23A33;--track:#e2eaee;--glass:rgba(255,255,255,.94);--appbg:rgba(255,255,255,.95);--mapbg:#dfe9ee;
  --handle:#c5d1d7;--topo:#2a6fb8;--topo-o:.2;--pinedge:#ffffff;--shadow:rgba(16,40,56,.18)}
 @media(prefers-color-scheme:light){:root:not([data-theme="dark"]){color-scheme:light;--bg:#eef3f5;--card:#ffffff;--s2:#f3f7f9;--tx:#0f1b22;--mu:#5a6a73;--bd:#d6e0e5;--ac:#d97a00;--onac:#ffffff;
- --g:#1f9d5c;--y:#c79200;--o:#e06a12;--r:#d63c2f;--track:#e2eaee;--glass:rgba(255,255,255,.94);--appbg:rgba(255,255,255,.95);--mapbg:#dfe9ee;
+ --g:#2E7D32;--y:#8A6100;--o:#B45309;--r:#B23A33;--track:#e2eaee;--glass:rgba(255,255,255,.94);--appbg:rgba(255,255,255,.95);--mapbg:#dfe9ee;
  --handle:#c5d1d7;--topo:#2a6fb8;--topo-o:.2;--pinedge:#ffffff;--shadow:rgba(16,40,56,.18)}}
 /* logo colors (Framed #4, All blue) */
 :root{--lg-ink:#e9eef1;--lg-amber:#ff9a2e;--lg-w1:#8fd0f5;--lg-w2:#4aa8e0;--lg-w3:#2f7fb8;--lg-w4:#3a9fd8;--lg-bg:#121a20}
@@ -1044,6 +1044,19 @@ select option,select optgroup{background-color:var(--card);color:var(--tx)}
 body.mapfull #windbar{bottom:calc(74px + env(safe-area-inset-bottom,0px))}
 body.mapfull #mapcard:has(#windbar:not([hidden])) .legend{bottom:calc(186px + env(safe-area-inset-bottom,0px))}
 @media(max-width:899px){body:not(.mapfull) .wb-key{display:none}body:not(.mapfull) #mapcard:has(#windbar:not([hidden])) .legend{display:none}}
+/* ---- Quick fixes: spot rows as two buttons, readable green/red text ---- */
+:root[data-theme="light"] .rank.on .note{color:#45454a}
+/* light mode: the score colours are darker there, so badges on them use white text */
+:root[data-theme="light"] .pill,:root[data-theme="light"] .gono,:root[data-theme="light"] .spitem .b{color:#fff}
+@media(prefers-color-scheme:light){:root:not([data-theme="dark"]) .pill,:root:not([data-theme="dark"]) .gono,:root:not([data-theme="dark"]) .spitem .b{color:#fff}}
+@media(prefers-color-scheme:light){:root:not([data-theme="dark"]) .rank.on .note{color:#45454a}}
+.rank{grid-template-columns:minmax(0,1fr) 36px!important}
+.rk-open{display:grid;grid-template-columns:52px minmax(0,1fr);gap:10px;align-items:center;width:100%;min-height:44px;padding:0;border:0;background:none;color:inherit;font:inherit;text-align:left;cursor:pointer;border-radius:10px}
+.rk-c3{color:#2E7D32}.rk-c2{color:#8A6100}.rk-c1{color:#B45309}.rk-c0{color:#B23A33}
+.bb-tr.up{color:#2E7D32}.bb-tr.dn{color:#B23A33}
+:root[data-theme="dark"] .rk-c3,:root[data-theme="dark"] .bb-tr.up{color:var(--g)}
+:root[data-theme="dark"] .rk-c2{color:var(--y)}:root[data-theme="dark"] .rk-c1{color:var(--o)}:root[data-theme="dark"] .rk-c0,:root[data-theme="dark"] .bb-tr.dn{color:var(--r)}
+@media(prefers-color-scheme:dark){:root:not([data-theme]) .rk-c3,:root:not([data-theme]) .bb-tr.up{color:var(--g)}:root:not([data-theme]) .rk-c2{color:var(--y)}:root:not([data-theme]) .rk-c1{color:var(--o)}:root:not([data-theme]) .rk-c0,:root:not([data-theme]) .bb-tr.dn{color:var(--r)}}
 /* ---- Map clean-up: no sideways scrolling, amber dropdown arrows, calmer header and spot list ---- */
 .tabs{flex-wrap:wrap;overflow:visible;margin:0 0 12px;padding:0;scroll-snap-type:none}
 .tabs button.t{flex:0 0 auto;scroll-snap-align:none}
@@ -1891,6 +1904,39 @@ function fcConditions(spot,f,i,ts,depth){
  for(const k of FC_KEYS)c[k]=f[k]?f[k][i]:null;
  return addCtx(c,spot,ts);
 }
+// One plain sentence for the reading that moves a score most, with its value: "Calm seas (2 ft)",
+// "Slack tide", "Water 58°F, too cold". `good` is the reading's grade (0..1) for this fish.
+function reasonText(R){
+ const g=R.v>=.7,b=R.v<=.4,x=R.raw,t=R.txt;
+ const low=d=>typeof x==="number"&&R.f(x+d)>R.f(x);          // would a higher value grade better?
+ switch(R.k){
+  case"temp":return g?`Water ${t}, in the best range`:b?`Water ${t}, too ${low(2)?"cold":"warm"}`:`Water ${t}`;
+  case"tide":return x==="Slack"?"Slack tide":g?`Moving tide (${String(x).toLowerCase()})`:`${x} tide`;
+  case"wind":return g?`Light wind (${t})`:b?`Too windy (${t})`:`Breezy (${t})`;
+  case"wave":return g?`Calm seas (${t})`:b?`Rough seas (${t})`:`Choppy seas (${t})`;
+  case"clar":return g?`${x} water`:b?`${x} water, hard to fish`:`${x} water`;
+  case"sal":return g?`Good salinity (${t})`:b?`Too ${low(1)?"fresh":"salty"} (${t})`:`Salinity ${t}`;
+  case"pres":return x==="Rising"&&b?"Rising pressure (after a front)":`${x} pressure`;
+  case"trange":return g?`Good tide swing (${t})`:b?`${low(.3)?"Small":"Very big"} tide swing (${t})`:`Tide swing ${t}`;
+  case"dtemp":return g?`Water warming (${t} in a day)`:b?`Water ${x<0?"dropping":"jumping"} fast (${t} in a day)`:`Water steady (${t} in a day)`;
+  case"front":return g?"Warming ahead of a front":b?(x<0?`Cold front just passed (${t} air)`:`Sharp warm-up (${t} air)`):"No front nearby";
+  case"rain":return b?`Heavy rain lately (${t})`:"Little rain lately";
+  case"light":return g?`Good light (${String(x).toLowerCase()})`:`${x}`;
+  case"cloud":return`Cloud cover ${t}`;
+  case"depth":return g?`Depth fits (${t.split(" (")[0]})`:`Depth is off (${t.split(" (")[0]})`;
+  case"tcur":return g?`Good tidal current (${t})`:b?`${low(.2)?"Weak":"Very strong"} tidal current (${t})`:`Tidal current ${t}`;
+  case"cur":return g?`Good current (${t})`:b?`${low(.2)?"Little":"Strong"} current (${t})`:`Current ${t}`;
+  case"vis":return g?`Clean water (${t} visibility)`:b?`Dirty water (${t} visibility)`:`Visibility ${t}`;
+  case"sbreak":return g?`Temperature break nearby (${t})`:"No temperature break nearby";
+  case"riv":return b?`River high or rising (${t})`:`River ${t}`;
+  case"level":return`Water level ${String(x).toLowerCase()}`;
+  case"mon":return g?`In season (${t})`:b?`Out of season (${t})`:`Early or late in the season (${t})`;
+  case"oxy":return x==="Low"?"Low bottom oxygen (dead zone)":"Bottom oxygen OK";
+  case"weed":return g?`Weedline ${t}`:"No weedline nearby";
+  case"moon":case"fphase":case"shrimp":return t;
+  default:return`${R.l}: ${t}`;
+ }
+}
 function scoreC(spId,c,q,ts=Date.now()){
  const p=SP[spId];
  const gate=closedNow(p,ts)||((p.zone||"inshore")!==(c.zone||"inshore")?(p.zone==="offshore"?"Offshore species: choose an offshore spot":"Inshore species: choose an inshore spot"):p.gate(c)); if(gate)return{gate};
@@ -1903,17 +1949,12 @@ function scoreC(spId,c,q,ts=Date.now()){
  // dead slack tide) pulls the whole score down instead of being averaged away by the others.
  let sw=0,s=0,lg=0;
  const wOf=F=>F.w*(TUNE_ON&&TUNE[F.k]||1);          // personal tuning from the catch log, if on
- const rows=have.map(F=>{const v=F.f(c[F.k]),w=wOf(F);sw+=w;s+=w*v;lg+=w*Math.log(Math.max(v,.02));return{...F,w:Math.round(w*10)/10,v,txt:F.t(c[F.k])}});
+ const rows=have.map(F=>{const v=F.f(c[F.k]),w=wOf(F);sw+=w;s+=w*v;lg+=w*Math.log(Math.max(v,.02));return{...F,w:Math.round(w*10)/10,v,raw:c[F.k],txt:F.t(c[F.k])}});
  const tw=usable.reduce((a,F)=>a+wOf(F),0);
  // one-sentence reason from the strongest positive or negative factor
  const sorted=[...rows].sort((a,b)=>Math.abs(b.v-0.5)*b.w-Math.abs(a.v-0.5)*a.w);
  const top=sorted[0];
- let reason="";
- if(top){
-  if(top.v>=0.75) reason=`Strong ${top.l.toLowerCase()}`;
-  else if(top.v<=0.35) reason=`Weak ${top.l.toLowerCase()}`;
-  else reason=top.txt;
- }
+ const reason=top?reasonText(top):"";
  return{total:Math.round(100*Math.exp(lg/sw)),rows,coverage:sw/tw,used:have.length,all:usable.length,
   missing:usable.filter(F=>c[F.k]==null).map(F=>F.l),reason};
 }
@@ -2760,7 +2801,7 @@ function openSetup(){
  const w=$("welcome");if(w)w.hidden=true;
  $("sulocmsg").textContent="";drawSetup();if(!d.open)d.showModal()}
 function finishSetup(go){
- try{localStorage.setItem(SETUP_KEY,"1");localStorage.setItem("oc-myfish-asked","1")}catch(e){}
+ try{localStorage.setItem(SETUP_KEY,"1");localStorage.setItem("oc-myfish-asked","1");localStorage.setItem("oc-welcomed","1")}catch(e){}
  const d=$("setupdlg");if(d&&d.open)d.close();
  if(!go)return;
  try{localStorage.setItem(AREA_KEY,SU.area||"")}catch(e){}
@@ -2808,9 +2849,10 @@ function render(){
   if(fa!==fb)return fb-fa;
   return (b.r.total??-1)-(a.r.total??-1);
  });
- const rankRow=({s,r})=>`<div class="rank ${s.id===sel?"on":""}" data-id="${s.id}" role="button" tabindex="0" aria-current="${s.id===sel}" style="--w:${r.gate?0:r.total}%;--c:${r.gate?"var(--mu)":col(r.total)}">
-  ${r.gate?`<span class="rk-sc na">n/a</span>`:`<span class="rk-sc" style="color:${col(r.total)}">${r.total}</span>`}
-  <span class="rk-t"><b>${esc(s.name)}</b><span class="note">${r.gate?"Not scored for this fish":lab(r.total)}${s.user?" · yours":""}</span></span>
+ const rankRow=({s,r})=>`<div class="rank ${s.id===sel?"on":""}" data-id="${s.id}" style="--w:${r.gate?0:r.total}%;--c:${r.gate?"var(--mu)":col(r.total)}">
+  <button type="button" class="rk-open" aria-current="${s.id===sel}">
+  ${r.gate?`<span class="rk-sc na">n/a</span>`:`<span class="rk-sc rk-c${r.total>=75?3:r.total>=55?2:r.total>=35?1:0}">${r.total}</span>`}
+  <span class="rk-t"><b>${esc(s.name)}</b><span class="note">${r.gate?"Not scored for this fish":lab(r.total)}${s.user?" · yours":""}</span></span></button>
   <button class="fav ${favs.includes(s.id)?"on":""}" data-fav="${s.id}" title="Pin spot" aria-label="Pin ${esc(s.name)}" aria-pressed="${favs.includes(s.id)}">★</button></div>`;
  // Spots this species can't be scored at fold away; long lists show the best 8 first
  const okL=list.filter(x=>!x.r.gate),naL=list.filter(x=>x.r.gate),CAP=8;
@@ -3671,7 +3713,7 @@ function renderAcct(){
   await ACCT.sb.auth.signOut();ACCT.user=null;clearSocial();applyBlob({},PERSONAL_KEYS);acctUI();
   $("acctbody").innerHTML=`<p>Your account and everything saved in it have been deleted.</p>`};
 }
-(()=>{const w=$("welcome");if(!w)return;let seen=false;try{seen=localStorage.getItem("oc-welcomed")==="1"}catch(e){}
+(()=>{const w=$("welcome");if(!w)return;let seen=false;try{seen=localStorage.getItem("oc-welcomed")==="1"||localStorage.getItem("oc-setup")==="1"}catch(e){}
  const ws=$("wspecies");if(ws)ws.textContent=Object.keys(SP).length;
  const ab=$("aboutlink");if(ab)ab.onclick=()=>{w.hidden=false;if(innerWidth<900)showPanel("fish");w.scrollIntoView({behavior:"smooth",block:"center"})};
  w.hidden=seen;$("welcomeok").onclick=()=>{w.hidden=true;try{localStorage.setItem("oc-welcomed","1")}catch(e){}}})();
