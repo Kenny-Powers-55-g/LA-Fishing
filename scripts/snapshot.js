@@ -26,7 +26,7 @@ function loadScoring() {
   };
   ctx.window = ctx;
   vm.createContext(ctx);
-  vm.runInContext(code + "\n;globalThis.__api={SP,score};", ctx, { filename: "map.html" });
+  vm.runInContext(code + "\n;globalThis.__api={SP,score,MODEL_UPDATED};", ctx, { filename: "map.html" });
   return ctx.__api;
 }
 
@@ -63,12 +63,15 @@ function main() {
   const nSpots = latest.spots.filter(x => !x.user).length;
   fs.writeFileSync(path.join(DIR, "board.json"), JSON.stringify({ generated: new Date(now).toISOString(), counts: { spots: nSpots, fish: Object.keys(api.SP).length }, spots: board }));
 
-  const old = readJSON("scores-daily.json", {});
-  const out = {};
-  for (const d of Object.keys(old).sort().slice(-(KEEP - 1))) if (old[d] && typeof old[d] === "object") out[d] = old[d];
+  // Scores from an older version of the scoring rules aren't comparable: start the trend history fresh
+  const old = readJSON("scores-daily.json", {}), model = api.MODEL_UPDATED || null;
+  const out = { _model: model };
+  if (old._model === model)
+    for (const d of Object.keys(old).filter(k => /^\d{4}-\d\d-\d\d$/.test(k)).sort().slice(-(KEEP - 1)))
+      if (old[d] && typeof old[d] === "object") out[d] = old[d];
   out[dayKey(now)] = today;
   fs.writeFileSync(path.join(DIR, "scores-daily.json"), JSON.stringify(out));
-  console.log(`snapshot: ${Object.keys(today).length} scores for ${dayKey(now)}; days kept: ${Object.keys(out).join(", ")}`);
+  console.log(`snapshot: ${Object.keys(today).length} scores for ${dayKey(now)}; days kept: ${Object.keys(out).filter(k => k !== "_model").join(", ")} (scoring rules ${model})`);
 }
 main();
 process.exit(0);   // the page's startup code leaves timers behind; nothing else to wait for
