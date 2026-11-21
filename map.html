@@ -3,7 +3,7 @@
 <!-- Security policy: which sites this page may load scripts, data and images from. The sha256 values
      are the inline scripts' fingerprints; scripts/csp.js updates them (the deploy does it automatically).
      Using a Supabase custom domain instead of *.supabase.co? Add it to connect-src. -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-ap5MSQrXWR0reWT9leoroLT0xlM5zuuNBvia3r/cTEw=' 'sha256-mFMGPB/uiJeros/XAVfQKqm9fqE3HYGJJuBAOKGcCeA=' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https://*.noaa.gov https://gibs.earthdata.nasa.gov https://tile.openstreetmap.org https://cdnjs.cloudflare.com; connect-src 'self' https://kenny-powers-55-g.github.io https://*.noaa.gov https://gibs.earthdata.nasa.gov https://tile.openstreetmap.org https://api.open-meteo.com https://*.supabase.co wss://*.supabase.co https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://fonts.googleapis.com https://fonts.gstatic.com; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-src 'none'; upgrade-insecure-requests">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-ap5MSQrXWR0reWT9leoroLT0xlM5zuuNBvia3r/cTEw=' 'sha256-gr1Ur2GKuYGY2Llhd3DT/ggn4wpazqSLpyVGYoAVFiQ=' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https://*.noaa.gov https://gibs.earthdata.nasa.gov https://tile.openstreetmap.org https://cdnjs.cloudflare.com; connect-src 'self' https://kenny-powers-55-g.github.io https://*.noaa.gov https://gibs.earthdata.nasa.gov https://tile.openstreetmap.org https://api.open-meteo.com https://*.supabase.co wss://*.supabase.co https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://fonts.googleapis.com https://fonts.gstatic.com; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-src 'none'; upgrade-insecure-requests">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -1057,6 +1057,16 @@ body.mapfull #mapcard:has(#windbar:not([hidden])) .legend{bottom:calc(186px + en
 :root[data-theme="dark"] .rk-c3,:root[data-theme="dark"] .bb-tr.up{color:var(--g)}
 :root[data-theme="dark"] .rk-c2{color:var(--y)}:root[data-theme="dark"] .rk-c1{color:var(--o)}:root[data-theme="dark"] .rk-c0,:root[data-theme="dark"] .bb-tr.dn{color:var(--r)}
 @media(prefers-color-scheme:dark){:root:not([data-theme]) .rk-c3,:root:not([data-theme]) .bb-tr.up{color:var(--g)}:root:not([data-theme]) .rk-c2{color:var(--y)}:root:not([data-theme]) .rk-c1{color:var(--o)}:root:not([data-theme]) .rk-c0,:root:not([data-theme]) .bb-tr.dn{color:var(--r)}}
+/* ---- Today tab: slim empty cards ---- */
+.card.slim{padding:8px 14px}
+.slim-row{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:2px 12px;font-size:15px}
+.slim-row b{font-weight:700}
+.slim-row .linkbtn{min-height:44px;display:inline-flex;align-items:center}
+#savedcard.slim>h3{display:none}
+/* ---- Map: pins that overlap become small dots ---- */
+.pin.mini span{min-width:0;width:14px;height:14px;padding:0;font-size:0;line-height:0;border-width:2px;border-radius:50%;transform:translate(-50%,-50%);box-shadow:0 2px 6px rgba(0,0,0,.35)}
+.pin.mini span::after,.pin.mini span b,.pin.mini span .wa{display:none}
+.pin.mini span:hover{transform:translate(-50%,-50%) scale(1.35)}
 /* ---- Map clean-up: no sideways scrolling, amber dropdown arrows, calmer header and spot list ---- */
 .tabs{flex-wrap:wrap;overflow:visible;margin:0 0 12px;padding:0;scroll-snap-type:none}
 .tabs button.t{flex:0 0 auto;scroll-snap-align:none}
@@ -1191,13 +1201,6 @@ select:not(#basesel){appearance:none;-webkit-appearance:none;padding-right:34px!
   <div class="sk-row"><div class="sk"></div><div class="sk"></div></div>
   <div class="sk-row"><div class="sk"></div><div class="sk"></div></div>
  </div>
- <section class="card" id="alertcard" hidden style="grid-column:1/-1"></section>
- <section class="card" id="myfishcard" hidden style="grid-column:1/-1">
-  <h3>What do you fish for most?</h3>
-  <p class="note" style="margin:0 0 10px">Pick a few. They'll come first in the fish chips and in Today's best bets. You can change them any time from Choose a fish.</p>
-  <div id="myfishchips"></div>
-  <div class="row3" style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap"><button type="button" class="t on" id="myfishsave">Save</button><button type="button" class="t" id="myfishlater">Not now</button></div>
- </section>
  <section class="card" id="bestbets" style="grid-column:1/-1">
  <div class="bb-h"><div><h3>Today's best bets</h3><p class="note" id="bbsub"></p></div><button type="button" class="linkbtn" id="bbedit">Change fish or area</button></div>
  <ol class="bb-list" id="bblist"></ol>
@@ -1208,6 +1211,13 @@ select:not(#basesel){appearance:none;-webkit-appearance:none;padding-right:34px!
  <div id="favs" class="saved"></div>
 </section>
 
+ <section class="card" id="alertcard" hidden style="grid-column:1/-1"></section>
+ <section class="card" id="myfishcard" hidden style="grid-column:1/-1">
+  <h3>What do you fish for most?</h3>
+  <p class="note" style="margin:0 0 10px">Pick a few. They'll come first in the fish chips and in Today's best bets. You can change them any time from Choose a fish.</p>
+  <div id="myfishchips"></div>
+  <div class="row3" style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap"><button type="button" class="t on" id="myfishsave">Save</button><button type="button" class="t" id="myfishlater">Not now</button></div>
+ </section>
  <section class="card" style="grid-column:1/-1">
   <div class="panel-tabs">
    <button class="t on" type="button" data-panel="fish">Today</button>
@@ -2451,6 +2461,7 @@ function mapInit(){
   if(mv&&isFinite(mv.lat)&&isFinite(mv.lng)&&isFinite(mv.z))MAP.setView([mv.lat,mv.lng],Math.max(4,Math.min(16,mv.z)));
   else{if(document.body.classList.contains("nomap"))MAP_FIT_PENDING=true;
    MAP.fitBounds(DATA.spots.filter(s=>s.lat!=null).map(s=>[s.lat,s.lon]),{padding:[30,30]})}
+  MAP.on("zoomend",declutterPins);
   MAP.on("moveend",()=>{if(document.body.classList.contains("nomap"))return;const c=MAP.getCenter();
    try{localStorage.setItem("oc-mapview",JSON.stringify({lat:+c.lat.toFixed(4),lng:+c.lng.toFixed(4),z:MAP.getZoom()}))}catch(e){}});
  }catch(e){$("mapcard").hidden=true}
@@ -2493,6 +2504,26 @@ function mapUpdate(list){
   m.unbindTooltip().bindTooltip(OVLAYER.wind?windTip(s):`${esc(s.name)}: ${r.gate?"n/a":r.total+" "+lab(r.total)}`,{direction:"top",offset:[0,-16]})});
  if(OVLAYER.wind)windBarSync();
  mapFilterUI(shown,list.length);
+ list.forEach(({s,r})=>PINPRI[s.id]=r.gate?-1:r.total);
+ declutterPins();
+}
+// When pins overlap (zoomed out), the best-scoring one keeps its full pin and the others become small
+// dots; zooming in brings their labels back. The selected spot, starred spots and your own pins always
+// keep a full pin. Tap a dot to open that spot.
+const PINPRI={};
+function declutterPins(){
+ if(!MAP||!DATA)return;const favs=getFavs(),items=[];
+ for(const s of DATA.spots){const m=MK[s.id];if(!m||!MAP.hasLayer(m))continue;const el=m.getElement();if(!el)continue;
+  const always=s.id===sel||s.user||favs.includes(s.id);
+  items.push({el,always,pri:(always?1e4:0)+(PINPRI[s.id]??-1),p:MAP.latLngToContainerPoint(m.getLatLng())})}
+ items.sort((a,b)=>b.pri-a.pri);
+ const kept=[];
+ for(const it of items){
+  const clash=kept.some(k=>Math.abs(k.x-it.p.x)<42&&Math.abs(k.y-it.p.y)<30);
+  const mini=!it.always&&clash;
+  it.el.classList.toggle("mini",mini);
+  if(!mini)kept.push(it.p);
+ }
 }
 
 // ---- Wind forecast on the map: while it's on, pins show wind (arrow and speed) for a chosen hour ----
@@ -2516,7 +2547,7 @@ function windBarSync(){
  const k=$("wbkey");if(k)k.innerHTML=cuts.map((c,j)=>`<span><i class="wk${j}"></i>${c}</span>`).join("")+`<span class="wb-u">${kt?"knots":"mph"}</span>`}
 function windPins(){if(!MAP||!DATA)return;
  for(const s of DATA.spots){const m=MK[s.id];if(m&&MAP.hasLayer(m)){m.setIcon(windIcon(s));m.unbindTooltip().bindTooltip(windTip(s),{direction:"top",offset:[0,-16]})}}
- windBarSync()}
+ windBarSync();declutterPins()}
 function windMapRefresh(){
  const on=!!OVLAYER.wind,bar=$("windbar");if(bar)bar.hidden=!on;
  if(!on)WIND_I=null;
@@ -3049,7 +3080,9 @@ function alertHits(){
 function renderAlerts(){
  const el=$("alertcard");if(!el)return;const rules=getAlerts();
  if(!rules.length){el.hidden=false;el.classList.remove("has");el.onclick=null;
-  el.innerHTML=`<div class="empty-cta"><div><h3>My alerts</h3><p class="note">No alerts yet. Get told when a spot you care about turns on.</p></div><button type="button" class="t on" data-alerts>Create your first alert</button></div>`;return}
+  el.classList.add("slim");
+  el.innerHTML=`<div class="slim-row"><span><b>Alerts:</b> none yet</span><button type="button" class="linkbtn" data-alerts title="Get told when a spot you care about turns on">Create your first alert</button></div>`;return}
+ el.classList.remove("slim");
  const hits=alertHits();el.hidden=false;el.classList.toggle("has",hits.length>0);
  el.innerHTML=`<div class="al-h"><h3>My alerts${hits.length?` <span class="al-n">${hits.length}</span>`:""}</h3><button type="button" class="t" data-alerts>Manage</button></div>`+
   (hits.length?hits.slice(0,6).map(h=>`<button type="button" class="al-row al-${h.kind}" data-al-sp="${esc(h.sp)}" data-al-spot="${esc(h.spot.id)}"><span class="al-ic" aria-hidden="true">${h.kind==="warn"?"⚠️":h.kind==="now"?"🎣":"🕒"}</span><span>${esc(h.txt)}</span></button>`).join("")+(hits.length>6?`<div class="note">and ${hits.length-6} more</div>`:"")
@@ -3309,7 +3342,8 @@ function openPicker(){
 function renderSaved(favs){
  const el=$("favs");if(!el)return;
  const ids=[...favs.filter(id=>DATA.spots.some(s=>s.id===id)),...DATA.spots.filter(s=>s.user&&!favs.includes(s.id)).map(s=>s.id)];
- if(!ids.length){el.innerHTML=`<div class="empty empty-cta"><span>No saved spots yet. Tap ★ next to a spot to save it here, or tap the map and choose “Save as my spot”.</span><button type="button" class="t on" data-findmap>Find a spot on the map</button></div>`;return}
+ {const sc=$("savedcard");if(sc)sc.classList.toggle("slim",!ids.length)}
+ if(!ids.length){el.innerHTML=`<div class="slim-row"><span><b>Saved spots:</b> none yet</span><button type="button" class="linkbtn" data-findmap title="Tap ★ on a spot to keep it here">Find a spot on the map</button></div>`;return}
  el.innerHTML=ids.map(id=>{const s=DATA.spots.find(x=>x.id===id),r=score(sp,s),pin=!!s.user,star=favs.includes(id);
   return`<div class="row"><button type="button" class="open" data-id="${s.id}"><span class="nm">${esc(s.name)}</span><span class="kind">${pin?"My pin":"★ Starred"}</span>
    <span class="sc" style="color:${r.gate?"var(--mu)":col(r.total)}">${r.gate?"n/a":r.total}</span></button>
