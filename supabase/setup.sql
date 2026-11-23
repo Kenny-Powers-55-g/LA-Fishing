@@ -231,3 +231,168 @@ grant execute on function public.oc_my_pending_requests() to authenticated;
 drop policy if exists "send friend requests" on public.oc_friends;
 create policy "send friend requests" on public.oc_friends for insert to authenticated
   with check ((select auth.uid()) = requester and status = 'pending' and public.oc_my_pending_requests() < 20);
+
+-- =====================================================================================
+-- Anonymous community catch reports. Safe to run again.
+-- Anyone can send one (no account needed) to help tune the scores. A report holds only:
+-- the fish, one of seven big areas, the day, the result, the model's score and the 0-1
+-- grade of each reading. Never a spot, pin, coordinates, time of day, sizes, counts, bait,
+-- notes, photos, username or account id, so a report can't lead anyone to a spot or a person.
+-- Nobody can read the reports themselves: the only way out is oc_community_stats(), which
+-- returns totals and averages, and nothing at all from fewer than 5 reports.
+-- =====================================================================================
+
+create table if not exists public.oc_community_reports (
+  id          bigint generated always as identity primary key,
+  reported_on date not null default current_date,      -- the day only, never the time
+  sp          text not null check (sp ~ '^[a-z]{2,20}$'),
+  region      text not null check (region in ('sw', 'acadiana', 'terr', 'nola', 'delta', 'north', 'offshore')),
+  result      text not null check (result in ('caught', 'slow', 'none')),
+  score       smallint check (score between 0 and 100),
+  factors     jsonb not null check (jsonb_typeof(factors) = 'object' and octet_length(factors::text) <= 1000)
+);
+alter table public.oc_community_reports enable row level security;
+-- No policies on purpose: nobody reads or writes this table directly, only through the two functions below.
+revoke all on public.oc_community_reports from public, anon, authenticated;
+
+-- Daily send limits. A report is counted against a one-way fingerprint of the sender's network
+-- address mixed with a random secret that is thrown away the next day. The fingerprint is never
+-- stored with the report, and yesterday's counts and secret are deleted, so the limits can't be
+-- used to work out who sent what.
+create table if not exists public.oc_report_salt (
+  day  date primary key,
+  salt text not null
+);
+create table if not exists public.oc_report_limits (
+  day    date not null,
+  bucket text not null,
+  n      integer not null default 0,
+  primary key (day, bucket)
+);
+alter table public.oc_report_salt enable row level security;
+alter table public.oc_report_limits enable row level security;
+revoke all on public.oc_report_salt from public, anon, authenticated;
+revoke all on public.oc_report_limits from public, anon, authenticated;
+
+-- Send one anonymous report. The app calls this without the person's sign-in, even when they're signed in.
+-- Readings are rounded to one decimal so they can't be matched back to one spot's exact numbers.
+create or replace function public.oc_report_catch(sp text, region text, result text, score integer, factors jsonb)
+returns void
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  per_sender constant integer := 12;     -- reports a day from one network address
+  per_day    constant integer := 1500;   -- reports a day from everyone together (the backstop)
+  hdr  json := nullif(current_setting('request.headers', true), '')::json;
+  ip   text;
+  s    text;
+  b    text;
+  cnt  integer;
+  f    jsonb := '{}'::jsonb;
+  k    text;
+  v    jsonb;
+begin
+  if sp is null or sp !~ '^[a-z]{2,20}$' then raise exception 'Unknown fish'; end if;
+  if region is null or region not in ('sw', 'acadiana', 'terr', 'nola', 'delta', 'north', 'offshore') then raise exception 'Unknown area'; end if;
+  if result is null or result not in ('caught', 'slow', 'none') then raise exception 'Unknown result'; end if;
+  if score is not null and (score < 0 or score > 100) then raise exception 'Score out of range'; end if;
+  if factors is null or jsonb_typeof(factors) <> 'object' then raise exception 'No readings'; end if;
+  for k, v in select e.key, e.value from jsonb_each(factors) as e loop
+    if k !~ '^[a-z]{2,10}$' or jsonb_typeof(v) <> 'number' or v::text::numeric < 0 or v::text::numeric > 1 then
+      raise exception 'Bad reading';
+    end if;
+    f := f || jsonb_build_object(k, round(v::text::numeric, 1));
+  end loop;
+  if (select count(*) from jsonb_object_keys(f)) not between 1 and 30 then raise exception 'Bad readings'; end if;
+
+  -- Forget yesterday's limits and secret, then count this report against today's
+  delete from public.oc_report_limits where day < current_date;
+  delete from public.oc_report_salt where day < current_date;
+  insert into public.oc_report_salt (day, salt) values (current_date, gen_random_uuid()::text) on conflict (day) do nothing;
+  select rs.salt into s from public.oc_report_salt rs where rs.day = current_date;
+  ip := nullif(trim(coalesce(hdr ->> 'cf-connecting-ip', split_part(hdr ->> 'x-forwarded-for', ',', 1), '')), '');
+  b := case when ip is null then 'unknown' else encode(sha256(convert_to(s || '|' || ip, 'UTF8')), 'hex') end;
+  insert into public.oc_report_limits as l (day, bucket, n) values (current_date, b, 1)
+    on conflict (day, bucket) do update set n = l.n + 1
+    returning l.n into cnt;
+  if cnt > (case when b = 'unknown' then per_day else per_sender end) then
+    raise exception 'Daily limit reached. Thanks for all the reports; try again tomorrow.';
+  end if;
+  if (select sum(l.n) from public.oc_report_limits l where l.day = current_date) > per_day then
+    raise exception 'Daily limit reached for everyone. Try again tomorrow.';
+  end if;
+
+  insert into public.oc_community_reports (sp, region, result, score, factors)
+  values (sp, region, result, score, f);
+end;
+$$;
+revoke all on function public.oc_report_catch(text, text, text, integer, jsonb) from public, anon, authenticated;
+grant execute on function public.oc_report_catch(text, text, text, integer, jsonb) to anon, authenticated;
+
+-- Totals and averages for the hourly job that tunes the scores (and for anyone curious).
+-- Per fish, for all areas together ("all") and for each area: how many trips caught fish or not,
+-- the average grade of each reading on good and slow trips, and how often each score band caught fish.
+-- A group with fewer than 5 reports is left out entirely; an average from fewer than 3 is left blank.
+create or replace function public.oc_community_stats()
+returns jsonb
+language sql
+stable
+security definer
+set search_path = ''
+as $$
+  with r as (
+    select c.sp, c.region, c.result = 'caught' as good, c.score, c.factors
+    from public.oc_community_reports c
+    where c.reported_on > current_date - 730
+  ),
+  cells as (
+    select r.sp, coalesce(r.region, 'all') as region,
+           count(*) filter (where r.good) as caught, count(*) filter (where not r.good) as slow,
+           count(*) filter (where r.score >= 75) as ex_n, count(*) filter (where r.score >= 75 and r.good) as ex_c,
+           count(*) filter (where r.score >= 55 and r.score < 75) as gd_n, count(*) filter (where r.score >= 55 and r.score < 75 and r.good) as gd_c,
+           count(*) filter (where r.score >= 35 and r.score < 55) as fr_n, count(*) filter (where r.score >= 35 and r.score < 55 and r.good) as fr_c,
+           count(*) filter (where r.score < 35) as po_n, count(*) filter (where r.score < 35 and r.good) as po_c
+    from r
+    group by grouping sets ((r.sp, r.region), (r.sp))
+    having count(*) >= 5
+  ),
+  facs as (
+    select r.sp, coalesce(r.region, 'all') as region, e.key,
+           avg(e.value::numeric) filter (where r.good) as gm, count(*) filter (where r.good) as gn,
+           avg(e.value::numeric) filter (where not r.good) as sm, count(*) filter (where not r.good) as sn
+    from r cross join lateral jsonb_each_text(r.factors) as e(key, value)
+    group by grouping sets ((r.sp, r.region, e.key), (r.sp, e.key))
+  ),
+  band(k, n, c) as (
+    select 'ex', count(*) filter (where score >= 75), count(*) filter (where score >= 75 and good) from r
+    union all select 'gd', count(*) filter (where score >= 55 and score < 75), count(*) filter (where score >= 55 and score < 75 and good) from r
+    union all select 'fr', count(*) filter (where score >= 35 and score < 55), count(*) filter (where score >= 35 and score < 55 and good) from r
+    union all select 'po', count(*) filter (where score < 35), count(*) filter (where score < 35 and good) from r
+  ),
+  cellj as (
+    select c.sp, c.region, jsonb_build_object(
+      'caught', c.caught, 'slow', c.slow,
+      'b', jsonb_strip_nulls(jsonb_build_object(
+        'ex', case when c.ex_n >= 5 then jsonb_build_array(c.ex_n, c.ex_c) end,
+        'gd', case when c.gd_n >= 5 then jsonb_build_array(c.gd_n, c.gd_c) end,
+        'fr', case when c.fr_n >= 5 then jsonb_build_array(c.fr_n, c.fr_c) end,
+        'po', case when c.po_n >= 5 then jsonb_build_array(c.po_n, c.po_c) end)),
+      'f', coalesce((
+        select jsonb_object_agg(x.key, jsonb_build_array(
+          case when x.gn >= 3 then round(x.gm, 3) end, x.gn,
+          case when x.sn >= 3 then round(x.sm, 3) end, x.sn))
+        from facs x where x.sp = c.sp and x.region = c.region), '{}'::jsonb)) as j
+    from cells c
+  )
+  select jsonb_build_object(
+    'total', (select count(*) from r),
+    'regions', coalesce((select jsonb_object_agg(q.region, q.n) from (
+        select r.region, count(*) as n from r group by r.region having count(*) >= 5) q), '{}'::jsonb),
+    'bands', coalesce((select jsonb_object_agg(band.k, jsonb_build_array(band.n, band.c)) from band where band.n >= 5), '{}'::jsonb),
+    'species', coalesce((select jsonb_object_agg(q.sp, q.regions) from (
+        select cellj.sp, jsonb_object_agg(cellj.region, cellj.j) as regions from cellj group by cellj.sp) q), '{}'::jsonb));
+$$;
+revoke all on function public.oc_community_stats() from public, anon, authenticated;
+grant execute on function public.oc_community_stats() to anon, authenticated;

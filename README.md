@@ -57,6 +57,41 @@ setting covers new friends and anyone not set individually. To turn this on in a
 Usernames are visible to any signed-in person (that's how friends find each other). Nothing else is:
 spots and catches are only readable by accepted friends, and only while sharing is switched on.
 
+### Anonymous community reports (tune the scores from everyone's trips)
+
+Anyone can tick **Also share anonymously to improve the scores** when they log a trip on the day they fish. No account
+is needed. Once a fish has enough reports, the scores lean a little toward what the good trips had in common.
+To turn it on in an existing project, run everything from `supabase/setup.sql` again in the **SQL Editor** (it's safe to
+re-run). Until then the tick box still shows, and reports wait on each phone for up to 3 days.
+
+What keeps people's spots safe:
+
+- **Big areas only.** A report names one of the seven areas from the setup screen (Southwest, Vermilion & Acadiana,
+  Terrebonne & Lafourche, New Orleans & Pontchartrain, Plaquemines & the Delta, North Louisiana lakes, Offshore).
+  Never the spot, a pin, coordinates or depth. The phone works out the area and sends only its name.
+- **Only what the model needs:** the fish, the result (caught / slow / nothing), the plain model's score rounded down to 5,
+  and each reading's 0–1 grade rounded to 0.1. No time of day, sizes, counts, bait, notes, photos, username or account.
+  Depth and light grades are left out because they hint at depth and time.
+- **Not tied to anyone.** Reports go straight to the `oc_report_catch()` database function with the public key, never
+  with the person's sign-in. The table has no user id, no timestamp (just the day) and no IP address.
+- **Nothing to browse.** Nobody can read the table through the site. The only way out is `oc_community_stats()`, which
+  returns totals and averages and leaves out any group of fewer than 5 trips. There is no feed or map of reports.
+  You (the operator) can see single reports in the Supabase Table Editor (`oc_community_reports`).
+
+How the scores use them: every hour `scripts/community.js` reads `oc_community_stats()` and writes `community.json`.
+A fish is tuned only after **20 "caught" and 10 slow or empty trips**; a reading that graded higher on good trips counts
+more, one that graded higher on slow trips counts less, never more than 30% either way, and less while reports are few.
+One of the seven areas gets its own tuning when it passes the same bar on its own. The page, the daily snapshot and the
+phone alerts all apply it, scores that use it say **Community-tuned**, and anyone can switch it off under My catches.
+People's own personal tuning still takes priority on their device. Tests: `node tests/check_community.js`.
+
+Abuse limits: 12 reports a day from one network address (counted with a one-way code and a secret that's thrown away
+daily, never stored with the report) and 1,500 a day from everyone together. Network addresses can be faked, so the
+daily total, the 20/10 minimum and the 30% cap are what really limit how far bad reports can push a score. If spam
+ever gets in, delete it in the SQL Editor (for example `delete from public.oc_community_reports where reported_on = '2026-12-01';`).
+To stop taking new reports, run `revoke execute on function public.oc_report_catch(text, text, text, integer, jsonb) from anon, authenticated;`
+(the tick box then fails quietly and the phone drops each report after 3 days).
+
 Supabase's built-in email sender only allows a few sign-in emails per hour. Once more people use the site, add your own
 email service under **Authentication → Emails → SMTP Settings** (Resend, SendGrid, Amazon SES and others have free tiers).
 
@@ -83,7 +118,8 @@ What the site does to keep visitors and their data safe:
   (spots can arrive from another device, a backup file or a friend).
 - **Database rules** (`supabase/setup.sql`): row level security on every table; friends only ever get
   the two lists a person chose to share, never notes; saved data is capped at about 2 MB per person;
-  at most 20 unanswered friend requests at a time.
+  at most 20 unanswered friend requests at a time. Anonymous community reports can only be added through one
+  checked function (daily limits, strict values) and only read back as totals of 5 or more.
 
 Recommended Supabase settings (Authentication section of the dashboard):
 

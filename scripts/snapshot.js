@@ -26,7 +26,7 @@ function loadScoring() {
   };
   ctx.window = ctx;
   vm.createContext(ctx);
-  vm.runInContext(code + "\n;globalThis.__api={SP,score,MODEL_UPDATED};", ctx, { filename: "map.html" });
+  vm.runInContext(code + "\n;globalThis.__api={SP,score,MODEL_UPDATED,setCommunity};", ctx, { filename: "map.html" });
   return ctx.__api;
 }
 
@@ -39,6 +39,7 @@ function main() {
     console.log("snapshot: no latest.json, skipping"); return;
   }
   const api = loadScoring();
+  api.setCommunity(readJSON("community.json", null));   // the same community tuning the page uses
   const now = Date.now(), today = {};
   for (const spot of latest.spots) {
     if (spot.user) continue;

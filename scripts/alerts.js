@@ -34,7 +34,7 @@ function loadScoring() {
   ctx.window = ctx;
   vm.createContext(ctx);
   // the page's top-level consts aren't visible from outside, so hand the pieces we need back
-  vm.runInContext(code + "\n;globalThis.__api={SP,score,scoreC,fcConditions,lightNow};", ctx, { filename: "map.html" });
+  vm.runInContext(code + "\n;globalThis.__api={SP,score,scoreC,fcConditions,lightNow,setCommunity};", ctx, { filename: "map.html" });
   return ctx.__api;
 }
 
@@ -167,6 +167,7 @@ async function main() {
     if (fresh.length) await deliver(m.keys, m);
   }
   const api = rules.length ? loadScoring() : null;
+  if (api) api.setCommunity(readJSON("community.json", null));   // the same community tuning the page uses
   for (const [ri, rule] of rules.entries()) {
     const sp = api.SP[rule.species];
     if (!sp) { console.log(`Rule ${ri + 1}: unknown species "${rule.species}"`); continue; }
