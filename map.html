@@ -3,7 +3,7 @@
 <!-- Security policy: which sites this page may load scripts, data and images from. The sha256 values
      are the inline scripts' fingerprints; scripts/csp.js updates them (the deploy does it automatically).
      Using a Supabase custom domain instead of *.supabase.co? Add it to connect-src. -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-ap5MSQrXWR0reWT9leoroLT0xlM5zuuNBvia3r/cTEw=' 'sha256-gr1Ur2GKuYGY2Llhd3DT/ggn4wpazqSLpyVGYoAVFiQ=' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https://*.noaa.gov https://gibs.earthdata.nasa.gov https://tile.openstreetmap.org https://cdnjs.cloudflare.com; connect-src 'self' https://kenny-powers-55-g.github.io https://*.noaa.gov https://gibs.earthdata.nasa.gov https://tile.openstreetmap.org https://api.open-meteo.com https://*.supabase.co wss://*.supabase.co https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://fonts.googleapis.com https://fonts.gstatic.com; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-src 'none'; upgrade-insecure-requests">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-ap5MSQrXWR0reWT9leoroLT0xlM5zuuNBvia3r/cTEw=' 'sha256-rhCxsEUi7ZotlpznYC0u0C+stLkw7fvylFfPwPbxhqQ=' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https://*.noaa.gov https://gibs.earthdata.nasa.gov https://tile.openstreetmap.org https://cdnjs.cloudflare.com; connect-src 'self' https://kenny-powers-55-g.github.io https://*.noaa.gov https://gibs.earthdata.nasa.gov https://tile.openstreetmap.org https://api.open-meteo.com https://*.supabase.co wss://*.supabase.co https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://fonts.googleapis.com https://fonts.gstatic.com; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-src 'none'; upgrade-insecure-requests">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -874,6 +874,17 @@ select option,select optgroup{background-color:var(--card);color:var(--tx)}
 #logPatterns[hidden]{display:none}
 .pat{padding:8px 0;border-top:.5px solid var(--hair,var(--bd))}.pat:first-of-type{border-top:0}
 .share-row{display:flex;gap:8px;flex-wrap:wrap}
+/* Anonymous community share: one checkbox in the catch form, with exactly what gets sent under it */
+.anonshare{background:var(--s2);border-radius:12px;padding:10px 12px;margin-top:2px}
+.anonshare[hidden],#commBox[hidden]{display:none}
+.log-form .anonshare label.sw{display:flex;gap:10px;align-items:flex-start;font-size:15px;color:var(--tx);cursor:pointer}
+.log-form .anonshare input[type=checkbox]{width:22px;height:22px;min-height:0;flex:none;margin:0;padding:0;accent-color:var(--ac)}
+.anonshare .note{margin:6px 0 0 32px;line-height:1.4}
+.anonshare.off label.sw{opacity:.55;cursor:default}
+.shared{color:var(--ac);font-weight:600}
+#commBox .cmp{margin-top:8px}
+.commpriv{margin-top:10px}.commpriv>summary{cursor:pointer;font-weight:600;color:var(--ac);min-height:40px;display:flex;align-items:center}
+.commpriv ul{margin:4px 0 0;padding-left:20px}.commpriv li{margin:4px 0}
 .pp-btns{display:grid;grid-template-columns:1fr 1fr;gap:8px}.pp-btns .t{min-height:46px;border-radius:12px!important;font-size:15px}
 .logmore .row2{margin-bottom:10px}.logmore>label{display:block;margin-bottom:10px}
 .photopick input::file-selector-button{border:0;border-radius:99px;background:var(--fill,var(--s2));color:var(--tx);font:500 14px var(--sys,system-ui);padding:8px 14px;margin-right:10px;cursor:pointer}
@@ -1260,6 +1271,10 @@ select:not(#basesel){appearance:none;-webkit-appearance:none;padding-right:34px!
      <button type="button" role="radio" data-res="none" aria-checked="false">Nothing</button>
     </div>
     <input type="hidden" id="logResult" value="caught">
+    <div class="anonshare" id="anonShare" hidden>
+     <label class="sw"><input type="checkbox" id="logShare"> <b>Also share anonymously to improve the scores</b></label>
+     <p class="note" id="logShareWhat" aria-live="polite"></p>
+    </div>
     <details class="logmore"><summary>More details <span class="note">(optional, private)</span></summary>
      <div class="row2">
       <label>Biggest (inches)<input id="logLen" type="number" min="0" max="200" step="0.5" inputmode="decimal" placeholder="e.g. 24"></label>
@@ -1280,6 +1295,7 @@ select:not(#basesel){appearance:none;-webkit-appearance:none;padding-right:34px!
    </form>
    <div class="log-assess" id="logAssess"></div>
    <div class="log-assess" id="tuneBox"></div>
+   <div class="log-assess" id="commBox" hidden></div>
    <div class="log-assess" id="logPatterns" hidden></div>
    <h3 style="margin-top:18px">Your private history</h3>
    <div class="log-list" id="logList"></div>
@@ -1289,7 +1305,7 @@ select:not(#basesel){appearance:none;-webkit-appearance:none;padding-right:34px!
     <input type="file" id="logImport" accept=".json,application/json" hidden>
     <span class="note" id="logBackupMsg" role="status"></span>
    </div>
-   <p class="priv" id="privbackup">Clearing browser data for this site will erase the log, so download a backup now and then. Nothing is uploaded.</p>
+   <p class="priv" id="privbackup">Clearing browser data for this site will erase the log, so download a backup now and then. Nothing is uploaded, except anonymous reports you choose to share.</p>
   </section>
  </div>
  <div id="panel-friends" hidden>
@@ -1901,7 +1917,7 @@ let COND_CACHE=new WeakMap();
 function condFor(spot,ts=Date.now(),depth=userDepth()){
  const key=Math.floor(ts/6e4)+"|"+(depth??"");let m=COND_CACHE.get(spot);
  if(m&&m.key===key&&m.src===spot.conditions)return m.c;
- const c={...spot.conditions,zone:spot.zone,alerts:(spot.alerts||[]).map(a=>a.event).join("|"),light:lightNow(spot,ts),moon:moonInfo(spot,ts),mon:monthOf(ts)};
+ const c={...spot.conditions,zone:spot.zone,area:areaOfC(spot),alerts:(spot.alerts||[]).map(a=>a.event).join("|"),light:lightNow(spot,ts),moon:moonInfo(spot,ts),mon:monthOf(ts)};
  if(depth!=null)c.depth=depth;
  addCtx(c,spot,ts);COND_CACHE.set(spot,{key,src:spot.conditions,c});return c;
 }
@@ -1909,7 +1925,7 @@ function score(spId,spot,ts=Date.now(),depth=userDepth()){return scoreC(spId,con
 // Conditions for forecast hour i (shared by the outlook and the best-window finder)
 const FC_KEYS=["temp","wind","cloud","pres","tide","trange","front","dtemp","rain","clar","wave","cur","tcur"];
 function fcConditions(spot,f,i,ts,depth){
- const c={...spot.conditions,zone:spot.zone,light:lightNow(spot,ts),moon:moonInfo(spot,ts),mon:monthOf(ts)};
+ const c={...spot.conditions,zone:spot.zone,area:areaOfC(spot),light:lightNow(spot,ts),moon:moonInfo(spot,ts),mon:monthOf(ts)};
  if(depth!=null)c.depth=depth;
  for(const k of FC_KEYS)c[k]=f[k]?f[k][i]:null;
  return addCtx(c,spot,ts);
@@ -1958,7 +1974,9 @@ function scoreC(spId,c,q,ts=Date.now()){
  // Factors are combined as a weighted geometric mean: one really bad condition (water far too cold,
  // dead slack tide) pulls the whole score down instead of being averaged away by the others.
  let sw=0,s=0,lg=0;
- const wOf=F=>F.w*(TUNE_ON&&TUNE[F.k]||1);          // personal tuning from the catch log, if on
+ // Personal tuning from your own catch log comes first; community tuning (anonymous reports) fills in the rest
+ const ct=commCell(spId,c.area),CT=ct&&ct.tune;
+ const wOf=F=>F.w*(TUNE_ON&&TUNE[F.k]||CT&&CT[F.k]||1);
  const rows=have.map(F=>{const v=F.f(c[F.k]),w=wOf(F);sw+=w;s+=w*v;lg+=w*Math.log(Math.max(v,.02));return{...F,w:Math.round(w*10)/10,v,raw:c[F.k],txt:F.t(c[F.k])}});
  const tw=usable.reduce((a,F)=>a+wOf(F),0);
  // one-sentence reason from the strongest positive or negative factor
@@ -1966,7 +1984,7 @@ function scoreC(spId,c,q,ts=Date.now()){
  const top=sorted[0];
  const reason=top?reasonText(top):"";
  return{total:Math.round(100*Math.exp(lg/sw)),rows,coverage:sw/tw,used:have.length,all:usable.length,
-  missing:usable.filter(F=>c[F.k]==null).map(F=>F.l),reason};
+  missing:usable.filter(F=>c[F.k]==null).map(F=>F.l),reason,comm:ct&&have.some(F=>CT[F.k]&&!(TUNE_ON&&TUNE[F.k]))?ct:null};
 }
 // Cold fronts in the forecast for this spot, for the outlook
 function frontWatch(spot){
@@ -2900,7 +2918,7 @@ function render(){
   ${r.gate?`<span class="pill" style="background:var(--mu)">Not applicable</span> <span class="note">${esc(r.gate)}</span>`
   :`<span class="pill" style="background:${col(r.total)}">${lab(r.total)}</span>
      <span class="conf ${confClass(r.coverage)}${(scoreAge(r,q)||0)>180?" stale":""}" title="How many of the readings this score uses are available, and how old they are"><span class="dot"></span>${confLabel(r.coverage)}${scoreAge(r,q)!=null?` · ${ageTxt(scoreAge(r,q))}`:""}</span>
-     <span class="moon" title="Moon">${mi.txt}</span>${TUNE_ON?` <span class="tuned" title="Weights adjusted from your catch log. Turn off under My catches.">Tuned to your catches</span>`:""}
+     <span class="moon" title="Moon">${mi.txt}</span>${TUNE_ON?` <span class="tuned" title="Weights adjusted from your catch log. Turn off under My catches.">Tuned to your catches</span>`:""}${r.comm?` <span class="tuned" title="Weights adjusted a little from ${r.comm.caught+r.comm.slow} anonymous trips${r.comm.area!=="all"?" in "+esc(areaName(r.comm.area)):""}. See Community reports under My catches.">Community-tuned</span>`:""}
      <p class="verdict">${verdictTxt(r)}</p>`}</div></div>`;
  // Best 3-hour daylight window in the next 36 hours, from the forecast
  let bestToday="";
@@ -3039,6 +3057,19 @@ function renderTune(){
   <div class="note">Based on ${I.good} good and ${I.slow} slow trips:</div><ul class="tips">${I.changes.slice(0,6).map(c=>`<li>${esc(FLAB(c.k))} counts ${c.mult>1?"more":"less"} (${c.mult>1?"+":""}${Math.round((c.mult-1)*100)}%)</li>`).join("")}</ul>`;
  $("tuneOn").onchange=e=>{try{localStorage.setItem("la-fish-tune",e.target.checked?"on":"off")}catch(_){}computeTune();render();renderTune()};
 }
+// ---- Community tuning: the same idea, learned from everyone's anonymous catch reports ----
+// community.json is rebuilt every hour by scripts/community.js. A fish gets multipliers (never past
+// 0.7-1.3) only once it has enough good and slow trips; one of the seven big areas gets its own once it
+// has enough of them too, and otherwise the fish's all-areas tuning is used.
+let COMM=null,COMM_PLAIN=false,COMM_ON=true;      // COMM_PLAIN: working out the plain model (saved with a catch)
+try{COMM_ON=localStorage.getItem("oc-commtune")!=="off"}catch(e){}
+function setCommunity(j){COMM=j&&typeof j==="object"&&j.species&&typeof j.species==="object"?j:null}
+const AREA_OF=new WeakMap();
+function areaOfC(s){let a=AREA_OF.get(s);if(a===undefined){a=s.lat==null&&s.zone!=="offshore"?null:areaOf(s);AREA_OF.set(s,a)}return a}
+const hasTune=x=>!!(x&&x.tune&&typeof x.tune==="object"&&Object.keys(x.tune).length);
+function commCell(spId,area){if(!COMM||COMM_PLAIN||!COMM_ON)return null;const s=COMM.species[spId];if(!s)return null;
+ if(area&&hasTune(s[area]))return{...s[area],area};return hasTune(s.all)?{...s.all,area:"all"}:null}
+const areaName=k=>(AREAS.find(a=>a.k===k)||{}).n||"";
 // ---- My alerts: "tell me when..." rules. Saved on the device and synced with the account. For now they
 // are checked whenever OceanCast is open and shown in the My alerts card; the iPhone app will deliver the
 // same rules as push notifications (quiet hours are stored already for that). ----
@@ -3142,11 +3173,11 @@ async function showLogPhotos(root){for(const el of root.querySelectorAll("[data-
  try{if(!PHOTO_URLS[id]){const b=await getPhoto(id);if(!b){el.remove();continue}PHOTO_URLS[id]=URL.createObjectURL(b)}
   el.innerHTML=`<img alt="Catch photo" src="${PHOTO_URLS[id]}">`}catch(e){el.remove()}}}
 // What today's model says about a logged trip (only for catches saved with their full conditions)
-function rescore(L){if(!L.cond||!SP[L.sp])return null;const was=TUNE_ON;TUNE_ON=false;
- try{const r=scoreC(L.sp,L.cond,{not_applicable:L.na||[]},Date.parse(L.savedAt)||Date.now());return r.gate?null:r.total}catch(e){return null}finally{TUNE_ON=was}}
+function rescore(L){if(!L.cond||!SP[L.sp])return null;const was=TUNE_ON;TUNE_ON=false;COMM_PLAIN=true;
+ try{const r=scoreC(L.sp,L.cond,{not_applicable:L.na||[]},Date.parse(L.savedAt)||Date.now());return r.gate?null:r.total}catch(e){return null}finally{TUNE_ON=was;COMM_PLAIN=false}}
 // Open the catch form already filled in for this fish and spot
 function quickLog(spId,spotId){setMapFull(false);showPanel("log");
- setTimeout(()=>{const a=$("logSp"),b=$("logSpot");if(SP[spId])a.value=spId;if(DATA.spots.some(x=>x.id===spotId))b.value=spotId;$("logDate").value=localDate();
+ setTimeout(()=>{const a=$("logSp"),b=$("logSpot");if(SP[spId])a.value=spId;if(DATA.spots.some(x=>x.id===spotId))b.value=spotId;$("logDate").value=localDate();sharePreview();renderCommunity();
   $("logForm").scrollIntoView({behavior:"smooth",block:"start"});const c=$("logForm").querySelector(".resbtns .on");if(c)c.focus({preventScroll:true})},60)}
 const LOG_KEY="la-fish-catches-v1";
 // The log can arrive from another device or a backup file, so each entry is cleaned when read
@@ -3156,10 +3187,87 @@ function cleanLog(L,i){if(!L||typeof L!=="object")return null;
   depth:num(L.depth),scoreAtLog:num(L.scoreAtLog),result:["caught","slow","none"].includes(L.result)?L.result:"none",
   snap:S?{...S,temp:num(S.temp),wind:num(S.wind),tide:txt(S.tide,30),pres:txt(S.pres,30),clar:txt(S.clar,30)}:L.snap,
   lenIn:pos(L.lenIn),lbs:pos(L.lbs),kept:pos(L.kept),released:pos(L.released),bait:txt(L.bait,60),amount:txt(L.amount,80),notes:txt(L.notes,240),
-  photo:!!L.photo,cond:L.cond&&typeof L.cond==="object"?deepClean(JSON.parse(JSON.stringify(L.cond))):null,
+  photo:!!L.photo,cond:L.cond&&typeof L.cond==="object"?deepClean(JSON.parse(JSON.stringify(L.cond))):null,shared:AREAS.some(a=>a.k===L.shared)?L.shared:null,
   na:Array.isArray(L.na)?L.na.filter(x=>typeof x==="string").slice(0,30):null}}
 function getLogs(){try{const a=JSON.parse(localStorage.getItem(LOG_KEY)||"[]");return Array.isArray(a)?a.map(cleanLog).filter(Boolean):[]}catch(e){return[]}}
 function saveLogs(arr){try{localStorage.setItem(LOG_KEY,JSON.stringify(arr))}catch(e){}}
+// ---- Anonymous community reports (opt-in, one tick box in the catch form) ----
+// A report is only: the fish, one of the seven big areas, the result, the plain model's score rounded
+// down to 5, and how each reading graded (0-1, rounded to 0.1 here before it leaves the phone). It goes
+// straight to the oc_report_catch() database function with the site's public key and never with the
+// person's sign-in. Depth and light grades are left out (they hint at depth and time of day).
+// Reports wait in a queue on this device until there's signal; the queue is never synced to the account.
+const RQ_KEY="oc-report-queue",RQ_DAYS=3,SHARE_KEY="oc-share-anon",PRIVATE_F=["depth","light"];
+const shareOn=()=>!!acctCfg();
+function shareArea(spot,isToday,factors){if(!spot||!isToday||!factors)return null;const a=areaOfC(spot);return AREAS.some(x=>x.k===a)?a:null}
+function reportOf(R){const f={};for(const[k,v]of Object.entries(R.factors||{}))if(/^[a-z]{2,10}$/.test(k)&&!PRIVATE_F.includes(k)&&typeof v==="number"&&isFinite(v))f[k]=Math.round(Math.max(0,Math.min(1,v))*10)/10;
+ return{sp:R.sp,region:R.region,result:R.result,score:R.score==null?null:Math.floor(R.score/5)*5,factors:f}}
+function getQueue(){try{const a=JSON.parse(localStorage.getItem(RQ_KEY)||"[]");return Array.isArray(a)?a.filter(x=>x&&x.t>Date.now()-RQ_DAYS*864e5&&x.r&&x.r.sp):[]}catch(e){return[]}}
+function setQueue(a){try{if(a.length)localStorage.setItem(RQ_KEY,JSON.stringify(a.slice(-30)));else localStorage.removeItem(RQ_KEY)}catch(e){}}
+function queueReport(R){const r=reportOf(R);if(!Object.keys(r.factors).length)return;const q=getQueue();q.push({q:Date.now().toString(36)+Math.random().toString(36).slice(2,6),t:Date.now(),r});setQueue(q)}
+async function sendReport(r){const c=acctCfg();let origin="";try{origin=new URL(c.supabaseUrl).origin}catch(e){return"drop"}
+ try{const res=await fetch(origin+"/rest/v1/rpc/oc_report_catch",{method:"POST",headers:{apikey:c.supabaseKey,"Content-Type":"application/json"},
+   body:JSON.stringify(r),credentials:"omit",cache:"no-store",referrerPolicy:"no-referrer"});
+  return res.ok?"sent":res.status===400?"drop":"keep"}catch(e){return"keep"}}       // 400: refused (bad or over the daily limit), don't retry
+let FLUSHING=null;
+function flushReports(){
+ if(FLUSHING)return FLUSHING.then(()=>flushReports());
+ FLUSHING=(async()=>{let sent=0;
+  if(!shareOn()||navigator.onLine===false)return{sent,left:getQueue().length};
+  for(let q=getQueue();q.length;q=getQueue()){const it=q[0],res=await sendReport(it.r);if(res==="keep")break;
+   setQueue(getQueue().filter(x=>x.q!==it.q));if(res==="sent")sent++}
+  return{sent,left:getQueue().length}})().finally(()=>{FLUSHING=null});
+ return FLUSHING}
+// What the tick box would send for the form as it is now, or why it can't
+function shareState(){
+ const spot=DATA&&DATA.spots.find(s=>s.id===$("logSpot").value),spv=$("logSp").value;
+ if(!spot||!SP[spv])return{why:"Choose a fish and a spot."};
+ if($("logDate").value!==localDate())return{why:"Only trips logged on the day you fish can be shared, because that's when the readings are known."};
+ const was=TUNE_ON;TUNE_ON=false;COMM_PLAIN=true;let r;try{r=score(spv,spot)}finally{TUNE_ON=was;COMM_PLAIN=false}
+ if(r.gate)return{why:`This one can't be shared: ${r.gate}.`};
+ const area=areaOfC(spot),A=AREAS.find(a=>a.k===area);if(!A)return{why:"This spot isn't in one of the seven areas, so it can't be shared."};
+ return{ok:true,A,sp:SP[spv]}}
+function sharePreview(){
+ const box=$("anonShare");if(!box)return;box.hidden=!shareOn()||!DATA;if(box.hidden)return;
+ const cb=$("logShare"),st=shareState(),el=$("logShareWhat");
+ let pref=false;try{pref=localStorage.getItem(SHARE_KEY)==="1"}catch(e){}
+ if(!cb.dataset.init){cb.checked=pref;cb.dataset.init="1"}
+ cb.disabled=!st.ok;box.classList.toggle("off",!st.ok);
+ const res={caught:"Caught",slow:"Slow / few",none:"Nothing"}[$("logResult").value]||"";
+ el.innerHTML=st.ok?`Sends only: <b>${esc(st.sp.name)}</b> · <b>${esc(res)}</b> · somewhere in <b>${esc(st.A.n)}</b>${st.A.sub?` (${esc(st.A.sub)})`:""} · how today's readings graded.
+  Never your spot, pins, depth, time, sizes, counts, bait, notes, photos or name. <button type="button" class="aboutlink" data-commpriv>How your spots stay private</button>`:esc(st.why)}
+const ANON_PRIV=()=>`<ul>
+ <li><b>Big areas only.</b> A report names one of seven areas, like Terrebonne &amp; Lafourche (Houma, Cocodrie, Fourchon and Leeville all count as one). Never a spot, a pin, coordinates or depth.</li>
+ <li><b>Not tied to you.</b> It's sent without your username or account, even when you're signed in.</li>
+ <li><b>Nothing to point at.</b> No time of day, sizes, counts, bait, notes or photos. Readings are rounded on your phone before they're sent, so a report can't be matched to one spot's exact numbers.</li>
+ <li><b>No feed and no map.</b> Everyone else only ever sees totals of 5 or more trips, here and in the scores. Only the site's operator can see single reports, and they hold nothing more than the above.</li>
+ <li><b>For good.</b> Because nothing links a report to you, it can't be taken back later. Your own log entry stays yours, and you can delete it any time.</li>
+</ul>`;
+// The Community reports card in My catches: how many trips, what they changed for this fish, how the scores did
+function renderCommunity(){
+ const el=$("commBox");if(!el)return;el.hidden=!shareOn();if(el.hidden)return;
+ const C=COMM,k=SP[$("logSp").value]?$("logSp").value:sp,P=SP[k],cur=DATA&&DATA.spots.find(s=>s.id===$("logSpot").value),area=cur?areaOfC(cur):null;
+ const priv=`<details class="commpriv"><summary>How your spots stay private</summary>${ANON_PRIV()}</details>`;
+ if(!C||!C.total){el.innerHTML=`<b>Community reports</b><div class="note">Tick “Also share anonymously” when you log a trip and it helps tune the scores for everyone. It only says which big area you fished, so it can't lead anyone to your spot or to you.</div>${priv}`;return}
+ const s=(C.species||{})[k]||{},all=s.all||{caught:0,slow:0},m=C.min||{caught:20,slow:10};
+ const was=COMM_ON;COMM_ON=true;const cell=commCell(k,area);COMM_ON=was;
+ const inArea=area&&(C.regions||{})[area];
+ let fish;
+ if(cell){const ch=Object.entries(cell.tune).sort((a,b)=>Math.abs(b[1]-1)-Math.abs(a[1]-1)).slice(0,5);
+  fish=`<div style="margin-top:8px">${esc(P.name)} scores${cell.area!=="all"?` in ${esc(areaName(cell.area))}`:""} are tuned from ${cell.caught} good and ${cell.slow} slow trips:</div>
+   <ul class="tips">${ch.map(([f,v])=>`<li>${esc(FLAB(f))} counts ${v>1?"more":"less"} (${v>1?"+":""}${Math.round((v-1)*100)}%)</li>`).join("")}</ul>`}
+ else{const nc=Math.max(0,m.caught-(all.caught||0)),ns=Math.max(0,m.slow-(all.slow||0));
+  fish=!nc&&!ns?`<div class="note" style="margin-top:8px">So far good and slow ${esc(P.name)} trips look alike to every reading, so its scores are unchanged.</div>`
+  :`<div class="note" style="margin-top:8px">${esc(P.name)} needs ${nc?`${nc} more “caught”`:""}${nc&&ns?" and ":""}${ns?`${ns} more slow or empty`:""} ${nc+ns===1?"trip":"trips"} before the community can tune its score${all.caught||all.slow?"":" (counts under 5 aren't shown)"}.</div>`}
+ const B=C.bands||{},rows=[["ex","75+ (Excellent)"],["gd","55–74 (Good)"],["fr","35–54 (Fair)"],["po","Under 35 (Poor)"]].filter(([b])=>B[b])
+  .map(([b,l])=>`<tr><td>${l}</td><td>${B[b][0]}</td><td><b>${Math.round(100*B[b][1]/B[b][0])}%</b></td></tr>`).join("");
+ el.innerHTML=`<b>Community reports</b>
+  <div class="note">${C.total} anonymous ${C.total===1?"trip":"trips"} shared so far${inArea?`, ${inArea} in ${esc(areaName(area))}`:""}. Each one helps tune the scores for everyone.</div>${fish}
+  ${rows&&C.total>=20?`<table class="cmp"><tr><th>Score that day</th><th>Trips</th><th>Caught fish</th></tr>${rows}</table>`:""}
+  ${cell||Object.values(C.species||{}).some(x=>Object.values(x).some(hasTune))?`<label style="display:flex;gap:8px;align-items:center;margin-top:10px"><input type="checkbox" id="commOn" ${COMM_ON?"checked":""}> Use community tuning in scores</label>`:""}${priv}`;
+ const t=$("commOn");if(t)t.onchange=()=>{COMM_ON=t.checked;try{localStorage.setItem("oc-commtune",t.checked?"on":"off")}catch(e){}render();renderCommunity()};
+}
+document.addEventListener("click",e=>{if(e.target.closest("[data-commpriv]")){const d=document.querySelector("#commBox .commpriv");if(d){d.open=true;d.scrollIntoView({behavior:"smooth",block:"center"})}}});
 function renderLog(){
  if(!DATA)return;
  computeTune();renderTune();
@@ -3174,6 +3282,7 @@ function renderLog(){
   if(cur)spotSel.value=cur;
  }
  const dateEl=$("logDate");if(dateEl&&!dateEl.value)dateEl.value=localDate();
+ sharePreview();renderCommunity();
  const logs=getLogs().slice().reverse();
  const list=$("logList");
  if(!logs.length){list.innerHTML=`<div class="empty-cta"><span class="note">No catches yet. Logging them shows which conditions work for you.</span><button type="button" class="t on" data-firstcatch>Log your first catch</button></div>`}
@@ -3186,7 +3295,7 @@ function renderLog(){
    const fish=[L.lenIn!=null?`biggest ${L.lenIn} in`:"",L.lbs!=null?`${L.lbs} lb`:"",L.kept!=null?`${L.kept} kept`:"",L.released!=null?`${L.released} released`:"",L.amount||""].filter(Boolean).join(" · ");
    const now=rescore(L),rs=now!=null&&L.scoreAtLog!=null&&now!==L.scoreAtLog?` · <span title="What today's scoring says about this trip">today's model: <b style="color:${col(now)}">${now}</b></span>`:"";
    return`<div class="log-item">${L.photo?`<span class="log-photo" data-photo="${esc(L.id)}"></span>`:""}<div class="log-txt"><b>${esc(sp)}</b> @ ${esc(spot)} · ${esc(L.date)}${L.depth!=null?` · ${esc(L.depth)} ft`:""}<br>
-    <span class="note"><b class="res ${L.result}">${res}</b>${sc}${rs}${snap?` · ${esc(snap)}`:""}</span>
+    <span class="note"><b class="res ${L.result}">${res}</b>${sc}${rs}${snap?` · ${esc(snap)}`:""}${L.shared?` · <span class="shared" title="Sent without your name, spot or location">Shared anonymously (${esc(areaName(L.shared))})</span>`:""}</span>
     ${fish?`<div class="note">${esc(fish)}</div>`:""}${L.bait?`<div class="note">Bait: ${esc(L.bait)}</div>`:""}${L.notes?`<div class="note">${esc(L.notes.slice(0,120))}</div>`:""}
     <div style="margin-top:6px"><button type="button" class="t" data-del="${esc(L.id)}" style="font-size:12px;padding:4px 10px">Delete</button></div></div></div>`;
   }).join("");
@@ -3466,7 +3575,7 @@ function acctUI(){
  if(pt)pt.textContent=u&&ACCT.profile&&ACCT.profile.share_catches?"Saved to your account and this device. You share this log with your friends (species, spot, date and result only; never notes, sizes, counts, bait or photos). Turn that off under your account. Use this to see how the score matched days you actually caught fish."
   :u?"Saved to your account and this device. Only you can see your catches, counts and locations. Use this to see how the score matched days you actually caught fish."
   :"Stored only on this device. Other visitors never see your catches, counts, or locations. Sign in to keep them across devices. Use this to see how the score matched days you actually caught fish.";
- if(pb)pb.textContent=u?"Your log is backed up in your account. You can still download a copy.":"Clearing browser data for this site will erase the log, so download a backup now and then (or sign in). Nothing is uploaded unless you sign in.";
+ if(pb)pb.textContent=u?"Your log is backed up in your account. You can still download a copy.":"Clearing browser data for this site will erase the log, so download a backup now and then (or sign in). Nothing is uploaded unless you sign in, except anonymous reports you choose to share.";
  if($("acctdlg")&&$("acctdlg").open)renderAcct();
 }
 function openAcct(){const d=$("acctdlg");renderAcct();if(ACCT.user&&ACCT.social!=="busy")loadSocial().then(()=>{if(d.open)renderAcct()});$("acctclose").onclick=()=>d.close();d.onclick=e=>{if(e.target===d)d.close()};if(d.showModal)d.showModal();else d.setAttribute("open","")}
@@ -3881,9 +3990,15 @@ async function load(isRefresh){
   if(dIn.value)$("depthHint").textContent=`Scoring with ${dIn.value} ft`;
   // Private catch log
   $("logForm").querySelector(".resbtns").onclick=e=>{const b=e.target.closest("[data-res]");if(!b)return;
-   $("logResult").value=b.dataset.res;b.parentNode.querySelectorAll("[data-res]").forEach(x=>{const on=x===b;x.classList.toggle("on",on);x.setAttribute("aria-checked",on)})};
+   $("logResult").value=b.dataset.res;b.parentNode.querySelectorAll("[data-res]").forEach(x=>{const on=x===b;x.classList.toggle("on",on);x.setAttribute("aria-checked",on)});sharePreview()};
   $("logPhoto").onchange=()=>{const f=$("logPhoto").files[0],pv=$("logPhotoPrev");pv.innerHTML="";if(!f)return;const u=URL.createObjectURL(f);pv.innerHTML=`<img alt="Selected photo" src="${u}">`};
   for(const id of ["logSp","logSpot"])$(id).addEventListener("change",e=>{e.target.dataset.touched="1"});
+  // Anonymous share: keep the "Sends only" line in step with the form, and remember the tick box
+  for(const id of ["logSp","logSpot","logDate"])$(id).addEventListener("change",()=>{sharePreview();renderCommunity()});
+  $("logDate").addEventListener("input",sharePreview);
+  $("logShare").onchange=e=>{try{localStorage.setItem(SHARE_KEY,e.target.checked?"1":"0")}catch(x){}};
+  addEventListener("online",()=>flushReports());
+  setTimeout(()=>flushReports(),4000);       // anything saved while there was no signal
   $("logForm").onsubmit=e=>{
    e.preventDefault();
    const spv=$("logSp").value, spotId=$("logSpot").value;
@@ -3893,8 +4008,8 @@ async function load(isRefresh){
    const isToday=$("logDate").value===localDate();
    let scoreAtLog=null,snap=null,factors=null,cond=null,na=null;
    if(spot&&isToday){
-    const was=TUNE_ON;TUNE_ON=false;                    // store the plain model, not the tuned one
-    const r=score(spv,spot,Date.now(),depthV??userDepth());TUNE_ON=was;
+    const was=TUNE_ON;TUNE_ON=false;COMM_PLAIN=true;    // store the plain model, not a tuned one
+    let r;try{r=score(spv,spot,Date.now(),depthV??userDepth())}finally{TUNE_ON=was;COMM_PLAIN=false}
     if(!r.gate){scoreAtLog=r.total;factors=Object.fromEntries(r.rows.map(x=>[x.k,Math.round(x.v*100)/100]))}
     const C=spot.conditions||{};snap={temp:C.temp,sal:C.sal,wind:C.wind,tide:C.tide,pres:C.pres,clar:C.clar,wave:C.wave,moon:moonLabel(moonPhase())};
     // everything the score used, so this trip can be re-scored when the model improves
@@ -3905,15 +4020,26 @@ async function load(isRefresh){
    const entry={id:Date.now(),sp:spv,spot:spotId,date:$("logDate").value,depth:depthV,result:$("logResult").value,
     lenIn:nv("logLen"),lbs:nv("logLbs"),kept:nv("logKept"),released:nv("logRel"),bait:($("logBait").value||"").trim().slice(0,60),
     notes:($("logNotes").value||"").slice(0,240),scoreAtLog,snap,factors,cond,na,photo:!!photoFile,savedAt:new Date().toISOString()};
+   // Anonymous community report: only the fish, the big area, the result and how the readings graded
+   const shareTo=$("logShare").checked&&!$("anonShare").hidden?shareArea(spot,isToday,factors):null;
+   if(shareTo){entry.shared=shareTo;queueReport({sp:spv,region:shareTo,result:entry.result,score:scoreAtLog,factors})}
    const arr=getLogs();arr.push(entry);saveLogs(arr);
    const done=ok=>{const w=ACCT.user?"Saved to your account.":"Saved on this device only.";
-    $("logMsg").textContent=(isToday?w:w+" No model score is stored for past dates.")+(photoFile?(ok?" Photo saved on this device.":" The photo couldn't be saved."):"");
+    $("logMsg").textContent=(isToday?w:w+" No model score is stored for past dates.")+(photoFile?(ok?" Photo saved on this device.":" The photo couldn't be saved."):"")
+     +(shareTo?` Sharing it anonymously with the ${areaName(shareTo)} area…`:"");
+    if(shareTo)flushReports().then(n=>{const m=$("logMsg");if(!m.textContent.includes("anonymously"))return;
+     m.textContent=m.textContent.replace(/ Sharing it anonymously.*$/,n.sent?` Shared anonymously with the ${areaName(shareTo)} area. Thank you!`:n.left?" It will be shared anonymously when you're back online.":" It couldn't be shared this time.")});
     for(const id of ["logLen","logLbs","logKept","logRel","logBait","logNotes","logPhoto"])$(id).value="";$("logPhotoPrev").innerHTML="";renderLog()};
    if(photoFile)savePhoto(entry.id,photoFile).then(()=>done(true),()=>{const a2=getLogs();const L2=a2.find(x=>x.id===entry.id);if(L2){L2.photo=false;saveLogs(a2)}done(false)});
    else done(true);
   };
  }
+ // Community tuning (anonymous catch reports), fetched next to the forecast so the first scores already
+ // use it. If it's slow, the scores are drawn without it and redrawn when it arrives.
+ const commP=fetch(dataPath("community.json")+"?t="+Math.floor(Date.now()/36e5)).then(r=>r.ok?r.json():null).then(j=>{if(j){setCommunity(deepClean(j));return true}}).catch(()=>{});
  try{const fr=await fetch(dataPath("forecast.json")+"?t="+Date.now());if(fr.ok)FC=deepClean(await fr.json())}catch(e){}
+ const commLate=await Promise.race([commP.then(()=>false),new Promise(r=>setTimeout(()=>r(true),1500))]);
+ if(commLate)commP.then(ok=>{if(ok&&DATA&&sel){render();renderLog()}});
  fetch(dataPath("scores-daily.json")+"?t="+Date.now()).then(r=>r.ok?r.json():null).then(j=>{if(j&&typeof j==="object"){DAILY=j;if(DATA&&sel)renderBestBets()}}).catch(()=>{});
  fetch(dataPath("history.json")+"?t="+Date.now()).then(r=>r.ok?r.json():null).then(h=>{if(h&&h.t){HIST=h;if(DATA&&sel)render()}}).catch(()=>{});
  computeTune();
@@ -3998,6 +4124,7 @@ $("install").onclick=()=>{if(ip){ip.prompt();ip=null;$("install").hidden=true}};
   <h4>Data quality</h4>
   <p><b>Solid data</b> means at least three quarters of the readings this fish needs are available; <b>Partial</b> means half or more; <b>Low</b> means less. The age is how old the readings are. When some are missing, the score uses only the ones it has, so treat Partial and Low scores with more caution.</p>
   <p>If you log catches, OceanCast can adjust the weights to match your own good days. That stays on your device unless you sign in, and you can switch it off under My catches.</p>
+  <p><b>Community tuning.</b> When you log a trip you can also share it anonymously. Once a fish has at least 20 good and 10 slow or empty trips from everyone, readings that graded higher on the good trips count a little more, and ones that graded higher on the slow trips a little less: never more than 30% either way, and less while there are few reports. A report names only one of seven big areas, never a spot, and isn't tied to anyone. Scores that use it say “Community-tuned”, and you can switch it off under My catches.</p>
   <h4>Where the data comes from</h4>
   <ul>
    <li>NOAA tide and current stations: water level, water temperature, tidal currents and tide predictions</li>

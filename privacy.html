@@ -49,6 +49,7 @@
 <li>No ads, no analytics and no tracking cookies.</li>
 <li>You can use the map without an account.</li>
 <li>Your catch logs and saved pins are private. Friends only see what you choose to share with them.</li>
+<li>You can choose to share a catch anonymously to improve the scores. It names only a large area, never a spot, and isn&rsquo;t tied to you.</li>
 <li>You can delete your account and its data in the app.</li>
 </ul>
 <h2>What stays on your device</h2>
@@ -57,12 +58,16 @@
 <p>If you create an account, OceanCast stores, in a database run by Supabase: your username, your optional email, your saved pins, catch log (including notes, sizes and bait), alert choices and settings, so they follow you between devices. Only you can read them, except for what you share with friends (below). You can delete your account and data from inside the app.</p>
 <h2>Friends and sharing</h2>
 <p>Signed-in users can add friends by username, so usernames are visible to other signed-in users. A friend sees only the spots and catch details you share with them: species, spot, date, depth, result and score. They never see your notes, sizes, counts, bait or photos.</p>
+<h2>Anonymous community reports</h2>
+<p>When you log a trip on the day you fish, you can tick &ldquo;Also share anonymously to improve the scores&rdquo;. It&rsquo;s off until you tick it. A report holds only: the kind of fish, which of seven large areas you fished (for example &ldquo;Terrebonne &amp; Lafourche&rdquo;, which covers Houma, Cocodrie, Fourchon and Leeville), whether you caught fish, the day, the score rounded down to 5, and how each of the day&rsquo;s readings graded for that fish, rounded on your device. It never includes your spot, pins, coordinates, depth, time of day, sizes, counts, bait, notes, photos, username, email or account.</p>
+<p>Reports are sent to the Supabase database without your sign-in, even if you&rsquo;re signed in, so they can&rsquo;t be linked to your account. To stop the form being abused, the database counts how many reports arrive from each network address each day, using a one-way code mixed with a secret that is thrown away the next day. That count is never stored with a report and is deleted the next day. Because nothing links a report to you, a report can&rsquo;t be found and removed later; your own log entry can be deleted any time.</p>
+<p>Other visitors never see single reports: the site only publishes totals and averages from groups of 5 or more trips, and uses them to adjust how much each reading counts in the scores. The operator can see the individual reports in the database, which hold only what&rsquo;s listed above.</p>
 <h2>Location</h2>
 <p>OceanCast uses your GPS position only when you tap Locate. Coordinates you tap or save, your GPS position, and the selected spot's coordinates are sent to public services to get results: NOAA for depth lookups, the National Weather Service for radar, and Open-Meteo for forecasts at your own pins. OceanCast has no server of its own that receives or stores these coordinates.</p>
 <h2>Third parties that see your IP address</h2>
 <p>Like any website, the services that deliver the page and its parts can see your IP address and browser details: GitHub Pages (hosting), Supabase (accounts), map tile providers, font and code library hosts, and the public data services above. Each follows its own privacy policy.</p>
 <h2>Deleting your data</h2>
-<p>Delete your account in the app to remove your synced data. Data only on your device is removed by clearing your browser or app storage. You can also <a href="contact.html">contact me</a> to ask for deletion.</p>
+<p>Delete your account in the app to remove your synced data. Anonymous community reports aren&rsquo;t linked to an account, so they stay. Data only on your device is removed by clearing your browser or app storage. You can also <a href="contact.html">contact me</a> to ask for deletion.</p>
 <h2>Children</h2>
 <p>OceanCast is not directed at children under 13, and I don't knowingly collect their information.</p>
 <h2>Contact</h2>

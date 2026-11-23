@@ -45,13 +45,14 @@ jobs:
           python -m unittest discover -s tests -v
           node tests/check_page.js
           node tests/check_site.js
+          node tests/check_community.js
 
       - name: Get history and the weekly map layers from the live site
         continue-on-error: true
         run: |
           owner="${GITHUB_REPOSITORY%%/*}"; repo="${GITHUB_REPOSITORY#*/}"
           site="https://$(echo "$owner" | tr 'A-Z' 'a-z').github.io/$repo"
-          for f in history.json scores-daily.json rigs.json reefs.json alerts_state.json tropical.json deadzone.json; do
+          for f in history.json scores-daily.json rigs.json reefs.json alerts_state.json tropical.json deadzone.json community.json; do
             curl -sfL "$site/$f" -o "$f" && echo "$f: $(wc -c < "$f") bytes" || echo "no $f yet; it will be built"
           done
 
@@ -67,6 +68,12 @@ jobs:
       - name: Check the new data before publishing it
         # If this fails, nothing is deployed and the site keeps the last good data.
         run: python ingest.py validate
+
+      - name: Update community tuning from anonymous catch reports
+        # Reads totals (never single reports) from Supabase with the public key in config.js and
+        # writes community.json. If Supabase can't be reached, the previous file is kept.
+        continue-on-error: true
+        run: node scripts/community.js
 
       - name: Save today's scores for trends
         continue-on-error: true
@@ -86,7 +93,7 @@ jobs:
         run: |
           mkdir site
           cp index.html map.html about.html contact.html terms.html privacy.html site.css site.js board.js forward.js hero.jpg sitemap.xml robots.txt og-image.png hero.jpg config.js latest.json forecast.json manifest.webmanifest sw.js site/
-          for f in icon-192.png icon-512.png favicon.svg apple-touch-icon.png status.json history.json scores-daily.json board.json ocean.json rigs.json reefs.json tropical.json deadzone.json alerts_state.json; do
+          for f in icon-192.png icon-512.png favicon.svg apple-touch-icon.png status.json history.json scores-daily.json board.json ocean.json rigs.json reefs.json tropical.json deadzone.json alerts_state.json community.json; do
             [ -f "$f" ] && cp "$f" site/ || true
           done
           # Fail clearly if core data is missing
