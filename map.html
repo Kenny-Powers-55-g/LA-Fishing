@@ -3,7 +3,7 @@
 <!-- Security policy: which sites this page may load scripts, data and images from. The sha256 values
      are the inline scripts' fingerprints; scripts/csp.js updates them (the deploy does it automatically).
      Using a Supabase custom domain instead of *.supabase.co? Add it to connect-src. -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-ap5MSQrXWR0reWT9leoroLT0xlM5zuuNBvia3r/cTEw=' 'sha256-rhCxsEUi7ZotlpznYC0u0C+stLkw7fvylFfPwPbxhqQ=' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https://*.noaa.gov https://gibs.earthdata.nasa.gov https://tile.openstreetmap.org https://cdnjs.cloudflare.com; connect-src 'self' https://kenny-powers-55-g.github.io https://*.noaa.gov https://gibs.earthdata.nasa.gov https://tile.openstreetmap.org https://api.open-meteo.com https://*.supabase.co wss://*.supabase.co https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://fonts.googleapis.com https://fonts.gstatic.com; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-src 'none'; upgrade-insecure-requests">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-ap5MSQrXWR0reWT9leoroLT0xlM5zuuNBvia3r/cTEw=' 'sha256-k2+BHfLME6IFBPUl5edV3NL7zrr/AUPWAoNWGb5tg2Y=' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https://*.noaa.gov https://gibs.earthdata.nasa.gov https://tile.openstreetmap.org https://cdnjs.cloudflare.com; connect-src 'self' https://kenny-powers-55-g.github.io https://*.noaa.gov https://gibs.earthdata.nasa.gov https://tile.openstreetmap.org https://api.open-meteo.com https://*.supabase.co wss://*.supabase.co https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://fonts.googleapis.com https://fonts.gstatic.com; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-src 'none'; upgrade-insecure-requests">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -1345,9 +1345,15 @@ const seas=(w,m)=>({k:"mon",l:"Time of year",w,f:v=>m[v-1]??0,t:v=>MON[v-1]});
 const monthOf=ts=>+new Intl.DateTimeFormat("en-US",{timeZone:"America/Chicago",month:"numeric"}).format(ts);
 // Preferred depth band [too_shallow, good_low, good_high, too_deep] in feet
 const depth=(w,band)=>({k:"depth",l:"Depth fit",w,f:v=>trap(v,band),t:v=>v+" ft (pref "+band[1]+"–"+band[2]+")"});
-function closedNow(p,ts=Date.now()){if(!p.closed)return null;const d=new Date(ts),n=(d.getMonth()+1)*100+d.getDate(),[[a,b],[c,e]]=p.closed;
- const from=a*100+b,to=c*100+e,inside=from<=to?n>=from&&n<=to:n>=from||n<=to;   // also handles Dec-Feb style closures
- return inside?`Closed season (${p.closedTxt}). Release only. Verify with LDWF`:null}
+// Closed seasons. `closed` is the same dates every year: one window [[m,d],[m,d]] or a list of windows.
+// `dated` (from SEASON_RULES, after the fish list) holds closures that are set one season at a time.
+const CT_DAY=new Intl.DateTimeFormat("en-CA",{timeZone:"America/Chicago"});
+function closedNow(p,ts=Date.now()){
+ if(p.dated){const day=CT_DAY.format(ts);for(const r of p.dated)if(day>=r.from&&day<=r.to)return`Closed season (${r.txt}). Release only. Verify with ${r.src}`}
+ if(!p.closed)return null;const d=new Date(ts),n=(d.getMonth()+1)*100+d.getDate();
+ const wins=Array.isArray(p.closed[0][0])?p.closed:[p.closed];
+ const inside=wins.some(([[a,b],[c,e]])=>{const from=a*100+b,to=c*100+e;return from<=to?n>=from&&n<=to:n>=from||n<=to});   // also handles Dec-Feb style closures
+ return inside?`Closed season (${p.closedTxt}). Release only. Verify with ${p.closedSrc||"LDWF"}`:null}
 // Offshore building blocks (ranges are starting guesses, not researched values)
 const wave=w=>({k:"wave",l:"Wave height",w,f:v=>trap(v,[-1,0,2,6]),t:v=>v+" ft"});
 const sbreak=w=>({k:"sbreak",l:"Temp break (satellite)",w,f:v=>.45+.55*trap(v,[0,.6,3,6]),t:v=>v+" °F/mi"});
@@ -1480,7 +1486,7 @@ const SP={
   wave(3),windO(2),cur(2,2.5),presO(1),depth(2,[40,60,180,300])]},
  blackfin:{name:"Blackfin Tuna",zone:"offshore",tip:"Blackfin hang around rigs in 150 to 600 ft, especially at first light and when shrimp boats are culling. Chum and freeline, or jig vertically around the legs.",gate:offGate,factors:[sbreak(1.5),visO(1.5,25),
   {k:"temp",l:"Sea temp",w:3,f:v=>trap(v,[68,74,82,88]),t:v=>v+"°F"},wave(2),windO(1),cur(1),presO(1),light(1.5),moon(0.5),depth(2,[80,150,600,1500])]},
- grouper:{name:"Grouper",zone:"offshore",note:LIM+" Gag, red and other groupers each have their own federal seasons and limits.",tip:"Grouper sit tight to hard bottom, reefs and rig bases. Heavy tackle and lock the drag so they can't reach the rocks; live bait or big cut bait on the bottom.",gate:offGate,factors:[
+ grouper:{name:"Grouper",zone:"offshore",note:LIM+" Gag grouper is open only for a short window each year (September 1 to October 1 in 2026), so outside it keep only red grouper and other open kinds. Gag, red and other groupers each have their own federal seasons and limits.",tip:"Grouper sit tight to hard bottom, reefs and rig bases. Heavy tackle and lock the drag so they can't reach the rocks; live bait or big cut bait on the bottom.",gate:offGate,factors:[
   {k:"temp",l:"Sea temp",w:2,f:v=>trap(v,[60,66,78,86]),t:v=>v+"°F"},wave(3),windO(2),cur(2,2),presO(1),light(0.5),depth(2,[50,80,300,450])]},
  // ---- Added fish. Like the ones above, the ranges are starting estimates, not researched values.
  tarpon:{name:"Tarpon",tip:"Tarpon show along the passes and beaches in the heat of summer, rolling on calm mornings. Big live baits or Coon Pop style lures drifted through the schools. Handle them in the water and release them quickly.",gate:c=>c.sal!=null&&c.sal<8?"Tarpon stay in saltier water near the passes":c.temp!=null&&c.temp<68?`Too cold for tarpon (${c.temp}°F): they show up when the water passes about 70°F`:null,factors:[
@@ -1553,7 +1559,7 @@ const SP={
   dtemp(1),rain(1,5),light(.8),depth(1.2,[4,8,25,45])]},
  vermilion:{name:"Vermilion Snapper (Beeliner)",zone:"offshore",note:LIM,tip:"Beeliners school over hard bottom and around deeper rigs, usually higher in the water column than red snapper. Small hooks and small cut bait on a multi-hook rig.",gate:offGate,factors:[
   {k:"temp",l:"Sea temp",w:2,f:v=>trap(v,[62,68,80,88]),t:v=>v+"°F"},wave(3),windO(2),cur(2,2.5),presO(1),depth(2,[80,120,300,450])]},
- trigger:{name:"Gray Triggerfish",zone:"offshore",note:LIM,tip:"Triggerfish hang around rigs, reefs and wrecks and are expert bait thieves. Small, strong hooks with squid or cut bait, fished just above the structure.",gate:offGate,factors:[
+ trigger:{name:"Gray Triggerfish",zone:"offshore",closed:[[[1,1],[2,28]],[[6,1],[7,31]]],closedTxt:"Jan 1 – Feb 28 and Jun 1 – Jul 31",closedSrc:"LDWF and NOAA Fisheries",note:LIM,tip:"Triggerfish hang around rigs, reefs and wrecks and are expert bait thieves. Small, strong hooks with squid or cut bait, fished just above the structure.",gate:offGate,factors:[
   {k:"temp",l:"Sea temp",w:2,f:v=>trap(v,[64,70,80,88]),t:v=>v+"°F"},wave(3),windO(2),cur(2,2),presO(1),light(.5),depth(2,[40,60,180,300])]},
  marlin:{name:"Blue Marlin",zone:"offshore",note:LIM+" Billfish have federal permit and reporting rules.",tip:"Blue marlin work the deep blue-water edges, rips and the big floating platforms in summer. Trolled lures or live tuna along temperature and color breaks.",gate:c=>offGate(c)||(c.temp!=null&&c.temp<70?`Too cold for blue marlin (${c.temp}°F)`:null),factors:[sbreak(2),visO(2,40),
   {k:"temp",l:"Sea temp",w:3,f:v=>trap(v,[76,80,86,90]),t:v=>v+"°F"},wave(2),windO(1),cur(1.5),presO(1),moon(1),
@@ -1562,6 +1568,17 @@ const SP={
   {k:"temp",l:"Sea temp",w:1.5,f:v=>trap(v,[68,74,82,88]),t:v=>v+"°F"},wave(3.5),windO(2.5),cur(2.5,2.5),presO(1),moon(1.2),
   depth(3,[700,1100,1900,2600])]}
 };
+// Seasons that are set one year at a time. The app can't learn about these by itself, so check LDWF and NOAA
+// Fisheries each season and update this list (dates are inclusive, Central time). When a fish's last rule has
+// passed it is treated as open again, and the fish's note still tells people to confirm.
+const SEASON_RULES={
+ // NOAA: 2026-27 recreational season Sept 1 - Oct 13, 2026; closed from Oct 14 until the 2027-28 season opens Sept 1, 2027
+ amberjack:[{from:"2026-10-14",to:"2027-08-31",txt:"federal waters closed Oct 14, 2026 to Sept 1, 2027",src:"NOAA Fisheries and LDWF"}],
+ // LDWF: closed Aug 9, 2026 at the state quota; two short reopenings in late August and September, then closed until the 2027 season
+ snapper:[{from:"2026-09-08",to:"2027-04-30",txt:"Louisiana's 2026 season is over; LDWF sets the 2027 opening, usually in spring",src:"LDWF"}],
+};
+const SEASONS_CHECKED="2026-11-23";
+for(const[k,r]of Object.entries(SEASON_RULES))if(SP[k])SP[k].dated=r;
 // River level (share of flood stage, and trend) for spots fed by the Mississippi or Atchafalaya.
 // High or rising river means fresh, muddy water for most fish; catfish don't mind rising water.
 const RIVTR={Falling:.9,Steady:.85,Rising:.7};
@@ -1590,6 +1607,11 @@ const SEASON={redfish:[.6,.6,.7,.8,.8,.8,.8,.8,.9,1,1,.8],trout:[.6,.6,.7,.9,1,1
  kingmack:[.1,.1,.2,.5,.8,1,1,1,.9,.6,.3,.1],cobia:[0,0,.4,1,1,.8,.7,.6,.5,.4,.1,0],tripletail:[0,0,.1,.4,.8,1,1,1,.9,.5,.1,0],
  mangrove:[.3,.3,.4,.6,.8,1,1,1,.9,.7,.5,.3],cubera:[.3,.3,.4,.5,.7,1,1,1,.8,.6,.4,.3],blackfin:[.8,.8,.8,.8,.7,.6,.6,.6,.7,.8,.9,.9],
  grouper:[.7,.7,.7,.7,.7,.7,.7,.7,.7,.8,.8,.7]};
+// Fish without a time-of-year factor of their own score with the guide above too. Fish that leave Louisiana
+// waters for part of the year (cobia, tripletail, king mackerel, mahi, wahoo) weigh it heavily, so a warm
+// November day doesn't rate them Excellent after they've gone; fish that stay all year weigh it lightly.
+const SEASON_W={cobia:2.5,tripletail:2.5,kingmack:2.5,mahi:2.5,wahoo:2,yft:1.5};
+for(const[k,m]of Object.entries(SEASON))if(SP[k]&&!SP[k].factors.some(F=>F.k==="mon"))SP[k].factors.push(seas(SEASON_W[k]||1,m));
 const seasonOf=k=>{const f=SP[k].factors.find(F=>F.k==="mon");return f?MON.map((_,i)=>f.f(i+1)):SEASON[k]||null};
 const SRC={weed:"weed",tcur:"tcur",oxy:"oxy",riv:"riv",wl_anom:"wl_anom",vis:"vis",sbreak:"sbreak",wave:"wave",cur:"cur",temp:"temp_f",wind:"wind_mph",pres:"pres",tide:"tide",trange:"tide",sal:"sal",cloud:"cloud",dtemp:"temp_d24",rain:"rain",front:"front",level:"level_d6"};
 
@@ -1975,8 +1997,8 @@ function scoreC(spId,c,q,ts=Date.now()){
  // dead slack tide) pulls the whole score down instead of being averaged away by the others.
  let sw=0,s=0,lg=0;
  // Personal tuning from your own catch log comes first; community tuning (anonymous reports) fills in the rest
- const ct=commCell(spId,c.area),CT=ct&&ct.tune;
- const wOf=F=>F.w*(TUNE_ON&&TUNE[F.k]||CT&&CT[F.k]||1);
+ const ct=commCell(spId,c.area),CT=ct&&ct.tune,pt=tuneFor(spId),PT=pt&&pt.t;
+ const wOf=F=>F.w*(PT&&PT[F.k]||CT&&CT[F.k]||1);
  const rows=have.map(F=>{const v=F.f(c[F.k]),w=wOf(F);sw+=w;s+=w*v;lg+=w*Math.log(Math.max(v,.02));return{...F,w:Math.round(w*10)/10,v,raw:c[F.k],txt:F.t(c[F.k])}});
  const tw=usable.reduce((a,F)=>a+wOf(F),0);
  // one-sentence reason from the strongest positive or negative factor
@@ -1984,7 +2006,7 @@ function scoreC(spId,c,q,ts=Date.now()){
  const top=sorted[0];
  const reason=top?reasonText(top):"";
  return{total:Math.round(100*Math.exp(lg/sw)),rows,coverage:sw/tw,used:have.length,all:usable.length,
-  missing:usable.filter(F=>c[F.k]==null).map(F=>F.l),reason,comm:ct&&have.some(F=>CT[F.k]&&!(TUNE_ON&&TUNE[F.k]))?ct:null};
+  missing:usable.filter(F=>c[F.k]==null).map(F=>F.l),reason,comm:ct&&have.some(F=>CT[F.k]&&!(PT&&PT[F.k]))?ct:null,tuned:!!(PT&&have.some(F=>PT[F.k]))};
 }
 // Cold fronts in the forecast for this spot, for the outlook
 function frontWatch(spot){
@@ -2739,7 +2761,7 @@ function toggleFav(id){let f=getFavs();if(f.includes(id))f=f.filter(x=>x!==id);e
 function confClass(cov){return cov>=0.75?"":cov>=0.5?"low":"bad"}
 // How old the readings behind a score are: the middle age of the sources it used, in minutes
 // When the scoring itself last changed (shown in "How scores work"). Update this when factors or weights change.
-const MODEL_UPDATED="2026-11-21";
+const MODEL_UPDATED="2026-11-24";
 function openHow(){const d=$("howdlg");$("modeldate").textContent=new Date(MODEL_UPDATED+"T12:00:00").toLocaleDateString([],{month:"long",day:"numeric",year:"numeric"});
  $("howclose").onclick=()=>d.close();d.onclick=e=>{if(e.target===d)d.close()};if(d.showModal)d.showModal();else d.setAttribute("open","")}
 document.addEventListener("click",e=>{if(e.target.closest("[data-howto]")){e.preventDefault();openHow()}});
@@ -2775,7 +2797,11 @@ function renderHealth(){
  const dot=c=>`<span class="conf ${c}"><span class="dot"></span></span>`;
  const ok=ageH<=2&&avg>=.75;
  $("healthsum").innerHTML=`${dot(ok?"":ageH>3||avg<.5?"bad":"low")} Updated ${ago(DATA.generated)} · ${Math.round(avg*100)}% of readings available`;
- el.innerHTML=`<p class="note">${sp.length} spots${rivers.length?`, river gauges at ${rivers.map(r=>esc(r.name.split(" at ")[1]||r.name)).join(" and ")}`:""}. ${weak.length?`${weak.length} spots have some readings missing right now:`:"Every spot has all of its readings."}</p>`+
+ // A source that's down everywhere (satellite servers, mostly) is worth one plain line of its own
+ const DEADK={chl:"satellite water color",kd490:"satellite water clarity",sbreak:"satellite temperature breaks",ssat:"satellite sea temperature"};
+ const dead=Object.entries(DEADK).filter(([k])=>{const w=sp.filter(s=>k==="chl"||k==="kd490"||!((s.quality||{}).not_applicable||[]).includes(k));
+  return w.length>=3&&w.every(s=>(s.conditions||{})[k]==null)}).map(([,n])=>n);
+ el.innerHTML=(dead.length?`<p class="note"><b>Not available anywhere right now:</b> ${esc(dead.join(", "))}. The data server isn't answering, so scores use the other readings and clarity is estimated from salinity, wind and rain.</p>`:"")+`<p class="note">${sp.length} spots${rivers.length?`, river gauges at ${rivers.map(r=>esc(r.name.split(" at ")[1]||r.name)).join(" and ")}`:""}. ${weak.length?`${weak.length} spots have some readings missing right now:`:"Every spot has all of its readings."}</p>`+
   (weak.length?`<table><tr><th>Spot</th><th>Data</th><th>Missing now</th></tr>${weak.map(s=>`<tr><td>${esc(s.name)}</td><td>${Math.round((s.quality.completeness||0)*100)}%</td><td>${s.quality.missing.map(m=>esc(MISSL[m]||m)).join(", ")}</td></tr>`).join("")}</table>`:"")+
   `<p class="note">Missing readings are left out of the score, which lowers its confidence. Data updates every hour; a daily check reports broken sources on GitHub.</p>`;
 }
@@ -2918,7 +2944,7 @@ function render(){
   ${r.gate?`<span class="pill" style="background:var(--mu)">Not applicable</span> <span class="note">${esc(r.gate)}</span>`
   :`<span class="pill" style="background:${col(r.total)}">${lab(r.total)}</span>
      <span class="conf ${confClass(r.coverage)}${(scoreAge(r,q)||0)>180?" stale":""}" title="How many of the readings this score uses are available, and how old they are"><span class="dot"></span>${confLabel(r.coverage)}${scoreAge(r,q)!=null?` · ${ageTxt(scoreAge(r,q))}`:""}</span>
-     <span class="moon" title="Moon">${mi.txt}</span>${TUNE_ON?` <span class="tuned" title="Weights adjusted from your catch log. Turn off under My catches.">Tuned to your catches</span>`:""}${r.comm?` <span class="tuned" title="Weights adjusted a little from ${r.comm.caught+r.comm.slow} anonymous trips${r.comm.area!=="all"?" in "+esc(areaName(r.comm.area)):""}. See Community reports under My catches.">Community-tuned</span>`:""}
+     <span class="moon" title="Moon">${mi.txt}</span>${r.tuned?` <span class="tuned" title="Weights adjusted from your catch log. Turn off under My catches.">Tuned to your catches</span>`:""}${r.comm?` <span class="tuned" title="Weights adjusted a little from ${r.comm.caught+r.comm.slow} anonymous trips${r.comm.area!=="all"?" in "+esc(areaName(r.comm.area)):""}. See Community reports under My catches.">Community-tuned</span>`:""}
      <p class="verdict">${verdictTxt(r)}</p>`}</div></div>`;
  // Best 3-hour daylight window in the next 36 hours, from the forecast
  let bestToday="";
@@ -3031,30 +3057,47 @@ function render(){
 // Each log saved on the day you fish keeps the 0-1 sub-score of every factor. A factor that
 // scored higher on days you caught fish than on slow days gets more weight (up to 1.5x);
 // one that scored higher on slow days gets less (down to 0.5x). Stays on this device.
-let TUNE={},TUNE_ON=false,TUNE_INFO=null;
+// Each fish is tuned from its own trips, so bass trips never change how redfish are scored. A fish
+// without enough trips of its own borrows from trips for similar fish (saltwater inshore, freshwater or
+// offshore), never from the other groups.
+let TUNE={fish:{},group:{},n:{}},TUNE_ON=false;
 const TUNE_MIN_GOOD=5,TUNE_MIN_SLOW=3;
-function computeTune(){
- const logs=getLogs().filter(L=>L.factors),good=logs.filter(L=>L.result==="caught"),slow=logs.filter(L=>L.result!=="caught");
- TUNE={};TUNE_INFO={good:good.length,slow:slow.length,changes:[]};
- let on=true;try{on=localStorage.getItem("la-fish-tune")!=="off"}catch(e){}
- if(good.length<TUNE_MIN_GOOD||slow.length<TUNE_MIN_SLOW){TUNE_ON=false;return}
- const keys=new Set(logs.flatMap(L=>Object.keys(L.factors)));
+function tuneFrom(logs){
+ const good=logs.filter(L=>L.result==="caught"),slow=logs.filter(L=>L.result!=="caught");
+ if(good.length<TUNE_MIN_GOOD||slow.length<TUNE_MIN_SLOW)return null;
+ const out={},keys=new Set(logs.flatMap(L=>Object.keys(L.factors)));
  const mean=(arr,k)=>{const v=arr.map(L=>L.factors[k]).filter(x=>typeof x==="number");return v.length?{m:v.reduce((a,b)=>a+b,0)/v.length,n:v.length}:null};
  for(const k of keys){const g=mean(good,k),b=mean(slow,k);
   if(!g||!b||g.n<3||b.n<2)continue;
   const mult=Math.max(.5,Math.min(1.5,1+2*(g.m-b.m)));
-  if(Math.abs(mult-1)>=.05){TUNE[k]=Math.round(mult*100)/100;TUNE_INFO.changes.push({k,mult:TUNE[k]})}}
- TUNE_INFO.changes.sort((a,b)=>Math.abs(b.mult-1)-Math.abs(a.mult-1));
- TUNE_ON=on&&TUNE_INFO.changes.length>0;
+  if(Math.abs(mult-1)>=.05)out[k]=Math.round(mult*100)/100}
+ return out}                                       // {} = enough trips, but good and slow days look alike
+function computeTune(){
+ const logs=getLogs().filter(L=>L.factors&&SP[L.sp]),by=f=>{const m={};for(const L of logs)(m[f(L)]=m[f(L)]||[]).push(L);return m};
+ TUNE={fish:{},group:{},n:{}};
+ for(const[k,a]of Object.entries(by(L=>L.sp))){TUNE.n[k]=[a.filter(L=>L.result==="caught").length,a.filter(L=>L.result!=="caught").length];const t=tuneFrom(a);if(t)TUNE.fish[k]=t}
+ for(const[g,a]of Object.entries(by(L=>spGroup(L.sp)))){TUNE.n["@"+g]=[a.filter(L=>L.result==="caught").length,a.filter(L=>L.result!=="caught").length];const t=tuneFrom(a);if(t)TUNE.group[g]=t}
+ let on=true;try{on=localStorage.getItem("la-fish-tune")!=="off"}catch(e){}
+ TUNE_ON=on&&[...Object.values(TUNE.fish),...Object.values(TUNE.group)].some(t=>Object.keys(t).length);
 }
+// The multipliers that apply to one fish: its own, or its group's while it has too few trips
+function tuneFor(k,any=false){if((!TUNE_ON&&!any)||!SP[k])return null;
+ const f=TUNE.fish[k];if(f)return Object.keys(f).length?{t:f,scope:"fish"}:null;
+ const g=TUNE.group[spGroup(k)];return g&&Object.keys(g).length?{t:g,scope:"group"}:null}
 const FLAB=k=>{for(const p of Object.values(SP))for(const F of p.factors)if(F.k===k)return F.l;return k};
 function renderTune(){
- const el=$("tuneBox");if(!el)return;const I=TUNE_INFO||{good:0,slow:0,changes:[]};
- if(I.good<TUNE_MIN_GOOD||I.slow<TUNE_MIN_SLOW){
-  el.innerHTML=`<b>Personal tuning</b><div class="note">Log trips on the day you fish and the scores will adjust to what matched your good days. Needs ${Math.max(0,TUNE_MIN_GOOD-I.good)} more “caught” and ${Math.max(0,TUNE_MIN_SLOW-I.slow)} more slow or empty trips.</div>`;return}
- if(!I.changes.length){el.innerHTML=`<b>Personal tuning</b><div class="note">So far your good and slow days look alike to every factor, so the scores are unchanged.</div>`;return}
- el.innerHTML=`<label style="display:flex;gap:8px;align-items:center"><input type="checkbox" id="tuneOn" ${TUNE_ON?"checked":""}> <b>Use my tuning in scores</b></label>
-  <div class="note">Based on ${I.good} good and ${I.slow} slow trips:</div><ul class="tips">${I.changes.slice(0,6).map(c=>`<li>${esc(FLAB(c.k))} counts ${c.mult>1?"more":"less"} (${c.mult>1?"+":""}${Math.round((c.mult-1)*100)}%)</li>`).join("")}</ul>`;
+ const el=$("tuneBox");if(!el)return;
+ const k=SP[($("logSp")||{}).value]?$("logSp").value:sp,P=SP[k],g=spGroup(k),gl=((SP_GROUPS.find(x=>x[0]===g)||[])[1]||"").toLowerCase();
+ const [fg,fs]=TUNE.n[k]||[0,0],[gg,gs]=TUNE.n["@"+g]||[0,0],T=tuneFor(k,true);
+ let pref=true;try{pref=localStorage.getItem("la-fish-tune")!=="off"}catch(e){}
+ if(!T){
+  const own=TUNE.fish[k];
+  el.innerHTML=`<b>Personal tuning: ${esc(P.name)}</b><div class="note">${own||TUNE.group[g]?`So far your good and slow ${own?esc(P.name):gl} trips look alike to every reading, so the scores are unchanged.`
+   :`Log trips on the day you fish and ${esc(P.name)} scores will adjust to what matched your good days. It needs ${Math.max(0,TUNE_MIN_GOOD-fg)} more “caught” and ${Math.max(0,TUNE_MIN_SLOW-fs)} more slow or empty ${esc(P.name)} trips (or that many ${gl} trips between them).`}</div>`;return}
+ const ch=Object.entries(T.t).sort((a,b)=>Math.abs(b[1]-1)-Math.abs(a[1]-1)).slice(0,6);
+ el.innerHTML=`<label style="display:flex;gap:8px;align-items:center"><input type="checkbox" id="tuneOn" ${pref?"checked":""}> <b>Use my tuning in scores</b></label>
+  <div class="note">${T.scope==="fish"?`${esc(P.name)} scores, from your ${fg} good and ${fs} slow ${esc(P.name)} trips:`:`${esc(P.name)} scores, from your ${gg} good and ${gs} slow ${gl} trips (until ${esc(P.name)} has ${TUNE_MIN_GOOD} good and ${TUNE_MIN_SLOW} slow trips of its own):`}</div>
+  <ul class="tips">${ch.map(([f,m])=>`<li>${esc(FLAB(f))} counts ${m>1?"more":"less"} (${m>1?"+":""}${Math.round((m-1)*100)}%)</li>`).join("")}</ul>`;
  $("tuneOn").onchange=e=>{try{localStorage.setItem("la-fish-tune",e.target.checked?"on":"off")}catch(_){}computeTune();render();renderTune()};
 }
 // ---- Community tuning: the same idea, learned from everyone's anonymous catch reports ----
@@ -3994,7 +4037,7 @@ async function load(isRefresh){
   $("logPhoto").onchange=()=>{const f=$("logPhoto").files[0],pv=$("logPhotoPrev");pv.innerHTML="";if(!f)return;const u=URL.createObjectURL(f);pv.innerHTML=`<img alt="Selected photo" src="${u}">`};
   for(const id of ["logSp","logSpot"])$(id).addEventListener("change",e=>{e.target.dataset.touched="1"});
   // Anonymous share: keep the "Sends only" line in step with the form, and remember the tick box
-  for(const id of ["logSp","logSpot","logDate"])$(id).addEventListener("change",()=>{sharePreview();renderCommunity()});
+  for(const id of ["logSp","logSpot","logDate"])$(id).addEventListener("change",()=>{sharePreview();renderCommunity();renderTune()});
   $("logDate").addEventListener("input",sharePreview);
   $("logShare").onchange=e=>{try{localStorage.setItem(SHARE_KEY,e.target.checked?"1":"0")}catch(x){}};
   addEventListener("online",()=>flushReports());
@@ -4137,7 +4180,8 @@ $("install").onclick=()=>{if(ip){ip.prompt();ip=null;$("install").hidden=true}};
    <li>BOEM and NOAA: offshore platforms and artificial reefs</li>
   </ul>
   <h4>Changes to the scoring</h4>
-  <p class="note">Last changed <b id="modeldate">November 21, 2026</b>: tighter ranges for every fish, so "Excellent" means conditions really are close to ideal, and one bad reading now pulls a score down.</p>
+  <p class="note">Last changed <b id="modeldate">November 24, 2026</b>: closed seasons for amberjack, red snapper and gray triggerfish; time of year now counts for every fish (so cobia, tripletail, king mackerel and mahi score low once most have left); personal tuning learns each fish separately; distant gauges and buoys are no longer used as if they were at the spot.</p>
+  <p class="note">November 21, 2026: tighter ranges for every fish, so "Excellent" means conditions really are close to ideal, and one bad reading now pulls a score down.</p>
   <p class="note">Scores are estimates, not guarantees, and the readings can be hours old or miles from your spot. Always check the official marine forecast before you go out.</p>
  </div>
 </dialog>

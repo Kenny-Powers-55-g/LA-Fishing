@@ -409,5 +409,38 @@ class History(unittest.TestCase):
         shutil.rmtree(tmp, ignore_errors=True)
 
 
+class DeadSources(unittest.TestCase):
+    """A reading missing at every spot (a source that's down or blocked) must be noticed."""
+    def spot(self, marine, **cond):
+        na = ["chl", "kd490"] + (["sal"] if marine else ["sbreak", "ssat"])
+        return {"conditions": cond, "quality": {"not_applicable": na}}
+
+    def test_satellite_missing_everywhere_is_reported(self):
+        spots = [self.spot(True, sbreak=None, ssat=None, sal=None, temp=70, wind=5, tide="Incoming") for _ in range(4)]
+        spots += [self.spot(False, chl=None, kd490=None, sal=12, temp=68, wind=8, tide="Outgoing") for _ in range(4)]
+        dead = " ".join(ingest.dead_sources(spots))
+        for k in ("chl", "kd490", "sbreak", "ssat"):
+            self.assertIn(f"({k})", dead)
+        self.assertNotIn("(sal)", dead)      # offshore spots don't use salinity; inshore ones have it
+
+    def test_one_reading_anywhere_is_enough(self):
+        spots = [self.spot(True, sbreak=None, ssat=None) for _ in range(4)] + [self.spot(True, sbreak=0.2, ssat=75.0)]
+        self.assertEqual([d for d in ingest.dead_sources(spots) if "sbreak" in d or "ssat" in d], [])
+
+    def test_deploy_only_warns_but_health_check_fails(self):
+        d = tempfile.mkdtemp()
+        try:
+            path = os.path.join(d, "latest.json")
+            spots = [self.spot(True, sbreak=None, ssat=None, temp=70, wind=5, tide="Incoming") for _ in range(20)]
+            for s in spots:
+                s["quality"]["completeness"] = 0.9
+            with open(path, "w") as f:
+                json.dump({"generated": ingest.datetime.now(ingest.UTC).isoformat(), "spots": spots}, f)
+            self.assertEqual(ingest.validate(path), [])
+            self.assertTrue(any("sbreak" in p for p in ingest.validate(path, strict=True)))
+        finally:
+            shutil.rmtree(d)
+
+
 if __name__ == "__main__":
     unittest.main()
