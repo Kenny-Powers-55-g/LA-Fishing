@@ -5,7 +5,7 @@
      Outside scripts are allowed by their exact file (Leaflet and the Supabase library), not whole sites, and
      only this site's own Supabase project may be contacted. Changing supabaseUrl in config.js? Change both
      of its addresses in connect-src too (node tests/check_page.js checks they match). -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-ap5MSQrXWR0reWT9leoroLT0xlM5zuuNBvia3r/cTEw=' 'sha256-F22u5Z/vocVDr9E4wuyoWNOkWRMhm2EMho4X29OboWw=' https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.118.0/dist/umd/supabase.js https://challenges.cloudflare.com/turnstile/; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https://*.noaa.gov https://gibs.earthdata.nasa.gov https://tile.openstreetmap.org https://cdnjs.cloudflare.com; connect-src 'self' https://kenny-powers-55-g.github.io https://*.noaa.gov https://gibs.earthdata.nasa.gov https://tile.openstreetmap.org https://api.open-meteo.com https://qpbqepzdxkadmulkmfbj.supabase.co wss://qpbqepzdxkadmulkmfbj.supabase.co https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://fonts.googleapis.com https://fonts.gstatic.com; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-src https://challenges.cloudflare.com; upgrade-insecure-requests">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-ap5MSQrXWR0reWT9leoroLT0xlM5zuuNBvia3r/cTEw=' 'sha256-E2aXIxp65zqXMN5msGXUA040uVKYd4SbEHdIcr1u/8A=' https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.118.0/dist/umd/supabase.js https://challenges.cloudflare.com/turnstile/; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https://*.noaa.gov https://gibs.earthdata.nasa.gov https://tile.openstreetmap.org https://cdnjs.cloudflare.com; connect-src 'self' https://kenny-powers-55-g.github.io https://*.noaa.gov https://gibs.earthdata.nasa.gov https://tile.openstreetmap.org https://api.open-meteo.com https://qpbqepzdxkadmulkmfbj.supabase.co wss://qpbqepzdxkadmulkmfbj.supabase.co https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://fonts.googleapis.com https://fonts.gstatic.com; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-src https://challenges.cloudflare.com; upgrade-insecure-requests">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -1002,6 +1002,11 @@ select option,select optgroup{background-color:var(--card);color:var(--tx)}
 .ww-stretch{margin:8px 0 4px}
 .ww-b{display:inline-block;padding:2px 8px;border-radius:99px;font-size:12px;font-weight:700;line-height:1.4;color:#fff;white-space:nowrap}
 .capbox{min-height:65px;margin:4px 0}
+.regs{margin:4px 0 10px}.regs .note{margin:6px 0 0}
+.reglist{list-style:none;margin:8px 0 0;padding:0;display:grid;gap:6px}
+.reglist li{display:flex;justify-content:space-between;gap:12px;padding:8px 12px;border-radius:10px;background:var(--s2)}
+.reglist li>span{color:var(--mu)}.reglist b.closed{color:var(--r)}
+.keepchk{margin:-4px 0 10px;min-height:0}.keepchk.ok{color:var(--g)}.keepchk.no{color:var(--r);font-weight:600}
 .ww-b.l2{background:#2E7D32}.ww-b.l1{background:#F59E0B;color:#1c1200}.ww-b.l0{background:#C8423B}
 .gorow{margin:4px 0 6px;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
 .gochip{border:0;cursor:pointer;font:700 13px var(--sys,system-ui);min-height:30px;padding:5px 12px;position:relative}
@@ -1194,7 +1199,7 @@ select:not(#basesel){appearance:none;-webkit-appearance:none;padding-right:34px!
    <div class="overlays" id="overlays" hidden>
     <label class="lyr-f" hidden><input type="checkbox" data-ov="friends"> Friends' spots</label>
     <div class="lyr-g" role="group" aria-labelledby="lyg-water"><h4 id="lyg-water">Water</h4><div class="lyr"><label><input type="checkbox" data-sat="sst"> Sea temperature</label><button type="button" class="lyr-i" aria-expanded="false" aria-controls="lyx-sst" aria-label="What is Sea temperature?">i</button><p class="lyr-x" id="lyx-sst" hidden>Satellite map of surface water temperature; many fish follow their favorite temperature.</p></div><div class="lyr"><label><input type="checkbox" data-sat="chl"> Chlorophyll (water color)</label><button type="button" class="lyr-i" aria-expanded="false" aria-controls="lyx-chl" aria-label="What is Chlorophyll (water color)?">i</button><p class="lyr-x" id="lyx-chl" hidden>Shows green, plankton-rich water versus clear blue water; bait gathers where they meet.</p></div><div class="lyr"><label><input type="checkbox" id="depthcb"> Depth shading</label><button type="button" class="lyr-i" aria-expanded="false" aria-controls="lyx-depth" aria-label="What is Depth shading?">i</button><p class="lyr-x" id="lyx-depth" hidden>Colors the bottom by depth so drop-offs and channels stand out.</p></div><div class="lyr"><label><input type="checkbox" data-ov="breaks"> Temp breaks</label><button type="button" class="lyr-i" aria-expanded="false" aria-controls="lyx-breaks" aria-label="What is Temp breaks?">i</button><p class="lyr-x" id="lyx-breaks" hidden>Lines where warm and cool water meet. Bait and predators stack up along them.</p></div><div class="lyr"><label><input type="checkbox" data-ov="color"> Color lines</label><button type="button" class="lyr-i" aria-expanded="false" aria-controls="lyx-color" aria-label="What is Color lines?">i</button><p class="lyr-x" id="lyx-color" hidden>Edges between green and blue water, another place bait and predators gather.</p></div><div class="lyr"><label><input type="checkbox" data-ov="ssh"> Loop Current &amp; eddies</label><button type="button" class="lyr-i" aria-expanded="false" aria-controls="lyx-ssh" aria-label="What is Loop Current and eddies?">i</button><p class="lyr-x" id="lyx-ssh" hidden>The big warm current from the Caribbean and the swirls it sheds, which pull offshore fish closer.</p></div></div>
-    <div class="lyr-g" role="group" aria-labelledby="lyg-structure"><h4 id="lyg-structure">Structure</h4><div class="lyr"><label><input type="checkbox" data-ov="rigs"> Rigs</label><button type="button" class="lyr-i" aria-expanded="false" aria-controls="lyx-rigs" aria-label="What is Rigs?">i</button><p class="lyr-x" id="lyx-rigs" hidden>Oil and gas platforms; their legs act like reefs and hold fish all year.</p></div><div class="lyr"><label><input type="checkbox" data-ov="reefs"> Reefs</label><button type="button" class="lyr-i" aria-expanded="false" aria-controls="lyx-reefs" aria-label="What is Reefs?">i</button><p class="lyr-x" id="lyx-reefs" hidden>Artificial reefs and wrecks, permitted sites where fish gather.</p></div><div class="lyr"><label><input type="checkbox" data-ov="weeds"> Weedlines</label><button type="button" class="lyr-i" aria-expanded="false" aria-controls="lyx-weeds" aria-label="What is Weedlines?">i</button><p class="lyr-x" id="lyx-weeds" hidden>Floating sargassum lines that hold mahi, tripletail and bait.</p></div></div>
+    <div class="lyr-g" role="group" aria-labelledby="lyg-structure"><h4 id="lyg-structure">Structure</h4><div class="lyr"><label><input type="checkbox" data-ov="rigs"> Rigs</label><button type="button" class="lyr-i" aria-expanded="false" aria-controls="lyx-rigs" aria-label="What is Rigs?">i</button><p class="lyr-x" id="lyx-rigs" hidden>Oil and gas platforms; their legs act like reefs and hold fish all year.</p></div><div class="lyr"><label><input type="checkbox" data-ov="reefs"> Reefs</label><button type="button" class="lyr-i" aria-expanded="false" aria-controls="lyx-reefs" aria-label="What is Reefs?">i</button><p class="lyr-x" id="lyx-reefs" hidden>Artificial reefs and wrecks, permitted sites where fish gather.</p></div><div class="lyr"><label><input type="checkbox" data-ov="launches"> Boat launches</label><button type="button" class="lyr-i" aria-expanded="false" aria-controls="lyx-launches" aria-label="What is Boat launches?">i</button><p class="lyr-x" id="lyx-launches" hidden>Public boat ramps mapped by volunteers in OpenStreetMap. Some may be missing or out of date, so check before you tow.</p></div><div class="lyr"><label><input type="checkbox" data-ov="weeds"> Weedlines</label><button type="button" class="lyr-i" aria-expanded="false" aria-controls="lyx-weeds" aria-label="What is Weedlines?">i</button><p class="lyr-x" id="lyx-weeds" hidden>Floating sargassum lines that hold mahi, tripletail and bait.</p></div></div>
     <div class="lyr-g" role="group" aria-labelledby="lyg-weather"><h4 id="lyg-weather">Weather</h4><div class="lyr"><label><input type="checkbox" data-ov="wind"> Wind forecast</label><button type="button" class="lyr-i" aria-expanded="false" aria-controls="lyx-wind" aria-label="What is Wind forecast?">i</button><p class="lyr-x" id="lyx-wind" hidden>Forecast wind at each spot. Arrows point the way the wind blows; the number is its speed. Use the time bar to look ahead.</p></div><div class="lyr"><label><input type="checkbox" data-ov="radar"> Radar (live)</label><button type="button" class="lyr-i" aria-expanded="false" aria-controls="lyx-radar" aria-label="What is Radar (live)?">i</button><p class="lyr-x" id="lyx-radar" hidden>Rain and storms happening now, from the National Weather Service.</p></div><div class="lyr"><label><input type="checkbox" data-ov="tropical"> Tropical storms</label><button type="button" class="lyr-i" aria-expanded="false" aria-controls="lyx-tropical" aria-label="What is Tropical storms?">i</button><p class="lyr-x" id="lyx-tropical" hidden>Active storms and the hurricane center's forecast cone.</p></div><div class="lyr"><label><input type="checkbox" data-ov="deadzone"> Dead zone</label><button type="button" class="lyr-i" aria-expanded="false" aria-controls="lyx-deadzone" aria-label="What is Dead zone?">i</button><p class="lyr-x" id="lyx-deadzone" hidden>Low-oxygen water near the bottom each summer, where fish move out.</p></div></div>
    </div>
    <span id="basenote"></span><span id="satnote"></span>
@@ -1289,6 +1294,7 @@ select:not(#basesel){appearance:none;-webkit-appearance:none;padding-right:34px!
       <label>Biggest (inches)<input id="logLen" type="number" min="0" max="200" step="0.5" inputmode="decimal" placeholder="e.g. 24"></label>
       <label>Weight (lb)<input id="logLbs" type="number" min="0" max="2000" step="0.1" inputmode="decimal" placeholder="e.g. 6.5"></label>
      </div>
+     <p class="note keepchk" id="logKeep" aria-live="polite"></p>
      <div class="row2">
       <label>Kept<input id="logKept" type="number" min="0" max="999" step="1" inputmode="numeric" placeholder="0"></label>
       <label>Released<input id="logRel" type="number" min="0" max="999" step="1" inputmode="numeric" placeholder="0"></label>
@@ -2152,8 +2158,8 @@ async function depthAt(ll){
  saveMySpotForm(ll,m!=null&&m<0?Math.round(-m*3.28084):null);
 }
 // ---- Map overlays: temperature breaks, color lines, Loop Current/eddies, rigs, reefs ----
-const OVF={weeds:"ocean.json",breaks:"ocean.json",color:"ocean.json",ssh:"ocean.json",rigs:"rigs.json",reefs:"reefs.json",tropical:"tropical.json",deadzone:"deadzone.json"},OVDATA={},OVLAYER={};
-const OVCOL={weed:"#c9a227",breaks:"#ff4d2e",color03:"#1aa5c8",color1:"#3c9a3c",warm:"#ff2d7a",cold:"#3d6bff",rig:"#ffb400",reef:"#2bd4c4"};
+const OVF={weeds:"ocean.json",breaks:"ocean.json",color:"ocean.json",ssh:"ocean.json",rigs:"rigs.json",reefs:"reefs.json",launches:"launches.json",tropical:"tropical.json",deadzone:"deadzone.json"},OVDATA={},OVLAYER={};
+const OVCOL={weed:"#c9a227",breaks:"#ff4d2e",color03:"#1aa5c8",color1:"#3c9a3c",warm:"#ff2d7a",cold:"#3d6bff",rig:"#ffb400",reef:"#2bd4c4",launch:"#e8edf2"};
 async function ovData(f){if(!(f in OVDATA))OVDATA[f]=fetch(dataPath(f)+"?t="+Math.floor(Date.now()/36e5)).then(r=>r.ok?r.json():null).then(d=>d&&deepClean(d)).catch(()=>null);return OVDATA[f]}
 const ovDate=t=>{const d=new Date(t);return isNaN(d)?"":d.toLocaleDateString([],{month:"short",day:"numeric"})};
 async function buildOverlay(k){
@@ -2180,6 +2186,10 @@ async function buildOverlay(k){
    note:`<span class="legendline" style="border-color:${OVCOL.weed}"></span>sargassum patches, 7 days to ${ovDate(g.time)}${g.age_days>=5?` (${g.age_days} days old: weed drifts, so look nearby)`:""}`}}
  if(k==="tropical")return tropOverlay(d);
  if(k==="deadzone")return deadzoneOverlay(d);
+ if(k==="launches"){const list=d.launches||[],R=L.canvas();if(!list.length)return{layer:null,note:"no launches loaded"};
+  return{layer:L.layerGroup(list.map(([la,lo,n,nt])=>L.circleMarker([la,lo],{renderer:R,radius:5,color:"#0b2233",weight:2,fillColor:OVCOL.launch,fillOpacity:1,bubblingMouseEvents:false})
+    .bindTooltip(`Boat launch: ${esc(n)}${nt?` (${esc(nt)})`:""}`))),
+   note:`<span class="legendline" style="border-color:${OVCOL.launch}"></span>${list.length.toLocaleString()} public boat launches · © OpenStreetMap contributors`}}
  const list=k==="rigs"?d.rigs:d.reefs,col=k==="rigs"?OVCOL.rig:OVCOL.reef,R2=L.canvas();
  if(!list||!list.length)return{layer:null,note:"no locations loaded"};
  return{layer:L.layerGroup(list.map(([la,lo,n])=>L.circleMarker([la,lo],{renderer:R2,radius:k==="rigs"?3:5,color:"#000",weight:k==="rigs"?.5:1,fillColor:col,fillOpacity:.95,bubblingMouseEvents:false})
@@ -2346,7 +2356,7 @@ function showTropical(){
 async function setOverlay(k,on){
  if(!MAP)return;
  if(OVLAYER[k]){MAP.removeLayer(OVLAYER[k].layer);delete OVLAYER[k]}
- if(on){const o=await buildOverlay(k);if(o.layer){o.layer.addTo(MAP);OVLAYER[k]=o}else OVLAYER[k]={layer:L.layerGroup(),note:`${{breaks:"Temp breaks",color:"Color lines",ssh:"Loop Current",rigs:"Rigs",reefs:"Reefs",tropical:"Tropical storms",radar:"Radar",deadzone:"Dead zone",friends:"Friends' spots"}[k]}: ${o.note}`}}
+ if(on){const o=await buildOverlay(k);if(o.layer){o.layer.addTo(MAP);OVLAYER[k]=o}else OVLAYER[k]={layer:L.layerGroup(),note:`${{breaks:"Temp breaks",color:"Color lines",ssh:"Loop Current",rigs:"Rigs",reefs:"Reefs",launches:"Boat launches",tropical:"Tropical storms",radar:"Radar",deadzone:"Dead zone",friends:"Friends' spots"}[k]}: ${o.note}`}}
  $("ovnote").innerHTML=Object.values(OVLAYER).map(o=>o.note).join(" · ")+(Object.keys(OVLAYER).some(x=>x==="breaks"||x==="color"||x==="ssh"||x==="weeds")?" · Satellite analysis; lines move daily.":"");
  try{localStorage.setItem("la-fish-overlays",JSON.stringify(Object.keys(OVLAYER)))}catch(e){}
  if(k==="wind")windMapRefresh();
@@ -2413,7 +2423,7 @@ function buildMySpot(m){
  if(!near)return null;
  const b=JSON.parse(JSON.stringify(near.s));
  b.quality=b.quality||{};b.quality.borrowed={from:near.s.name,mi:Math.round(near.d)};
- return{...b,id:m.id,name:m.name,lat:m.lat,lon:m.lon,user:true,base:near.s.id,note:null,tides:near.s.tides,
+ return{...b,id:m.id,name:m.name,lat:m.lat,lon:m.lon,user:true,base:near.s.id,note:null,tides:near.s.tides,launch:null,
   depth_ft:m.depth_ft??null,depth_src:m.depth_ft!=null?"lookup at your pin":null};
 }
 function addMySpots(){
@@ -2445,17 +2455,82 @@ function removeMySpot(id){
  saveMy(getMy().filter(m=>m.id!==id));if(MK[id]&&MAP){MAP.removeLayer(MK[id]);delete MK[id]}
  DATA.spots=DATA.spots.filter(s=>s.id!==id);if(sel===id)sel=bestSpotId(sp);render();
 }
+// ---- Size and bag limits: only what LDWF's own 2026 regulations say (the saltwater table on LDWF's site and
+// the 2026 regulations PDF, updated Sept. 21, 2026). Checked on REGS_CHECKED; tests/check_scoring.js warns when
+// that's getting old. Lengths are inches; "over" is how many of the daily limit may be over the maximum.
+// "spots" holds lake-specific rules, keyed by spot id. Fish LDWF doesn't list say so instead of guessing.
+const REGS_CHECKED="2026-11-24";
+const REG_SRC={salt:"https://www.wlf.louisiana.gov/page/recreational-saltwater-finfish",fresh:"https://www.wlf.louisiana.gov/assets/Resources/Publications/Regulations/26LAFW.pdf"};
+const ATCH_LOW={min:12,bag:"5 a day",note:"Lower Atchafalaya Basin, Grassy Lake, Lake Palourde, Lake Verret and connected waters, from Aug. 1, 2026."};
+const ATCH_CRAP={min:8,bag:"25 a day",note:"Lower Atchafalaya Basin, Grassy Lake, Lake Palourde, Lake Verret and connected waters, from Aug. 1, 2026."};
+const REGS={
+ redfish:{min:18,max:27,over:0,len:"total length",bag:"4 a day",note:"None over 27 in. Redfish can't be kept in federal waters, and captain and crew on a charter trip can't keep any."},
+ bullred:{min:18,max:27,over:0,len:"total length",bag:"4 a day",note:"Redfish over 27 in (bull reds) must be released. None can be kept in federal waters."},
+ trout:{min:13,max:20,over:2,len:"total length",bag:"15 a day",note:"No more than 2 over 20 in. Captain and crew on a charter trip can't keep any."},
+ flounder:{bag:"10 a day",note:"No size limit. None may be kept Oct. 15 – Nov. 30."},
+ sheepshead:{bag:"No limit",note:"No size or bag limit."},
+ drum:{min:16,max:27,over:1,len:"total length",bag:"5 a day",note:"No more than 1 over 27 in."},
+ spanish:{min:12,len:"fork length",bag:"15 a day"},
+ kingmack:{min:24,len:"fork length",bag:"3 a day"},
+ cobia:{min:36,len:"fork length",bag:"1 a day",note:"No more than 2 per boat."},
+ tripletail:{min:18,len:"total length",bag:"5 a day"},
+ snapper:{min:16,len:"total length",bag:"4 a day while open",note:"Louisiana sets the season each year and closes it when the state's share is caught. LDWF posts the catch so far every week.",
+  links:[["LA Creel: catch so far","https://www.wlf.louisiana.gov/page/lacreel"],["LDWF red snapper page","https://www.wlf.louisiana.gov/page/red-snapper"]]},
+ amberjack:{min:34,len:"fork length",bag:"1 a day",note:"Greater amberjack. State season Sept. 1 – Oct. 14."},
+ trigger:{min:15,len:"fork length",bag:"1 a day",note:"Closed Jan. 1 – end of Feb. and June 1 – July 31. Counts toward the 20-fish reef fish limit."},
+ vermilion:{min:10,len:"total length",bag:"10 a day",note:"Counts toward the 20-fish reef fish limit."},
+ mangrove:{min:12,len:"total length",bag:"10 a day",note:"Counts toward the 10-snapper limit (gray, cubera, mutton, yellowtail and others)."},
+ cubera:{min:12,len:"total length",bag:"10 a day",note:"Counts toward the 10-snapper limit (gray, cubera, mutton, yellowtail and others)."},
+ grouper:{bag:"4 a day, all groupers together",note:"Minimum total length: red and yellowfin 20 in, gag and black 24 in, scamp 16 in. No more than 2 red and 2 gag. Gag has a short season set each year, and several groupers close Feb. 1 – Mar. 31 past 20 fathoms (120 ft)."},
+ yft:{min:27,len:"curved fork length",bag:"3 a day"},
+ wahoo:{bag:"5 a day",note:"No size limit."},
+ marlin:{min:99,len:"lower jaw fork length",bag:"No bag limit",note:"Report every marlin you keep to NOAA Fisheries within 24 hours."},
+ swordfish:{min:47,len:"lower jaw fork length",bag:"1 per person, up to 4 per boat",note:"Report every swordfish you keep to NOAA Fisheries within 24 hours."},
+ bass:{bag:"10 a day",note:"No size limit statewide.",spots:{atch:ATCH_LOW,verret:ATCH_LOW,palourde:ATCH_LOW,henderson:ATCH_LOW,
+  falseriver:{min:14,bag:"5 a day"},toledo:{min:14,bag:"8 a day with spotted bass"},caddo:{bag:"8 a day, no more than 4 over 18 in",note:"Largemouth 14–18 in must be released."},
+  povertypoint:{bag:"8 a day, no more than 1 over 19 in",note:"Largemouth 15–19 in must be released."}}},
+ spotbass:{bag:"10 a day with largemouth",note:"No size limit statewide."},
+ crappie:{bag:"50 a day (100 in possession)",note:"No size limit statewide.",spots:{atch:ATCH_CRAP,verret:ATCH_CRAP,palourde:ATCH_CRAP,henderson:ATCH_CRAP,
+  caddo:{bag:"25 a day"},povertypoint:{bag:"25 a day"},toledo:{bag:"25 a day"},darbonne:{bag:"50 a day, no more than 7 over 12 in"}}},
+ catfish:{bag:"100 a day, blue, channel and flathead together",note:"Minimum length: blue 12 in, channel 11 in, flathead 14 in; up to 25 undersized may be kept in total.",
+  spots:{caddo:{bag:"Blue and channel 50 a day together, no more than 5 over 30 in; flathead 10 a day",note:"Flathead minimum 18 in."},toledo:{bag:"Blue and channel 50 a day together, no more than 5 over 30 in; flathead 10 a day",note:"Flathead minimum 18 in."}}},
+ bream:{bag:"No limit",note:"No size or bag limit statewide."},
+ chinquapin:{bag:"No limit",note:"No size or bag limit statewide."},
+ whitebass:{bag:"50 a day",spots:{caddo:{bag:"25 a day"},toledo:{bag:"25 a day"}}},
+ striper:{bag:"5 a day",note:"No more than 2 over 30 in."},
+ choupique:{min:16,len:"total length",bag:"No limit"},
+ gaspergou:{min:12,len:"total length",bag:"25 a day"}};
+// One fish at one spot: the statewide rule with any lake-specific rule laid over it
+function regFor(k,spot){const R=REGS[k];if(!R)return null;const x=spot&&R.spots&&R.spots[spot.base||spot.id];return x?{...R,...x,note:[x.note,R.note&&!/statewide/.test(R.note)?R.note:""].filter(Boolean).join(" "),local:true}:R}
+const regSize=R=>R.min&&R.max?`${R.min}–${R.max} in`:R.min?`${R.min} in minimum`:"No size limit";
+// Keep or release, for a fish of a given length (inches)
+function keepCheck(k,inches,spot){const R=regFor(k,spot);if(!R||!(inches>0))return null;
+ if(R.min&&inches<R.min)return{ok:false,txt:`Under the ${R.min} in minimum: release it.`};
+ if(R.max&&inches>R.max)return{ok:R.over>0,txt:R.over>0?`Over ${R.max} in: only ${R.over} of your daily limit may be over.`:`Over the ${R.max} in maximum: release it.`};
+ return{ok:true,txt:R.min||R.max?`Keeper size (${regSize(R)}, ${R.len||"length"}).`:"No size limit."}}
 // ---- Where the rules are ----
 const RULES={salt:["Louisiana saltwater seasons and limits","https://wlf.louisiana.gov/fishing/saltwater-seasons-limits"],
  fresh:["Louisiana freshwater creel and size limits","https://wlf.louisiana.gov/fishing/freshwater-creel-size-limits"]};
 const FRESH_SP=new Set(["bass","crappie","catfish","bream","whitebass","striper","spotbass","chinquapin","choupique","gar","gaspergou"]);
+function regsHTML(spId,spot){
+ const p=SP[spId],R=regFor(spId,spot),fresh=FRESH_SP.has(spId),cl=closedNow(p),chk=new Date(REGS_CHECKED+"T12:00:00").toLocaleDateString([],{month:"short",day:"numeric",year:"numeric"});
+ const src=`<a href="${fresh?REG_SRC.fresh:REG_SRC.salt}" target="_blank" rel="noopener">LDWF ${fresh?"2026 regulations":"saltwater limits"}</a>`;
+ if(spId==="crab")return`<div class="regs"><b>Rules</b><p class="note">Recreational crabbing has its own rules (trap numbers, marking and more), separate from the fish limits. Check ${src}, checked ${chk}.</p></div>`;
+ if(!R)return`<div class="regs"><b>Size and bag limits</b><p class="note">${esc(p.name)} isn't in LDWF's 2026 table, so Louisiana sets no size or bag limit for it.${p.zone==="offshore"||spId==="crab"?" Federal rules can apply past state waters; check NOAA Fisheries.":""} Checked ${chk}: ${src}.</p></div>`;
+ return`<div class="regs"><b>Size and bag limits</b>${R.local?` <span class="note">at ${esc(spot.name)}</span>`:""}<ul class="reglist">
+  <li><span>Size</span><b>${esc(regSize(R))}${R.len&&R.min?` <span class="note">${esc(R.len)}</span>`:""}</b></li>
+  <li><span>Keep</span><b>${esc(R.bag)}</b></li>
+  <li><span>Season</span><b class="${cl?"closed":""}">${cl?"Closed now":"Open now in state waters"}</b></li></ul>
+  ${R.note?`<p class="note">${esc(R.note)}</p>`:""}${cl?`<p class="note">${esc(cl)}.</p>`:""}
+  ${(R.links||[]).length?`<p class="note">${R.links.map(([t,u])=>`<a href="${u}" target="_blank" rel="noopener">${esc(t)}</a>`).join(" · ")}</p>`:""}
+  <p class="note">From ${src}, checked ${chk}. Rules change: confirm before you keep fish.</p></div>`}
 function rulesPanel(spId,spot){
  const p=SP[spId],r=RULES[FRESH_SP.has(spId)?"fresh":"salt"];
- let h=`<div class="note rules">Rules: <a href="${r[1]}" target="_blank" rel="noopener">${r[0]} (LDWF)</a>.`;
+ let h=regsHTML(spId,spot)+`<div class="note rules">More: <a href="${r[1]}" target="_blank" rel="noopener">${r[0]} (LDWF)</a>.`;
  if(spot.zone!=="offshore"&&!FRESH_SP.has(spId))h+=` Oyster harvest areas open and close through the year: <a href="https://ldh.la.gov/bureau-of-sanitarian-services/molluscan-shellfish-program" target="_blank" rel="noopener">LDH shellfish maps</a>.`;
  if(p.zone==="offshore")h+=` Many offshore species also need Louisiana's free Recreational Offshore Landing Permit, and federal rules apply past state waters.`;
  if((spId==="bass"||spId==="crappie")&&["atch","verret","palourde"].includes(spot.base||spot.id))
-  h+=` New bass and crappie size and creel limits took effect Aug. 1, 2026 in parts of the Atchafalaya Basin and nearby lakes: <a href="https://www.wlf.louisiana.gov/news/new-fishing-regs-in-atchafalaya-basin-on-aug-1" target="_blank" rel="noopener">check the area</a>.`;
+  h+=` <a href="https://www.wlf.louisiana.gov/news/new-fishing-regs-in-atchafalaya-basin-on-aug-1" target="_blank" rel="noopener">Map of the Atchafalaya Basin area with the Aug. 1, 2026 rules</a>.`;
  return h+`</div>`;
 }
 // ---- Phone alerts: help writing a rule for alerts.json ----
@@ -2635,6 +2710,23 @@ const LV_TXT=["No-go","Caution","Go"];
 // One line for the score header: go / caution / no-go for the person's boat right now, from the same
 // forecast and limits as the Wind and waves section. Severe marine alerts and storms override it.
 const BOAT_SHORT={small:"small boat",mid:"mid-size boat",large:"large boat"};
+// "Can I get in?" for inshore spots: how far the water is running above or below the tide tables (wind and
+// river push it around), from the spot's own gauge or the nearest gauged spot within 20 miles, plus a
+// warning when a strong north-wind front is coming (north wind drains the marsh). Only shown when it matters.
+function waterAccess(spot){
+ if(!DATA||spot.zone==="offshore"||spot.lat==null)return null;
+ let a=spot.conditions&&spot.conditions.wl_anom,from=null;
+ if(a==null){let best=null;for(const x of DATA.spots){const v=x.conditions&&x.conditions.wl_anom;if(v==null||x.user||x.zone==="offshore")continue;
+   const d=milesJS(spot.lat,spot.lon,x.lat,x.lon);if(d<=20&&(!best||d<best.d))best={d,v,x}}
+  if(best){a=best.v;from=`${best.x.name} gauge, ${Math.round(best.d)} mi away`}}
+ const fr=(spot.fronts||[]).find(f=>{const h=(Date.parse(f.t)-Date.now())/36e5;return h>-6&&h<36&&(f.nwind||0)>=15});
+ const front=fr?`North wind to ${fr.nwind} mph behind the front ${whenTxt(Date.parse(fr.t))} can drain the marsh fast.`:"";
+ if(a==null||Math.abs(a)<0.5)return front?{lv:1,label:"Front coming",txt:front}:null;
+ const ft=Math.abs(a).toFixed(1),src=from?` (${from})`:"";
+ if(a<=-1)return{lv:0,label:"Low water",txt:`${ft} ft below the tide table${src}. Shallow marsh, ponds and some launches may be hard to reach. ${front}`.trim()};
+ if(a<0)return{lv:1,label:"Water low",txt:`${ft} ft below the tide table${src}. Shallow flats may be dry. ${front}`.trim()};
+ if(a>=1.5)return{lv:0,label:"High water",txt:`${ft} ft above the tide table${src}. Launches, roads and docks may be flooded.`};
+ return{lv:1,label:"Water high",txt:`${ft} ft above the tide table${src}. Grass edges are flooded. ${front}`.trim()}}
 function boatNow(spot,c){
  const B=BOATS[boat()]||BOATS.mid,f=FC&&FC.spots&&FC.spots[spot.id];let w=c.wind,g=null,h=c.wave,hasW=c.wave!=null;
  if(f&&f.wind){const S=seaSeries(f),t0=Date.parse(f.start);let i=0;while(i<S.n-1&&t0+i*36e5<Date.now()-18e5)i++;
@@ -2964,6 +3056,8 @@ function render(){
  writeHash();
  let h=`<div class="big"><div class="dial" style="--p:${r.gate?0:r.total};--c:${r.gate?"var(--mu)":col(r.total)}"><span style="color:var(--c)">${r.gate?"—":r.total}</span></div><div>
   <div style="font-size:17px;font-weight:600">${p.name} at ${esc(spot.name)} <button class="fav ${favs.includes(spot.id)?"on":""}" data-fav="${spot.id}" title="Pin spot" aria-label="Pin ${esc(spot.name)}" aria-pressed="${favs.includes(spot.id)}">★</button></div>
+  ${(W=>W?`<div class="gorow"><span class="ww-b l${W.lv}">${W.label}</span> <span class="note">${esc(W.txt)}</span></div>`:"")(waterAccess(spot))}
+  ${spot.launch&&spot.launch.name?`<div class="gorow note">Nearest launch: ${esc(spot.launch.name)}, ${spot.launch.mi} mi${spot.launch.note?" ("+esc(spot.launch.note)+")":""} · <a href="https://www.google.com/maps/dir/?api=1&destination=${(+spot.launch.lat).toFixed(5)},${(+spot.launch.lon).toFixed(5)}" target="_blank" rel="noopener">Directions</a></div>`:""}
   ${(B=>B?`<div class="gorow"><button type="button" class="ww-b l${B.lv} gochip" data-gowind aria-label="${LV_TXT[B.lv]} for a ${B.boat} now: ${esc(B.why)}. Open wind and waves">${LV_TXT[B.lv]} · ${B.boat}</button> <span class="note">now${B.why?": "+esc(B.why):""}</span></div>`:"")(boatNow(spot,c))}
   ${r.gate?`<span class="pill" style="background:var(--mu)">Not applicable</span> <span class="note">${esc(r.gate)}</span>`
   :`<span class="pill" style="background:${col(r.total)}">${lab(r.total)}</span>
@@ -3010,7 +3104,8 @@ function render(){
  if(!r.gate)h+=driversHTML(r);
  // ---- 3. The readings that matter most for this kind of water; everything else one tap away
  const depthTxt=spot.depth_ft!=null?`${spot.depth_ft.toLocaleString()} ft <span class="note">(${spot.depth_src==="published"?"published":"model"})</span>`:null;
- const fullGrid=`<div class="grid">${depthTxt?cell("Depth here",depthTxt):""}${cell("Water temp",c.temp==null?null:c.temp+"°F"+((q.estimated||[]).includes("temp")?" (est.)":""))}${cell("Wind",c.wind," mph")}${cell("Wind dir",wdirTxt)}${cell("Pressure",c.pres)}
+ const ln=spot.launch,launchTxt=ln?`${esc(ln.name)} <span class="note">${ln.mi} mi${ln.note?" · "+esc(ln.note):""} · <a href="https://www.google.com/maps/dir/?api=1&destination=${(+ln.lat).toFixed(5)},${(+ln.lon).toFixed(5)}" target="_blank" rel="noopener">Directions</a></span>`:null;
+ const fullGrid=`<div class="grid">${launchTxt?cell("Nearest launch",launchTxt):""}${depthTxt?cell("Depth here",depthTxt):""}${cell("Water temp",c.temp==null?null:c.temp+"°F"+((q.estimated||[]).includes("temp")?" (est.)":""))}${cell("Wind",c.wind," mph")}${cell("Wind dir",wdirTxt)}${cell("Pressure",c.pres)}
   ${(q.not_applicable||[]).includes("tide")?"":cell("Tide",c.tide)}${(q.not_applicable||[]).includes("sal")?"":cell("Salinity",c.sal," ppt")}
   ${(q.not_applicable||[]).includes("clar")?"":cell("Clarity",clarTxt)}
   ${c.vis!==undefined?cell("Visibility",visText(c,q)):cell("Water color",wcolorHtml)}${c.sbreak!=null?cell("Temp break",c.sbreak+" °F/mi")+cell("Satellite SST",c.ssat,"°F"):""}${cell("Clouds",c.cloud,"%")}
@@ -3054,7 +3149,7 @@ function render(){
   if(spot.note)h+=`<div class="spotnote">${esc(spot.note)}</div>`;
   if(p.note)h+=`<div class="warn">${p.note}</div>`;
   ab=h;h=_h;h+=sec("about","About this spot",ab,false)}
- h+=sec("rules","Rules and alerts",rulesPanel(sp,spot)+(r.gate?"":alertHelp(sp,spot,r.total)),false);
+ {const R=regFor(sp,spot);h+=sec("rules",`Limits and rules${R?` <span class="note">${esc(closedNow(p)?"closed now":regSize(R)+" · "+R.bag)}</span>`:""}`,rulesPanel(sp,spot)+(r.gate?"":alertHelp(sp,spot,r.total)),false)}
  if(!r.gate){
   h+=sec("why","Why this score",`<p class="note" style="margin:0 0 6px">Every reading this score uses, most important first. <button type="button" class="linkbtn" data-howto>How scores work</button></p>`+[...r.rows].sort((a,b)=>b.w-a.w).map(x=>{
    const pc=Math.round(x.v*100),cc=col(pc),s=(q.sources||{})[SRC[x.k]];
@@ -4106,6 +4201,10 @@ async function load(isRefresh){
   for(const id of ["logSp","logSpot","logDate"])$(id).addEventListener("change",()=>{sharePreview();renderCommunity();renderTune()});
   $("logDate").addEventListener("input",sharePreview);
   $("logShare").onchange=e=>{try{localStorage.setItem(SHARE_KEY,e.target.checked?"1":"0")}catch(x){}};
+  // Keeper or not, as soon as a length is typed (from LDWF's limits for that fish and spot)
+  const keepNote=()=>{const el=$("logKeep"),spot=DATA.spots.find(x=>x.id===$("logSpot").value),k=$("logSp").value,v=+$("logLen").value,res=keepCheck(k,v,spot);
+   el.textContent=res?res.txt:"";el.className="note keepchk"+(res?res.ok?" ok":" no":"")};
+  $("logLen").addEventListener("input",keepNote);for(const id of ["logSp","logSpot"])$(id).addEventListener("change",keepNote);
   addEventListener("online",()=>flushReports());
   setTimeout(()=>flushReports(),4000);       // anything saved while there was no signal
   $("logForm").onsubmit=e=>{
@@ -4249,6 +4348,8 @@ $("install").onclick=()=>{if(ip){ip.prompt();ip=null;$("install").hidden=true}};
    <li>NASA and NOAA satellites: sea temperature, water color and clarity, sea height (Loop Current) and sargassum</li>
    <li>National Hurricane Center: tropical storms and outlooks</li>
    <li>BOEM and NOAA: offshore platforms and artificial reefs</li>
+   <li>OpenStreetMap contributors: boat launches (© OpenStreetMap contributors, ODbL)</li>
+   <li>Louisiana Department of Wildlife &amp; Fisheries: size and bag limits and seasons</li>
   </ul>
   <h4>Changes to the scoring</h4>
   <p class="note">Last changed <b id="modeldate">November 24, 2026</b>: closed seasons for amberjack, red snapper and gray triggerfish; time of year now counts for every fish (so cobia, tripletail, king mackerel and mahi score low once most have left); personal tuning learns each fish separately; distant gauges and buoys are no longer used as if they were at the spot.</p>
