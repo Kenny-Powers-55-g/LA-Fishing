@@ -63,6 +63,7 @@ img,svg{max-width:100%}
 /* ---- Landing ---- */
 .hero{position:relative;overflow:hidden;padding:44px 0 52px;color:#fff;background:#0b2233}
 .hero-photo{position:absolute;inset:0;z-index:0}
+.hero-photo picture{display:contents}
 .hero-photo img{width:100%;height:100%;object-fit:cover;object-position:center 40%;display:block}
 .hero-photo::after{content:"";position:absolute;inset:0;background:rgba(8,26,40,.6)}
 .hero-grid{position:relative;z-index:1}
@@ -140,6 +141,7 @@ img,svg{max-width:100%}
 .demo-band{margin:6px 0 0;font-size:14px;font-weight:700}
 .demo-why{margin:16px 0 0;padding-top:14px;border-top:1px solid var(--bd);font-size:15px;color:var(--tx)}
 .demo-up{margin:10px 0 0;font-size:13px;color:var(--mu)}
+.demo-go{display:inline-flex;align-items:center;min-height:44px;margin-top:6px;font-weight:600;color:var(--ac)}
 .demo .c-ex{color:#2E7D32}.demo .c-gd{color:#4C7A1E}.demo .c-fr{color:#B45309}.demo .c-po{color:#B23A33}
 .demo .d-ex{background:#2E7D32}.demo .d-gd{background:#7FB548}.demo .d-fr{background:#F59E0B}.demo .d-po{background:#C8423B}
 .demo-band i{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:6px;vertical-align:middle}

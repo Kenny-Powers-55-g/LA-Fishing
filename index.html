@@ -41,7 +41,7 @@
 </div>
 </header>
 <main id="main">
-<section class="hero"><div class="hero-photo" aria-hidden="true"><img src="hero.jpg" alt="" width="1600" height="900"></div>
+<section class="hero"><div class="hero-photo" aria-hidden="true"><picture><source type="image/webp" srcset="hero-800.webp 800w, hero-1200.webp 1200w, hero-1600.webp 1600w" sizes="100vw"><img src="hero.jpg" alt="" width="1600" height="900" fetchpriority="high" decoding="async"></picture></div>
 <div class="wrap hero-grid">
 <div>
 <p class="resume" id="resume" hidden><a href="map.html" data-cta>Looking for a spot? <b>Open it on the map &rarr;</b></a></p>
@@ -50,13 +50,14 @@
 <div class="cta"><a class="btn" href="map.html" data-cta>Open the map, free</a><p class="fine">No account needed. Works on your phone or computer.</p></div>
 </div>
 <figure class="demo" id="demo" hidden aria-labelledby="democap">
-<figcaption id="democap" class="demo-cap"><span class="demo-live">Live</span> Top spot right now</figcaption>
+<figcaption id="democap" class="demo-cap"><span class="demo-live">Live</span> Best spot right now</figcaption>
 <div class="demo-main">
 <p class="demo-score" id="demoscore" aria-label="Score">--</p>
 <div class="demo-info"><p class="demo-name" id="demoname"></p><p class="demo-fish" id="demofish"></p><p class="demo-band" id="demoband"></p></div>
 </div>
 <p class="demo-why" id="demowhy"></p>
 <p class="demo-up" id="demoup"></p>
+<a class="demo-go" id="demogo" href="map.html">See this spot on the map &rarr;</a>
 </figure>
 </div></section>
 <section class="sect"><div class="wrap">
