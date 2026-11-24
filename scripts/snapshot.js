@@ -49,18 +49,22 @@ function main() {
       if (r && !r.gate && typeof r.total === "number") today[`${spot.id}|${k}`] = Math.round(r.total);
     }
   }
-  // The landing page's example card: the six best public spots across all fish, from the same scores
-  const best = new Map();
-  for (const spot of latest.spots) {
-    if (spot.user) continue;
-    for (const k of Object.keys(api.SP)) {
+  // The landing page's example card: the best public spot for each of the fish most people come for,
+  // best first. (Ranking every fish together put the same lightly-modelled fish on top every day.)
+  // The card shows the visitor's own fish if they picked one in the app, otherwise the first entry.
+  const FEATURED = ["redfish", "trout", "flounder", "sheepshead", "drum", "bass", "crappie"];
+  const board = [];
+  for (const k of FEATURED.filter(f => api.SP[f])) {
+    let top = null;
+    for (const spot of latest.spots) {
+      if (spot.user) continue;
       let r; try { r = api.score(k, spot, now); } catch (e) { continue; }
       if (!r || r.gate || typeof r.total !== "number" || (r.coverage != null && r.coverage < 0.65)) continue;
-      const cur = best.get(spot.id);
-      if (!cur || r.total > cur.score) best.set(spot.id, { id: spot.id, name: spot.name, fish: api.SP[k].name, score: Math.round(r.total), reason: r.reason || "" });
+      if (!top || r.total > top.score) top = { k, id: spot.id, name: spot.name, fish: api.SP[k].name, score: Math.round(r.total), reason: r.reason || "" };
     }
+    if (top) board.push(top);
   }
-  const board = [...best.values()].sort((a, b) => b.score - a.score).slice(0, 6);
+  board.sort((a, b) => b.score - a.score);
   const nSpots = latest.spots.filter(x => !x.user).length;
   fs.writeFileSync(path.join(DIR, "board.json"), JSON.stringify({ generated: new Date(now).toISOString(), counts: { spots: nSpots, fish: Object.keys(api.SP).length }, spots: board }));
 

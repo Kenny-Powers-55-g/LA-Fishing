@@ -5,7 +5,7 @@
      Outside scripts are allowed by their exact file (Leaflet and the Supabase library), not whole sites, and
      only this site's own Supabase project may be contacted. Changing supabaseUrl in config.js? Change both
      of its addresses in connect-src too (node tests/check_page.js checks they match). -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-ap5MSQrXWR0reWT9leoroLT0xlM5zuuNBvia3r/cTEw=' 'sha256-5fVzB7x1HVoUsyRM4ujcrR4tbS9DgBCsGapWZ/RQA/A=' https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.118.0/dist/umd/supabase.js https://challenges.cloudflare.com/turnstile/; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https://*.noaa.gov https://gibs.earthdata.nasa.gov https://tile.openstreetmap.org https://cdnjs.cloudflare.com; connect-src 'self' https://kenny-powers-55-g.github.io https://*.noaa.gov https://gibs.earthdata.nasa.gov https://tile.openstreetmap.org https://api.open-meteo.com https://qpbqepzdxkadmulkmfbj.supabase.co wss://qpbqepzdxkadmulkmfbj.supabase.co https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://fonts.googleapis.com https://fonts.gstatic.com; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-src https://challenges.cloudflare.com; upgrade-insecure-requests">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-ap5MSQrXWR0reWT9leoroLT0xlM5zuuNBvia3r/cTEw=' 'sha256-F22u5Z/vocVDr9E4wuyoWNOkWRMhm2EMho4X29OboWw=' https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.118.0/dist/umd/supabase.js https://challenges.cloudflare.com/turnstile/; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https://*.noaa.gov https://gibs.earthdata.nasa.gov https://tile.openstreetmap.org https://cdnjs.cloudflare.com; connect-src 'self' https://kenny-powers-55-g.github.io https://*.noaa.gov https://gibs.earthdata.nasa.gov https://tile.openstreetmap.org https://api.open-meteo.com https://qpbqepzdxkadmulkmfbj.supabase.co wss://qpbqepzdxkadmulkmfbj.supabase.co https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://fonts.googleapis.com https://fonts.gstatic.com; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-src https://challenges.cloudflare.com; upgrade-insecure-requests">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -2026,7 +2026,7 @@ function frontWatch(spot){
 }
 function outlook(){
  const el=$("outlook"),spot=DATA.spots.find(s=>s.id===sel),f=FC&&FC.spots&&FC.spots[sel];
- if(!f){el.innerHTML=`<h3>7-day outlook</h3><div class="note">Forecast not available yet. It appears after the next data update.</div>`;return}
+ if(!f){el.innerHTML=`<h3>7-day outlook</h3><div class="note">${FC_WAIT?"Loading the 7-day forecast…":"Forecast not available yet. It appears after the next data update."}</div>`;return}
  const t0=Date.parse(f.start),hr=[];
  const ud=userDepth();
  for(let i=0;i<f.temp.length;i++){const ts=t0+i*36e5;if(ts<Date.now()-36e5)continue;   // skip hours already past
@@ -3615,9 +3615,21 @@ async function acctPull(){
 // integrity: the browser refuses the file if the CDN ever serves anything but this exact version
 function loadScript(src,integrity){return new Promise(res=>{const el=document.createElement("script");el.src=src;
  if(integrity){el.integrity=integrity;el.crossOrigin="anonymous"}el.onload=()=>res(true);el.onerror=()=>res(false);document.head.appendChild(el)})}
+// The accounts library (about 47 KB) is only downloaded for people who use accounts: someone already
+// signed in on this device, someone opening an emailed sign-in or reset link, or anyone who taps the
+// account button. Everyone else gets the scores without waiting for it.
+let ACCT_LOADING=null;
+function acctNeeded(){
+ try{for(let i=0;i<localStorage.length;i++)if(/^sb-.+-auth-token$/.test(localStorage.key(i)||""))return true}catch(e){}
+ return /[#&](access_token|refresh_token|error_description|type)=/.test(location.hash||"")||/[?&](code|error)=/.test(location.search||"")}
+function acctStart(){return ACCT_LOADING||(ACCT_LOADING=acctLoad().finally(()=>{if(!ACCT.sb)ACCT_LOADING=null}))}   // a failed load can be retried
 async function initAccounts(){
  const c=acctCfg(),b=$("acctbtn");if(!c||!b)return;
  b.hidden=false;b.onclick=openAcct;acctUI();
+ if(acctNeeded())acctStart();
+}
+async function acctLoad(){
+ const c=acctCfg();
  // A common setup slip: pasting the website's own address instead of the Supabase Project URL
  let host="";try{const u=new URL(c.supabaseUrl);host=u.host;c.supabaseUrl=u.origin}catch(e){}   // keep only https://xxxx.supabase.co (drop a pasted /rest/v1/ etc.)
  if(!host||host===location.host||/github\.io$/.test(host)||/(^|\.)supabase\.com$/.test(host)){
@@ -3653,7 +3665,7 @@ function acctUI(){
  if(pb)pb.textContent=u?"Your log is backed up in your account. You can still download a copy.":"Clearing browser data for this site will erase the log, so download a backup now and then (or sign in). Nothing is uploaded unless you sign in, except anonymous reports you choose to share.";
  if($("acctdlg")&&$("acctdlg").open)renderAcct();
 }
-function openAcct(){const d=$("acctdlg");renderAcct();if(ACCT.user&&ACCT.social!=="busy")loadSocial().then(()=>{if(d.open)renderAcct()});$("acctclose").onclick=()=>d.close();d.onclick=e=>{if(e.target===d)d.close()};if(d.showModal)d.showModal();else d.setAttribute("open","")}
+function openAcct(){const d=$("acctdlg");if(!ACCT.sb)acctStart().then(()=>{if(d.open)renderAcct()});renderAcct();if(ACCT.user&&ACCT.social!=="busy")loadSocial().then(()=>{if(d.open)renderAcct()});$("acctclose").onclick=()=>d.close();d.onclick=e=>{if(e.target===d)d.close()};if(d.showModal)d.showModal();else d.setAttribute("open","")}
 // ---- Usernames, passwords and friends ----
 // A username + password account is a Supabase email/password account behind the scenes, using a
 // made-up address <username>@<usernameEmailDomain> that never receives mail. Adding a real email
@@ -4134,8 +4146,11 @@ async function load(isRefresh){
  // Community tuning (anonymous catch reports), fetched next to the forecast so the first scores already
  // use it. If it's slow, the scores are drawn without it and redrawn when it arrives.
  const commP=fetch(dataPath("community.json")+"?t="+Math.floor(Date.now()/36e5)).then(r=>r.ok?r.json():null).then(j=>{if(j){setCommunity(deepClean(j));return true}}).catch(()=>{});
- try{const fr=await fetch(dataPath("forecast.json")+"?t="+Date.now());if(fr.ok)FC=deepClean(await fr.json())}catch(e){}
- const commLate=await Promise.race([commP.then(()=>false),new Promise(r=>setTimeout(()=>r(true),1500))]);
+ // The 7-day forecast is ten times bigger than the current readings, so scores are drawn first and the
+ // outlook, best times and wind and waves fill in when it arrives (on a weak signal that's many seconds).
+ FC_WAIT=!FC;
+ const fcP=fetch(dataPath("forecast.json")+"?t="+Date.now()).then(r=>r.ok?r.json():null).then(j=>{if(j)FC=deepClean(j)}).catch(()=>{}).finally(()=>{FC_WAIT=false});
+ const commLate=await Promise.race([commP.then(()=>false),new Promise(r=>setTimeout(()=>r(true),800))]);
  if(commLate)commP.then(ok=>{if(ok&&DATA&&sel){render();renderLog()}});
  fetch(dataPath("scores-daily.json")+"?t="+Date.now()).then(r=>r.ok?r.json():null).then(j=>{if(j&&typeof j==="object"){DAILY=j;if(DATA&&sel)renderBestBets()}}).catch(()=>{});
  fetch(dataPath("history.json")+"?t="+Date.now()).then(r=>r.ok?r.json():null).then(h=>{if(h&&h.t){HIST=h;if(DATA&&sel)render()}}).catch(()=>{});
@@ -4153,8 +4168,10 @@ async function load(isRefresh){
  if(!MAP)mapInit();
  render();
  if(MAP)setTimeout(()=>MAP.invalidateSize(),200);
+ fcP.then(()=>{if(!FC)return;for(const x of DATA.spots)if(x.user&&FC.spots&&FC.spots[x.base])FC.spots[x.id]=FC.spots[x.base];   // your own pins use the nearest spot's forecast
+  if(DATA&&sel)render()});
 }
-let LAST_LOAD=0;
+let LAST_LOAD=0,FC_WAIT=false;
 load();
 // Data updates hourly: refresh when the app comes back to the screen, and every 20 minutes while open
 const STALE_MS=20*60e3;

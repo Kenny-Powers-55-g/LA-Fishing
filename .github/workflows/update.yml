@@ -2,8 +2,11 @@ name: Update fishing data
 
 on:
   schedule:
-    # Hourly is enough for water/weather; avoids overlapping 30‑min runs when ingest is slow
+    # Hourly is enough for water and weather, but GitHub often starts scheduled runs 30-60 minutes late.
+    # The :45 slot is a backup: the "fresh" job below skips the update when the live data is under
+    # 40 minutes old, so it only does the work when the :15 run was late or failed.
     - cron: "15 * * * *"
+    - cron: "45 * * * *"
   workflow_dispatch:
 
 permissions:
@@ -20,7 +23,29 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  fresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    outputs:
+      run: ${{ steps.age.outputs.run }}
+    steps:
+      - name: Is the live data recent enough to skip this run?
+        id: age
+        run: |
+          # Runs started by hand, or at :15, always update. The :45 backup only updates stale data.
+          if [ "${{ github.event_name }}" != "schedule" ] || [ "${{ github.event.schedule }}" = "15 * * * *" ]; then
+            echo "run=true" >> "$GITHUB_OUTPUT"; exit 0
+          fi
+          owner="${GITHUB_REPOSITORY%%/*}"; repo="${GITHUB_REPOSITORY#*/}"
+          url="https://$(echo "$owner" | tr 'A-Z' 'a-z').github.io/$repo/latest.json"
+          gen=$(curl -sfL "$url?t=$(date +%s)" | python3 -c "import json,sys; print(json.load(sys.stdin)['generated'])" 2>/dev/null || true)
+          age=$(python3 -c "import sys; from datetime import datetime, timezone as tz; print(int((datetime.now(tz.utc)-datetime.fromisoformat(sys.argv[1])).total_seconds()//60))" "$gen" 2>/dev/null || echo 999)
+          echo "Live data is $age minutes old"
+          if [ "$age" -lt 40 ]; then echo "run=false" >> "$GITHUB_OUTPUT"; else echo "run=true" >> "$GITHUB_OUTPUT"; fi
+
   build-and-deploy:
+    needs: fresh
+    if: needs.fresh.outputs.run == 'true'
     runs-on: ubuntu-latest
     environment:
       name: github-pages
@@ -93,7 +118,7 @@ jobs:
       - name: Collect the site files
         run: |
           mkdir site
-          cp index.html map.html about.html contact.html terms.html privacy.html site.css site.js board.js forward.js hero.jpg sitemap.xml robots.txt og-image.png hero.jpg config.js latest.json forecast.json manifest.webmanifest sw.js site/
+          cp index.html map.html about.html contact.html terms.html privacy.html site.css site.js board.js forward.js hero.jpg hero-800.webp hero-1200.webp hero-1600.webp sitemap.xml robots.txt og-image.png hero.jpg config.js latest.json forecast.json manifest.webmanifest sw.js site/
           for f in icon-192.png icon-512.png favicon.svg apple-touch-icon.png status.json history.json scores-daily.json board.json ocean.json rigs.json reefs.json tropical.json deadzone.json alerts_state.json community.json; do
             [ -f "$f" ] && cp "$f" site/ || true
           done
