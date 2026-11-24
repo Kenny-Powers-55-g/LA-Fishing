@@ -118,6 +118,20 @@ If someone reaches it, the app tells them to download a backup and delete old tr
 Supabase's built-in email sender only allows a few sign-in emails per hour. Once more people use the site, add your own
 email service under **Authentication → Emails → SMTP Settings** (Resend, SendGrid, Amazon SES and others have free tiers).
 
+## Rules, boat launches and search pages
+
+- **Size and bag limits** (`REGS` in `map.html`) are copied from LDWF's own saltwater table and 2026 regulations PDF,
+  with the date they were checked (`REGS_CHECKED`). One-year closures such as red snapper live in `SEASON_RULES`
+  (`SEASONS_CHECKED`). `node tests/check_scoring.js` warns when either is about 10 months old: re-check LDWF then.
+  Fish LDWF doesn't list say so in the app instead of showing a guess.
+- **Boat launches** come from OpenStreetMap (ramps tagged `leisure=slipway`, © OpenStreetMap contributors, ODbL),
+  downloaded weekly into `launches.json`. Each inshore spot gets its nearest public launch within 15 miles. Missing
+  or wrong ramps can be fixed by anyone at openstreetmap.org and show up within a week.
+- **Search pages**: every hour `scripts/pages.js` writes a page per spot (`spots/<id>.html`) and per fish
+  (`fish/<id>.html`), a directory (`spots/index.html`) and `sitemap.xml`, so search engines can find "redfish
+  Lake Pontchartrain" and the like. They are built on the server only (not kept in the repository). To get them
+  indexed faster, add the site to Google Search Console and submit `sitemap.xml`.
+
 ## iPhone app (in progress)
 
 The page can also run inside an iPhone app built with Capacitor. Inside the app it loads the

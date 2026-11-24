@@ -72,13 +72,14 @@ jobs:
           node tests/check_site.js
           node tests/check_community.js
           node tests/check_scoring.js
+          node tests/check_pages.js
 
       - name: Get history and the weekly map layers from the live site
         continue-on-error: true
         run: |
           owner="${GITHUB_REPOSITORY%%/*}"; repo="${GITHUB_REPOSITORY#*/}"
           site="https://$(echo "$owner" | tr 'A-Z' 'a-z').github.io/$repo"
-          for f in history.json scores-daily.json rigs.json reefs.json alerts_state.json tropical.json deadzone.json community.json; do
+          for f in history.json scores-daily.json rigs.json reefs.json launches.json alerts_state.json tropical.json deadzone.json community.json; do
             curl -sfL "$site/$f" -o "$f" && echo "$f: $(wc -c < "$f") bytes" || echo "no $f yet; it will be built"
           done
 
@@ -105,6 +106,10 @@ jobs:
         continue-on-error: true
         run: node scripts/snapshot.js
 
+      - name: Write the search pages (one per spot and fish) and the sitemap
+        continue-on-error: true
+        run: node scripts/pages.js
+
       - name: Send phone alerts
         # Rules live in alerts.json. Needs the NTFY_TOPIC repository secret; without it this
         # prints what it would have sent. Never blocks the deploy.
@@ -118,10 +123,11 @@ jobs:
       - name: Collect the site files
         run: |
           mkdir site
-          cp index.html map.html about.html contact.html terms.html privacy.html site.css site.js board.js forward.js hero.jpg hero-800.webp hero-1200.webp hero-1600.webp sitemap.xml robots.txt og-image.png hero.jpg config.js latest.json forecast.json manifest.webmanifest sw.js site/
-          for f in icon-192.png icon-512.png favicon.svg apple-touch-icon.png status.json history.json scores-daily.json board.json ocean.json rigs.json reefs.json tropical.json deadzone.json alerts_state.json community.json; do
+          cp index.html map.html about.html contact.html terms.html privacy.html site.css site.js board.js track.js forward.js hero.jpg hero-800.webp hero-1200.webp hero-1600.webp sitemap.xml robots.txt og-image.png hero.jpg config.js latest.json forecast.json manifest.webmanifest sw.js site/
+          for f in icon-192.png icon-512.png favicon.svg apple-touch-icon.png status.json history.json scores-daily.json board.json ocean.json rigs.json reefs.json launches.json tropical.json deadzone.json alerts_state.json community.json; do
             [ -f "$f" ] && cp "$f" site/ || true
           done
+          for d in spots fish; do [ -d "$d" ] && cp -r "$d" site/ || true; done
           # Fail clearly if core data is missing
           test -f site/latest.json
           test -f site/index.html

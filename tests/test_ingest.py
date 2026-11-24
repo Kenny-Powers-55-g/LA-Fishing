@@ -442,5 +442,42 @@ class DeadSources(unittest.TestCase):
             shutil.rmtree(d)
 
 
+class BoatLaunches(unittest.TestCase):
+    SAMPLE = {"elements": [
+        {"type": "node", "lat": 29.2512, "lon": -90.2101, "tags": {"leisure": "slipway", "name": "Leeville public launch", "fee": "no"}},
+        {"type": "way", "center": {"lat": 29.25121, "lon": -90.21012}, "tags": {"leisure": "slipway", "name": "Leeville public launch"}},
+        {"type": "node", "lat": 29.30, "lon": -90.30, "tags": {"leisure": "slipway", "access": "private", "name": "Camp ramp"}},
+        {"type": "node", "lat": 29.66, "lon": -90.11, "tags": {"leisure": "slipway", "operator": "Jefferson Parish", "fee": "yes"}},
+        {"type": "node", "tags": {"leisure": "slipway"}}]}
+
+    def test_public_ramps_only_and_no_duplicates(self):
+        ramps = ingest.parse_launches(self.SAMPLE)
+        self.assertEqual([r[2] for r in ramps], ["Leeville public launch", "Jefferson Parish"])
+        self.assertEqual(ramps[0][3], "free")
+        self.assertEqual(ramps[1][3], "fee")
+
+    def test_nearest_launch_per_inshore_spot(self):
+        d = tempfile.mkdtemp()
+        try:
+            path = os.path.join(d, "launches.json")
+            with open(path, "w") as f:
+                json.dump({"launches": ingest.parse_launches(self.SAMPLE)}, f)
+            spots = [{"id": "leeville", "lat": 29.25, "lon": -90.21, "zone": "inshore"},
+                     {"id": "off40", "lat": 28.5, "lon": -90.6, "zone": "offshore"},
+                     {"id": "toledo", "lat": 31.4, "lon": -93.7, "zone": "inshore"}]
+            ingest.nearest_launches(spots, path)
+            self.assertEqual(spots[0]["launch"]["name"], "Leeville public launch")
+            self.assertLess(spots[0]["launch"]["mi"], 1)
+            self.assertNotIn("launch", spots[1])          # offshore spots don't get one
+            self.assertNotIn("launch", spots[2])          # nothing within 15 miles
+        finally:
+            shutil.rmtree(d)
+
+    def test_missing_file_is_fine(self):
+        spots = [{"id": "x", "lat": 29.0, "lon": -90.0, "zone": "inshore"}]
+        ingest.nearest_launches(spots, "/nonexistent/launches.json")
+        self.assertNotIn("launch", spots[0])
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -21,6 +21,7 @@ for (const f of PAGES) {
   if (!title.includes("OceanCast")) fail(`${f}: title lacks OceanCast`);
   if (/Ocean Cast|Oceancast|Ocean cast|OCEANcast/.test(h.replace(/OCEAN<\/span>/g, ""))) fail(`${f}: inconsistent brand spelling`);
   for (const m of h.replace(/<!--[\s\S]*?-->/g, "").matchAll(/(?:href|src)="([^"#:?]+)(?:[#?][^"]*)?"/g)) {
+    if (/^(spots|fish)\//.test(m[1])) continue;   // written by scripts/pages.js in the hourly job
     if (!fs.existsSync(path.join(ROOT, m[1]))) fail(`${f}: broken link ${m[1]}`);
   }
   if (!h.includes("Scores are estimates, not guarantees. Not for navigation or safety decisions.")) fail(`${f}: footer disclaimer missing`);

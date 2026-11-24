@@ -1836,7 +1836,7 @@ def weed_near(spot, sg, now, radius_mi=100):
     return round(min([radius_mi] + d))
 
 # ---------------------------------------------------------------- rigs and reefs (weekly)
-RIGS, REEFS = "rigs.json", "reefs.json"
+RIGS, REEFS, LAUNCHES = "rigs.json", "reefs.json", "launches.json"
 STATIC_DAYS = 7
 # Tried in order until one answers
 # BOEM's own download files come first: its map service (gis.boem.gov) only returns a
@@ -1938,7 +1938,7 @@ def point_of(geom):
     except (TypeError, IndexError, ZeroDivisionError):
         return None
 
-def static_layers(now, rigs_path=RIGS, reefs_path=REEFS):
+def static_layers(now, rigs_path=RIGS, reefs_path=REEFS, launches_path=LAUNCHES):
     """Refresh rigs.json and reefs.json about once a week (the workflow downloads the
     current copies from the live site first)."""
     def stale(path):
@@ -1956,6 +1956,70 @@ def static_layers(now, rigs_path=RIGS, reefs_path=REEFS):
         _reefs(now, reefs_path, stale)
     except Exception:
         log.exception("reefs.json update failed")
+    try:
+        _launches(now, launches_path, stale)
+    except Exception:
+        log.exception("launches.json update failed")
+
+# ---------------------------------------------------------------- boat launches (OpenStreetMap)
+# Boat ramps mapped in OpenStreetMap as leisure=slipway (© OpenStreetMap contributors, ODbL). No state
+# agency publishes a current launch list as open data. Refreshed weekly; private ramps are left out.
+OVERPASS_URLS = ("https://overpass-api.de/api/interpreter", "https://overpass.kumi.systems/api/interpreter")
+LAUNCH_BOX = (28.8, -94.1, 33.1, -88.7)          # south, west, north, east: Louisiana and its coast
+
+def parse_launches(j):
+    """Overpass JSON -> [[lat, lon, name, note], ...] for ramps the public can use."""
+    out, seen = [], set()
+    for e in (j or {}).get("elements") or []:
+        t = e.get("tags") or {}
+        if t.get("access") in ("private", "no", "customers") or t.get("boat") == "no":
+            continue
+        lat, lon = (e.get("lat"), e.get("lon")) if "lat" in e else ((e.get("center") or {}).get("lat"), (e.get("center") or {}).get("lon"))
+        if not isinstance(lat, (int, float)) or not isinstance(lon, (int, float)):
+            continue
+        key = (round(lat, 3), round(lon, 3))           # the same ramp mapped as a point and a line
+        if key in seen:
+            continue
+        seen.add(key)
+        name = str(t.get("name") or t.get("operator") or "Boat launch")[:60]
+        note = "fee" if t.get("fee") == "yes" else "free" if t.get("fee") == "no" else ""
+        out.append([round(lat, 5), round(lon, 5), name, note])
+    return out
+
+def _launches(now, path, stale):
+    if not stale(path):
+        return
+    s, w, n, e = LAUNCH_BOX
+    q = f'[out:json][timeout:90];(nwr["leisure"="slipway"]({s},{w},{n},{e}););out center tags;'
+    for url in OVERPASS_URLS:
+        try:
+            req = Request(url, data=urlencode({"data": q}).encode(), headers={"User-Agent": f"{APP} ({CONTACT})"})
+            with urlopen(req, timeout=120) as r:
+                ramps = parse_launches(json.load(r))
+        except Exception as ex:                       # noqa: BLE001 - try the next mirror
+            log.warning("boat launches from %s failed: %s", urlparse(url).netloc, ex)
+            continue
+        if len(ramps) < 20:                            # an empty or broken answer must not replace a good file
+            log.warning("boat launches: only %d from %s, keeping the previous file", len(ramps), urlparse(url).netloc)
+            continue
+        with open(path, "w") as fh:
+            json.dump({"generated": now.isoformat(), "source": "OpenStreetMap contributors (ODbL)", "launches": ramps}, fh, separators=(",", ":"))
+        log.info("launches.json: %d boat launches from %s", len(ramps), urlparse(url).netloc)
+        return
+
+def nearest_launches(results, path=LAUNCHES, max_mi=15):
+    """Give each inshore spot its nearest public launch (within max_mi), for the spot page."""
+    try:
+        with open(path) as f:
+            ramps = json.load(f).get("launches") or []
+    except (OSError, ValueError):
+        return
+    for r in results:
+        if r.get("zone") == "offshore" or r.get("lat") is None:
+            continue
+        best = min(((miles(r["lat"], r["lon"], la, lo), la, lo, nm, nt) for la, lo, nm, nt in ramps), default=None)
+        if best and best[0] <= max_mi:
+            r["launch"] = {"name": best[3], "lat": best[1], "lon": best[2], "mi": round(best[0], 1), "note": best[4]}
 
 def _rigs(now, rigs_path, bbox, stale):
     if not stale(rigs_path):
@@ -2586,6 +2650,7 @@ def run_once():
     fc = {"generated": now.isoformat(), "spots": {r["id"]: r["forecast"] for r in results if r.get("forecast")}}
     for r in results:
         r.pop("forecast", None)
+    nearest_launches(results)
     save(results, now)
     with open("forecast.json.tmp", "w") as f:
         json.dump(fc, f, separators=(",", ":"))

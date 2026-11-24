@@ -20,7 +20,7 @@ function load(store = {}) {
   };
   ctx.window = ctx;
   vm.createContext(ctx);
-  vm.runInContext(code + "\n;globalThis.__api={SP,scoreC,closedNow,computeTune,tuneFor,SEASON,SEASONS_CHECKED};", ctx, { filename: "map.html" });
+  vm.runInContext(code + "\n;globalThis.__api={SP,scoreC,closedNow,computeTune,tuneFor,SEASON,SEASONS_CHECKED,REGS,REGS_CHECKED,regFor,keepCheck};", ctx, { filename: "map.html" });
   return ctx.__api;
 }
 const at = d => Date.parse(d + "T18:00:00Z");
@@ -73,6 +73,26 @@ const at = d => Date.parse(d + "T18:00:00Z");
   api = load({ "la-fish-catches-v1": JSON.stringify(logs), "la-fish-tune": "off" });
   api.computeTune();
   if (api.tuneFor("redfish")) fail("switching tuning off must stop it");
+}
+
+// ---- Size and bag limits (LDWF 2026) ----
+{
+  const api = load();
+  for (const [k, R] of Object.entries(api.REGS)) {
+    if (!api.SP[k]) fail(`REGS has "${k}", which isn't a fish in the app`);
+    if (!R.bag) fail(`REGS.${k} has no daily limit`);
+    for (const f of ["min", "max", "over"]) if (R[f] != null && !(Number.isInteger(R[f]) && R[f] >= 0)) fail(`REGS.${k}.${f} must be a whole number`);
+    if (R.min && R.max && R.min >= R.max) fail(`REGS.${k}: minimum must be below maximum`);
+    if ((R.min || R.max) && !R.len) fail(`REGS.${k}: say how it's measured (total length, fork length…)`);
+  }
+  const keep = (k, inches, spot) => (api.keepCheck(k, inches, spot) || {}).ok;
+  const cases = [["redfish", 17, false], ["redfish", 18, true], ["redfish", 27, true], ["redfish", 28, false], ["trout", 12, false], ["trout", 22, true],
+    ["drum", 30, true], ["cobia", 35, false], ["cobia", 40, true], ["bass", 11, true]];
+  for (const [k, n, want] of cases) if (keep(k, n) !== want) fail(`${k} at ${n} in should be ${want ? "a keeper" : "released"}`);
+  if (keep("bass", 11, { id: "verret" }) !== false) fail("bass under 12 in must be released at Lake Verret (from Aug. 1, 2026)");
+  if (!api.regFor("bass", { id: "caddo" }).local) fail("Caddo Lake has its own bass rule");
+  const age = (Date.now() - Date.parse(api.REGS_CHECKED)) / 864e5;
+  if (age > 300) console.warn(`Warning: the size and bag limits (REGS in map.html) were last checked ${Math.round(age)} days ago. Check LDWF's current regulations.`);
 }
 
 console.log(bad ? `${bad} problem(s)` : "scoring rules OK");
