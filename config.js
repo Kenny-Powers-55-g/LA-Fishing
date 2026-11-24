@@ -11,6 +11,9 @@ window.OC_CONFIG = {
   // Username + password accounts are stored as <username>@<this domain>. It never receives mail.
   // Leave it as is; changing it later stops existing username accounts from signing in.
   usernameEmailDomain: "users.oceancast.invalid",
+  // Bot check on sign-up and sign-in (Cloudflare Turnstile, free). Leave empty until you've done the
+  // steps in README.md under "Bot check": paste the Turnstile SITE key here (never the secret key).
+  turnstileSiteKey: "",
 
   // Where the iPhone app loads the hourly data files (latest.json, forecast.json and the map layers).
   // The website ignores this and always loads its own copy, exactly as before. Must end with "/".

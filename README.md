@@ -85,12 +85,35 @@ One of the seven areas gets its own tuning when it passes the same bar on its ow
 phone alerts all apply it, scores that use it say **Community-tuned**, and anyone can switch it off under My catches.
 People's own personal tuning still takes priority on their device. Tests: `node tests/check_community.js`.
 
-Abuse limits: 12 reports a day from one network address (counted with a one-way code and a secret that's thrown away
-daily, never stored with the report) and 1,500 a day from everyone together. Network addresses can be faked, so the
-daily total, the 20/10 minimum and the 30% cap are what really limit how far bad reports can push a score. If spam
+Abuse limits: 12 reports a day from one network address, 300 a day all together from senders whose address isn't
+known, and 1,500 a day from everyone. The address comes only from Cloudflare's `cf-connecting-ip` header (a sender
+can't fake it; `x-forwarded-for` is ignored because they can), and IPv6 senders are counted by their /64 network,
+because a phone can use a new IPv6 address for every request. It is counted with a one-way code and a secret that's
+thrown away daily, never stored with the report. To see whether Supabase passes that header, run
+`select bucket = 'unknown' as no_address, sum(n) from public.oc_report_limits group by 1;` after a few reports: if
+everything is `no_address`, reports still work but share the 300-a-day limit. The daily totals, the 20/10 minimum and
+the 30% cap are what really limit how far bad reports can push a score. The public totals are worked out at most
+once an hour and kept in `oc_community_snapshot`, so calling `oc_community_stats()` over and over costs almost nothing. If spam
 ever gets in, delete it in the SQL Editor (for example `delete from public.oc_community_reports where reported_on = '2026-12-01';`).
 To stop taking new reports, run `revoke execute on function public.oc_report_catch(text, text, text, integer, jsonb) from anon, authenticated;`
 (the tick box then fails quietly and the phone drops each report after 3 days).
+
+### Bot check (recommended)
+
+"Confirm email" is off for username accounts, so a script could otherwise create accounts in bulk. Cloudflare
+Turnstile is a free bot check, usually invisible, that Supabase supports. Do these in order (doing step 4 before
+step 3 would stop everyone signing in until the site updates):
+
+1. In the Cloudflare dashboard, open **Turnstile → Add widget**, name it OceanCast, add the hostname
+   `kenny-powers-55-g.github.io`, choose **Managed**, and create it. Copy the **site key** and the **secret key**.
+2. Paste the **site key** into `turnstileSiteKey` in `config.js` and commit. Never put the secret key in the repository.
+3. Wait for the next update (or run "Update fishing data" in the Actions tab). The sign-in forms now show the check.
+4. In Supabase, open **Authentication → Attack Protection**, turn on **CAPTCHA protection**, choose **Turnstile**,
+   paste the **secret key** and save.
+
+The iPhone app runs from its own address, which Turnstile may not accept; check sign-in there before turning step 4 on.
+Each account's saved data is capped at about 1 MB (roughly 650 logged trips with their readings; photos stay on the phone).
+If someone reaches it, the app tells them to download a backup and delete old trips.
 
 Supabase's built-in email sender only allows a few sign-in emails per hour. Once more people use the site, add your own
 email service under **Authentication → Emails → SMTP Settings** (Resend, SendGrid, Amazon SES and others have free tiers).
@@ -108,8 +131,10 @@ address to `connect-src` in the security policy at the top of `map.html`
 What the site does to keep visitors and their data safe:
 
 - **Content Security Policy** (a `<meta>` tag at the top of `map.html`): the page may only run its own
-  scripts plus two pinned libraries, and only talk to NOAA, NASA, OpenStreetMap, Open-Meteo and your
-  Supabase project. If someone ever slipped code into a spot name or a friend's shared data, the browser
+  scripts plus two pinned libraries (named by their exact file, not their whole site) and Cloudflare's
+  Turnstile folder for the bot check, and only talk to NOAA, NASA, OpenStreetMap, Open-Meteo and your own
+  Supabase project (not any other `*.supabase.co`). If you change `supabaseUrl` in `config.js`, change its two
+  addresses in `connect-src` too; `node tests/check_page.js` checks they match. If someone ever slipped code into a spot name or a friend's shared data, the browser
   would refuse to run it. The deploy refreshes the policy's script fingerprints automatically
   (`scripts/csp.js`); `node tests/check_page.js` warns if the repository copy is stale.
 - **Pinned, fingerprinted libraries**: Leaflet and the Supabase library load at exact versions with
@@ -117,7 +142,7 @@ What the site does to keep visitors and their data safe:
 - **Everything people type is escaped** before it's shown, and saved spots are cleaned when read
   (spots can arrive from another device, a backup file or a friend).
 - **Database rules** (`supabase/setup.sql`): row level security on every table; friends only ever get
-  the two lists a person chose to share, never notes; saved data is capped at about 2 MB per person;
+  the two lists a person chose to share, never notes; saved data is capped at about 1 MB per person;
   at most 20 unanswered friend requests at a time. Anonymous community reports can only be added through one
   checked function (daily limits, strict values) and only read back as totals of 5 or more.
 

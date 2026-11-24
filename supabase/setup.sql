@@ -210,10 +210,11 @@ grant execute on function public.oc_friend_data() to authenticated;
 -- Abuse limits. Safe to run again.
 -- =====================================================================================
 
--- Each person's saved data (spots, catch log, settings) is capped at about 2 MB, far above real
--- use, so nobody can use the free database as file storage. NOT VALID: existing rows aren't rechecked.
+-- Each person's saved data (spots, catch log, settings) is capped at about 1 MB: room for roughly 650
+-- logged trips with their readings, but too little to use the free database as file storage (photos
+-- never leave the phone). NOT VALID: existing rows aren't rechecked until they next change.
 alter table public.oc_user_data drop constraint if exists oc_user_data_size;
-alter table public.oc_user_data add constraint oc_user_data_size check (octet_length(data::text) <= 2000000) not valid;
+alter table public.oc_user_data add constraint oc_user_data_size check (octet_length(data::text) <= 1000000) not valid;
 
 -- At most 20 unanswered friend requests out at once, so nobody can spam every username.
 create or replace function public.oc_my_pending_requests()
@@ -285,8 +286,10 @@ as $$
 declare
   per_sender constant integer := 12;     -- reports a day from one network address
   per_day    constant integer := 1500;   -- reports a day from everyone together (the backstop)
+  per_unknown constant integer := 300;   -- reports a day, all together, whose sender address isn't known
   hdr  json := nullif(current_setting('request.headers', true), '')::json;
   ip   text;
+  net  text;
   s    text;
   b    text;
   cnt  integer;
@@ -312,12 +315,21 @@ begin
   delete from public.oc_report_salt where day < current_date;
   insert into public.oc_report_salt (day, salt) values (current_date, gen_random_uuid()::text) on conflict (day) do nothing;
   select rs.salt into s from public.oc_report_salt rs where rs.day = current_date;
-  ip := nullif(trim(coalesce(hdr ->> 'cf-connecting-ip', split_part(hdr ->> 'x-forwarded-for', ',', 1), '')), '');
-  b := case when ip is null then 'unknown' else encode(sha256(convert_to(s || '|' || ip, 'UTF8')), 'hex') end;
+  -- Only Cloudflare's own header: it is set at Supabase's edge and replaces anything the sender puts there.
+  -- x-forwarded-for is not used, because a sender can write whatever they like into it.
+  ip := nullif(trim(coalesce(hdr ->> 'cf-connecting-ip', '')), '');
+  -- A phone on IPv6 can use a fresh address for every request, but they all share their network's
+  -- first 64 bits, so an IPv6 sender is counted by that /64 network. IPv4 is counted by address.
+  begin
+    net := case when ip is null then null when family(ip::inet) = 6 then network(set_masklen(ip::inet, 64))::text else host(ip::inet) end;
+  exception when others then
+    net := null;                          -- not an address at all: count it with the unknowns
+  end;
+  b := case when net is null then 'unknown' else encode(sha256(convert_to(s || '|' || net, 'UTF8')), 'hex') end;
   insert into public.oc_report_limits as l (day, bucket, n) values (current_date, b, 1)
     on conflict (day, bucket) do update set n = l.n + 1
     returning l.n into cnt;
-  if cnt > (case when b = 'unknown' then per_day else per_sender end) then
+  if cnt > (case when b = 'unknown' then per_unknown else per_sender end) then
     raise exception 'Daily limit reached. Thanks for all the reports; try again tomorrow.';
   end if;
   if (select sum(l.n) from public.oc_report_limits l where l.day = current_date) > per_day then
@@ -335,7 +347,7 @@ grant execute on function public.oc_report_catch(text, text, text, integer, json
 -- Per fish, for all areas together ("all") and for each area: how many trips caught fish or not,
 -- the average grade of each reading on good and slow trips, and how often each score band caught fish.
 -- A group with fewer than 5 reports is left out entirely; an average from fewer than 3 is left blank.
-create or replace function public.oc_community_stats()
+create or replace function public.oc_community_stats_now()
 returns jsonb
 language sql
 stable
@@ -393,6 +405,46 @@ as $$
     'bands', coalesce((select jsonb_object_agg(band.k, jsonb_build_array(band.n, band.c)) from band where band.n >= 5), '{}'::jsonb),
     'species', coalesce((select jsonb_object_agg(q.sp, q.regions) from (
         select cellj.sp, jsonb_object_agg(cellj.region, cellj.j) as regions from cellj group by cellj.sp) q), '{}'::jsonb));
+$$;
+-- Internal: only oc_community_stats() below calls it, at most once an hour.
+revoke all on function public.oc_community_stats_now() from public, anon, authenticated;
+
+-- The public totals are worked out at most once an hour and kept here, so nobody can make the database
+-- redo the sums over every report on each request.
+create table if not exists public.oc_community_snapshot (
+  id   integer primary key check (id = 1),
+  made timestamptz not null,
+  data jsonb not null
+);
+alter table public.oc_community_snapshot enable row level security;
+revoke all on public.oc_community_snapshot from public, anon, authenticated;
+
+create or replace function public.oc_community_stats()
+returns jsonb
+language plpgsql
+volatile
+security definer
+set search_path = ''
+as $$
+declare
+  snap record;
+  fresh jsonb;
+begin
+  select cs.made, cs.data into snap from public.oc_community_snapshot cs where cs.id = 1;
+  if found and snap.made > now() - interval '1 hour' then
+    return snap.data;
+  end if;
+  -- One caller does the sums; anyone arriving at the same moment waits and then gets its result
+  perform pg_advisory_xact_lock(hashtext('oc_community_stats'));
+  select cs.made, cs.data into snap from public.oc_community_snapshot cs where cs.id = 1;
+  if found and snap.made > now() - interval '1 hour' then
+    return snap.data;
+  end if;
+  fresh := public.oc_community_stats_now() || jsonb_build_object('as_of', now());
+  insert into public.oc_community_snapshot (id, made, data) values (1, now(), fresh)
+    on conflict (id) do update set made = excluded.made, data = excluded.data;
+  return fresh;
+end;
 $$;
 revoke all on function public.oc_community_stats() from public, anon, authenticated;
 grant execute on function public.oc_community_stats() to anon, authenticated;
