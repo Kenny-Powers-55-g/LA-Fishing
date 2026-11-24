@@ -239,7 +239,7 @@ SPOTS = [
     {"id": "cameron", "name": "Cameron Jetties", "lat": 29.765, "lon": -93.345,
      "water": [("coops", "8768094")], "tide": "8768094"},
     {"id": "lakecharles", "name": "Lake Charles / Prien Lake", "lat": 30.2, "lon": -93.26,
-     "water": [("coops", "8767961")], "tide": "8767961"},
+     "water": [("coops", "8767816")], "tide": "8767816"},   # not 8767961 (Bulk Terminal): reads ~6 F warmer than every gauge nearby
     {"id": "sabine", "name": "Sabine Lake", "lat": 29.85, "lon": -93.87,
      "water": [("coops", "8770475")], "tide": "8769858"},
     # Freshwater: south and central
@@ -780,6 +780,14 @@ def clarity_label(turb, wind, sal, rain=None, chl=None):
         return "Clear", "estimated"
     return "Stained", "estimated"
 
+# Satellite water color (chlorophyll), tried in order. In late 2026 NOAA moved these datasets from
+# coastwatch.pfeg.noaa.gov to coastwatch.noaa.gov under new names; the old addresses redirect there.
+# PolarWatch serves the same datasets. coastwatch.pfeg.noaa.gov also answers GitHub's servers with
+# "403 Forbidden", so it is the last resort.
+CHL_SETS = (("https://coastwatch.noaa.gov/erddap", "noaacwN20VIIRSchlaDaily"),
+            ("https://polarwatch.noaa.gov/erddap", "noaacwN20VIIRSchlaDaily"),
+            ("https://coastwatch.pfeg.noaa.gov/erddap", "nesdisVHNnoaa20chlaDaily"))
+
 # Shared across spots in one run: one bad ERDDAP stretch should not burn the whole job
 _SAT_FAILS = 0
 _SAT_DISABLED = False
@@ -794,13 +802,12 @@ def sat_chlorophyll(lat, lon, cache):
     key = ("chl", round(lat * 4) / 4, round(lon * 4) / 4)
     if key in cache:
         return cache[key]
-    out = None
+    out, j = None, None
     # [last] = newest composite available — avoids 404s for missing calendar days
-    url = (
-        "https://coastwatch.pfeg.noaa.gov/erddap/griddap/nesdisVHNnoaa20chlaDaily.json"
-        f"?chlor_a[(last)][(0.0)][({key[1]})][({key[2]})]"
-    )
-    j = get_json(url, tries=1)
+    for base, ds in CHL_SETS:
+        j = get_json(f"{base}/griddap/{ds}.json?chlor_a[(last)][(0.0)][({key[1]})][({key[2]})]", tries=1)
+        if j is not None:
+            break
     try:
         rows = (j or {}).get("table", {}).get("rows") or []
         for row in rows:
@@ -860,9 +867,12 @@ def sat_sst(lat, lon, cache):
 # ---------------------------------------------------------------- water visibility
 # Satellite water clarity: Kd490 = how fast blue-green light fades with depth (per metre).
 # Tried in order. The gap-filled products fill cloudy days but run about a week or more behind.
-KD_SETS = ["nesdisVHNkd490Daily",                      # S-NPP VIIRS near real-time, 4 km
-           "noaacwNPPN20S3AkdSCIDINEOF2kmDaily",       # VIIRS + OLCI gap-filled, 2 km
-           "nesdisNPPN20S3AkdSCIDINEOFDaily"]          # VIIRS + OLCI gap-filled, 9 km
+# (server, dataset). The new NOAA CoastWatch server and PolarWatch first (see CHL_SETS for why).
+KD_SETS = [("https://coastwatch.noaa.gov/erddap", "noaacwNPPVIIRSkd490Daily"),           # VIIRS near real-time
+           ("https://polarwatch.noaa.gov/erddap", "noaacwNPPN20VIIRSkd490Daily"),        # VIIRS near real-time
+           ("https://polarwatch.noaa.gov/erddap", "noaacwNPPN20S3AkdSCIDINEOF2kmDaily"), # VIIRS + OLCI gap-filled, 2 km
+           ("https://coastwatch.pfeg.noaa.gov/erddap", "nesdisVHNkd490Daily"),           # old addresses, last resort
+           ("https://coastwatch.pfeg.noaa.gov/erddap", "noaacwNPPN20S3AkdSCIDINEOF2kmDaily")]
 _KD_FAILS = {}            # dataset -> failed requests this run; a dataset that keeps failing is skipped
 _KD_LOCK = threading.Lock()
 
@@ -874,10 +884,10 @@ def sat_kd490(lat, lon, cache, now):
     if key in cache:
         return cache[key]
     best, d = None, 0.1
-    for ds in KD_SETS:
-        if _KD_FAILS.get(ds, 0) >= 3:
+    for base, ds in KD_SETS:
+        if _KD_FAILS.get((base, ds), 0) >= 3:
             continue
-        url = (f"https://coastwatch.pfeg.noaa.gov/erddap/griddap/{ds}.json"
+        url = (f"{base}/griddap/{ds}.json"
                f"?kd_490[(last)][(0.0)][({lat+d:.3f}):({lat-d:.3f})][({lon-d:.3f}):({lon+d:.3f})]")
         j = get_json(url, tries=1)
         try:
@@ -886,9 +896,9 @@ def sat_kd490(lat, lon, cache, now):
             t = parse_iso(rows[0][0]) if rows else None
         except (TypeError, KeyError, IndexError, ValueError):
             with _KD_LOCK:
-                _KD_FAILS[ds] = _KD_FAILS.get(ds, 0) + 1
-                if _KD_FAILS[ds] == 3:
-                    log.warning("satellite clarity %s skipped for this run after repeated failures", ds)
+                _KD_FAILS[(base, ds)] = _KD_FAILS.get((base, ds), 0) + 1
+                if _KD_FAILS[(base, ds)] == 3:
+                    log.warning("satellite clarity %s on %s skipped for this run after repeated failures", ds, urlparse(base).netloc)
             continue
         if not vals or t is None:
             continue
@@ -996,7 +1006,15 @@ def marine(lat, lon, now):
                   "wave": at("wave", nh), "cur": at("cur", nh)}
     return out
 
-def near_buoys(spot, cache, radius_mi=75, limit=6):
+# How far away a gauge or buoy can be and still count as "at" a spot. Salinity changes fast across
+# the marsh, so a gauge 30 miles off says little about a spot; offshore, a buoy past 30 miles is often
+# in different weather (the Galveston buoy is no guide to Cameron), and the marine forecast at the spot
+# itself is the better fallback. A missing reading lowers the score's data rating instead of misleading it.
+SAL_RADIUS_MI = 20
+TEMP_RADIUS_MI = 30
+BUOY_RADIUS_MI = 30
+
+def near_buoys(spot, cache, radius_mi=BUOY_RADIUS_MI, limit=6):
     """Nearest active NDBC stations with weather sensors (buoys and platforms)."""
     with _BUOY_LOCK:                          # one download of the station list per run
         if "buoys" not in cache:
@@ -1282,6 +1300,8 @@ def collect(spot, now, cache):
     # one many miles away, which would report a salty lake.
     if not spot.get("marine") and not spot.get("fresh") and "cond_ms" not in got:  # open Gulf has no gauges
         for sid, dist in near_sites(spot, cache, "00095"):
+            if dist > SAL_RADIUS_MI:              # the station list is cached; it can hold farther ones
+                continue
             if ("usgs", sid) not in cache:
                 cache[("usgs", sid)] = usgs_source(sid)
             take("cond_ms", cache[("usgs", sid)], f"usgs:{sid}", {"distance_mi": dist})
@@ -1290,6 +1310,8 @@ def collect(spot, now, cache):
 
     if not spot.get("marine") and "temp_f" not in got:
         for sid, dist in near_sites(spot, cache, "00010"):
+            if dist > TEMP_RADIUS_MI:
+                continue
             if ("usgs", sid) not in cache:
                 cache[("usgs", sid)] = usgs_source(sid)
             for m in ("temp_f", "temp_d24"):
@@ -2735,6 +2757,14 @@ def health(out_md="health.md"):
     check("USGS Water Data API (new)", usgs)
     check("NWS river gauges", river)
     check("Satellite water clarity (Kd490)", kd490)
+    def mur():
+        ss = sat_sst(28.5, -90.6, {})
+        return ss, f"{ss['sst_f']:.1f} F, break {ss['break']:.2f} F/mi, {ss['time'][:10]}" if ss else "no server answered (pfeg refuses GitHub with 403)"
+    def chl():
+        c = sat_chlorophyll(29.27, -89.95, {})
+        return c, f"{c[0]} mg/m3, {str(c[1])[:10]}" if c else "no server answered"
+    check("Satellite sea temperature and breaks (MUR)", mur)
+    check("Satellite water color (chlorophyll)", chl)
     check("NDBC buoy 42001", buoy)
     check("Sea surface height (Loop Current)", ssh)
     def rigs():
@@ -2775,8 +2805,24 @@ def health(out_md="health.md"):
     print("\n".join(lines))
     return len(fails)
 
-def validate(path=OUT, min_spots=15, min_completeness=0.45, max_age_h=3):
-    """Sanity-check a freshly written latest.json before it is deployed. Returns problems."""
+DEAD_CHECK = {"chl": "satellite water color", "kd490": "satellite water clarity", "sbreak": "satellite temperature breaks",
+              "ssat": "satellite sea temperature", "vis": "water visibility", "sal": "salinity",
+              "temp": "water temperature", "wind": "wind", "tide": "tide"}
+
+def dead_sources(spots, min_spots=3):
+    """Readings that are missing at every spot that should have them (a source that is down or blocked)."""
+    dead = []
+    for k, name in DEAD_CHECK.items():
+        # chl and kd490 are fetched for every spot but always listed as optional (not_applicable)
+        want = spots if k in ("chl", "kd490") else [s for s in spots if k not in ((s.get("quality") or {}).get("not_applicable") or [])]
+        if len(want) >= min_spots and all((s.get("conditions") or {}).get(k) is None for s in want):
+            dead.append(f"{name} ({k}) is missing at all {len(want)} spots that use it")
+    return dead
+
+def validate(path=OUT, min_spots=15, min_completeness=0.45, max_age_h=3, strict=False):
+    """Sanity-check a freshly written latest.json before it is deployed. Returns problems.
+    A reading missing at every spot is only a warning when deploying (the scores still work without
+    it), but a problem with strict=True, which the daily health check uses so it opens an issue."""
     problems = []
     try:
         with open(path) as f:
@@ -2790,6 +2836,11 @@ def validate(path=OUT, min_spots=15, min_completeness=0.45, max_age_h=3):
         avg = sum((s.get("quality") or {}).get("completeness", 0) for s in spots) / len(spots)
         if avg < min_completeness:
             problems.append(f"average completeness {avg:.0%} is below {min_completeness:.0%}")
+    for dead in dead_sources(spots):
+        if strict:
+            problems.append(dead)
+        else:
+            print("WARNING:", dead)
     try:
         age = (datetime.now(UTC) - parse_iso(d["generated"])).total_seconds() / 3600
         if age > max_age_h:
@@ -2808,7 +2859,7 @@ if __name__ == "__main__":
     elif cmd == "health":
         sys.exit(1 if health() else 0)
     elif cmd in ("validate", "validate-file"):
-        probs = validate(sys.argv[2]) if cmd == "validate-file" and len(sys.argv) > 2 else validate()
+        probs = validate(sys.argv[2], strict=True) if cmd == "validate-file" and len(sys.argv) > 2 else validate()
         for pr in probs:
             print("PROBLEM:", pr)
         print("latest.json looks good" if not probs else "latest.json failed validation")

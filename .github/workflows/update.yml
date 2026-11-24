@@ -46,6 +46,7 @@ jobs:
           node tests/check_page.js
           node tests/check_site.js
           node tests/check_community.js
+          node tests/check_scoring.js
 
       - name: Get history and the weekly map layers from the live site
         continue-on-error: true
