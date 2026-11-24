@@ -65,7 +65,7 @@ def save_station_cache(cache):
         if isinstance(k, tuple) and k and k[0] in ("sites", "buoys", "depth", "mzone", "cstn", "ngrid"):
             # JSON keys must be strings
             out["|".join(str(x) for x in k)] = v
-        elif k in ("buoys", "deadbuoys", "cstations"):
+        elif k in ("buoys", "deadbuoys", "cstations", "launches_tried"):
             out[k] = v
     try:
         with open(STATION_CACHE + ".tmp", "w") as f:
@@ -76,7 +76,7 @@ def save_station_cache(cache):
 
 def hydrate_station_cache(cache, disk):
     for k, v in (disk or {}).items():
-        if k in ("buoys", "deadbuoys", "cstations"):
+        if k in ("buoys", "deadbuoys", "cstations", "launches_tried"):
             cache.setdefault(k, v)
             continue
         if "|" in k:
@@ -1938,7 +1938,7 @@ def point_of(geom):
     except (TypeError, IndexError, ZeroDivisionError):
         return None
 
-def static_layers(now, rigs_path=RIGS, reefs_path=REEFS, launches_path=LAUNCHES):
+def static_layers(now, rigs_path=RIGS, reefs_path=REEFS, launches_path=LAUNCHES, cache=None):
     """Refresh rigs.json and reefs.json about once a week (the workflow downloads the
     current copies from the live site first)."""
     def stale(path):
@@ -1957,14 +1957,16 @@ def static_layers(now, rigs_path=RIGS, reefs_path=REEFS, launches_path=LAUNCHES)
     except Exception:
         log.exception("reefs.json update failed")
     try:
-        _launches(now, launches_path, stale)
+        _launches(now, launches_path, stale, cache if cache is not None else {})
     except Exception:
         log.exception("launches.json update failed")
 
 # ---------------------------------------------------------------- boat launches (OpenStreetMap)
 # Boat ramps mapped in OpenStreetMap as leisure=slipway (© OpenStreetMap contributors, ODbL). No state
 # agency publishes a current launch list as open data. Refreshed weekly; private ramps are left out.
-OVERPASS_URLS = ("https://overpass-api.de/api/interpreter", "https://overpass.kumi.systems/api/interpreter")
+OVERPASS_URLS = ("https://overpass-api.de/api/interpreter", "https://overpass.private.coffee/api/interpreter",
+                 "https://overpass.kumi.systems/api/interpreter")
+LAUNCH_RETRY_H = 6          # after a failed download, wait this long before trying again (the servers are often busy)
 LAUNCH_BOX = (28.8, -94.1, 33.1, -88.7)          # south, west, north, east: Louisiana and its coast
 
 def parse_launches(j):
@@ -1986,15 +1988,22 @@ def parse_launches(j):
         out.append([round(lat, 5), round(lon, 5), name, note])
     return out
 
-def _launches(now, path, stale):
+def _launches(now, path, stale, cache):
     if not stale(path):
         return
+    tried = cache.get("launches_tried")                # kept between runs in stations_cache.json
+    try:
+        if tried and (now - parse_iso(tried)).total_seconds() < LAUNCH_RETRY_H * 3600:
+            return
+    except (TypeError, ValueError):
+        pass
+    cache["launches_tried"] = now.isoformat()
     s, w, n, e = LAUNCH_BOX
-    q = f'[out:json][timeout:90];(nwr["leisure"="slipway"]({s},{w},{n},{e}););out center tags;'
+    q = f'[out:json][timeout:50];(nwr["leisure"="slipway"]({s},{w},{n},{e}););out center tags;'
     for url in OVERPASS_URLS:
         try:
             req = Request(url, data=urlencode({"data": q}).encode(), headers={"User-Agent": f"{APP} ({CONTACT})"})
-            with urlopen(req, timeout=120) as r:
+            with urlopen(req, timeout=60) as r:
                 ramps = parse_launches(json.load(r))
         except Exception as ex:                       # noqa: BLE001 - try the next mirror
             log.warning("boat launches from %s failed: %s", urlparse(url).netloc, ex)
@@ -2005,6 +2014,7 @@ def _launches(now, path, stale):
         with open(path, "w") as fh:
             json.dump({"generated": now.isoformat(), "source": "OpenStreetMap contributors (ODbL)", "launches": ramps}, fh, separators=(",", ":"))
         log.info("launches.json: %d boat launches from %s", len(ramps), urlparse(url).netloc)
+        cache.pop("launches_tried", None)
         return
 
 def nearest_launches(results, path=LAUNCHES, max_mi=15):
@@ -2634,7 +2644,7 @@ def run_once():
     except Exception:
         log.exception("tropical storms failed")
         cache["tropical"] = previous_tropical(now)
-    for name, fn in (("ocean lines", lambda: ocean_features(now)), ("rigs and reefs", lambda: static_layers(now))):
+    for name, fn in (("ocean lines", lambda: ocean_features(now)), ("rigs and reefs", lambda: static_layers(now, cache=cache))):
         try:
             res = fn()
             if name == "ocean lines" and res is not None and cache.get("sargassum"):

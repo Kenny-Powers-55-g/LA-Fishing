@@ -473,6 +473,34 @@ class BoatLaunches(unittest.TestCase):
         finally:
             shutil.rmtree(d)
 
+    def test_failed_download_waits_before_retrying(self):
+        d = tempfile.mkdtemp()
+        calls = []
+        real = ingest.urlopen
+        def boom(*a, **k):
+            calls.append(1); raise OSError("busy")
+        try:
+            ingest.urlopen = boom
+            cache, path, now = {}, os.path.join(d, "launches.json"), ingest.datetime.now(ingest.UTC)
+            ingest._launches(now, path, lambda p: True, cache)
+            first = len(calls)
+            self.assertEqual(first, len(ingest.OVERPASS_URLS))       # every mirror tried once
+            ingest._launches(now + ingest.timedelta(hours=1), path, lambda p: True, cache)
+            self.assertEqual(len(calls), first)                       # an hour later: no new attempt
+            ingest._launches(now + ingest.timedelta(hours=7), path, lambda p: True, cache)
+            self.assertEqual(len(calls), 2 * first)                   # after six hours: tries again
+            self.assertFalse(os.path.exists(path))                    # nothing written from failures
+            saved = os.path.join(d, "c.json")
+            real_path, ingest.STATION_CACHE = ingest.STATION_CACHE, saved
+            try:
+                ingest.save_station_cache(cache)
+                self.assertIn("launches_tried", ingest.load_station_cache())   # remembered between runs
+            finally:
+                ingest.STATION_CACHE = real_path
+        finally:
+            ingest.urlopen = real
+            shutil.rmtree(d)
+
     def test_missing_file_is_fine(self):
         spots = [{"id": "x", "lat": 29.0, "lon": -90.0, "zone": "inshore"}]
         ingest.nearest_launches(spots, "/nonexistent/launches.json")
