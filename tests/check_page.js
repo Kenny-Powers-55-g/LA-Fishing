@@ -33,6 +33,17 @@ if (!/fetch\(dataPath\(f\)/.test(html)) { bad++; console.error("Map-layer data i
     if (!connect.split(/\s+/).includes(origin)) { bad++; console.error(`The security policy's connect-src doesn't allow config.js dataUrl (${origin})`); }
   }
 }
+// The policy names exact script files and this site's own Supabase project, never whole sites or *.supabase.co
+{
+  const csp = (/<meta http-equiv="Content-Security-Policy" content="([^"]*)"/.exec(html) || [])[1] || "";
+  const scriptSrc = ((/script-src([^;]*)/.exec(csp) || [])[1] || "").trim().split(/\s+/), connect = ((/connect-src([^;]*)/.exec(csp) || [])[1] || "").trim().split(/\s+/);
+  for (const src of scriptSrc) if (/^https:\/\/[^/]+\/?$/.test(src)) { bad++; console.error(`script-src allows a whole site (${src}); list the exact script file instead`); }
+  const used = [...html.matchAll(/<script src="(https:[^"?]*)/g), ...html.matchAll(/loadScript\("(https:[^"?]*)/g)].map(m => m[1]);
+  for (const u of used) if (!scriptSrc.some(src => src === u || (src.endsWith("/") && u.startsWith(src)))) { bad++; console.error(`script-src doesn't list ${u}, which the page loads`); }
+  if (connect.some(c => c.includes("*.supabase.co"))) { bad++; console.error("connect-src allows every Supabase project; list this site's own project"); }
+  const cfg = fs.readFileSync(path.join(__dirname, "..", "config.js"), "utf8"), su = (/supabaseUrl:\s*"([^"]*)"/.exec(cfg) || [])[1];
+  if (su) { const o = new URL(su).origin; for (const want of [o, o.replace(/^https:/, "wss:")]) if (!connect.includes(want)) { bad++; console.error(`connect-src doesn't allow ${want} (config.js supabaseUrl)`); } }
+}
 for (const m of html.matchAll(/<script src="https:[^"]*"[^>]*>/g))
   if (!/integrity="sha(256|384|512)-/.test(m[0])) { bad++; console.error(`External script without an integrity hash: ${m[0]}`); }
 // First-time-user basics: the plain tab name, the three layer groups, and a plain explanation for every extra layer
