@@ -13,7 +13,7 @@ window.OC_CONFIG = {
   usernameEmailDomain: "users.oceancast.invalid",
   // Bot check on sign-up and sign-in (Cloudflare Turnstile, free). Leave empty until you've done the
   // steps in README.md under "Bot check": paste the Turnstile SITE key here (never the secret key).
-  turnstileSiteKey: "",
+  turnstileSiteKey: "0x4AAAAAAGRQAsS_dYzk1h1i",
 
   // Where the iPhone app loads the hourly data files (latest.json, forecast.json and the map layers).
   // The website ignores this and always loads its own copy, exactly as before. Must end with "/".
