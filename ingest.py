@@ -1969,6 +1969,11 @@ OVERPASS_URLS = ("https://overpass-api.de/api/interpreter", "https://overpass.pr
 LAUNCH_RETRY_H = 6          # after a failed download, wait this long before trying again (the servers are often busy)
 LAUNCH_BOX = (28.8, -94.1, 33.1, -88.7)          # south, west, north, east: Louisiana and its coast
 
+# Ramps that are mapped but aren't for the public, whatever their access tag says
+NOT_PUBLIC = re.compile(r"\b(coast guard|uscg|navy|naval|military|air force|army|national guard|police|sheriff|fire department)\b", re.I)
+UNNAMED = "Boat launch"
+NAMED_EXTRA_MI = 2          # a named ramp up to this much farther is shown instead of an unnamed one
+
 def parse_launches(j):
     """Overpass JSON -> [[lat, lon, name, note], ...] for ramps the public can use."""
     out, seen = [], set()
@@ -1983,7 +1988,9 @@ def parse_launches(j):
         if key in seen:
             continue
         seen.add(key)
-        name = str(t.get("name") or t.get("operator") or "Boat launch")[:60]
+        name = str(t.get("name") or t.get("operator") or UNNAMED)[:60]
+        if NOT_PUBLIC.search(name) or NOT_PUBLIC.search(str(t.get("operator") or "")):
+            continue
         note = "fee" if t.get("fee") == "yes" else "free" if t.get("fee") == "no" else ""
         out.append([round(lat, 5), round(lon, 5), name, note])
     return out
@@ -2024,10 +2031,15 @@ def nearest_launches(results, path=LAUNCHES, max_mi=15):
             ramps = json.load(f).get("launches") or []
     except (OSError, ValueError):
         return
+    ramps = [x for x in ramps if not NOT_PUBLIC.search(str(x[2]))]      # also cleans an older weekly file
     for r in results:
         if r.get("zone") == "offshore" or r.get("lat") is None:
             continue
-        best = min(((miles(r["lat"], r["lon"], la, lo), la, lo, nm, nt) for la, lo, nm, nt in ramps), default=None)
+        near = sorted((miles(r["lat"], r["lon"], la, lo), la, lo, nm, nt) for la, lo, nm, nt in ramps)
+        best = near[0] if near else None
+        named = next((x for x in near if x[3] != UNNAMED), None)
+        if best and named and best[3] == UNNAMED and named[0] <= best[0] + NAMED_EXTRA_MI:
+            best = named                                              # "Bayou Rigaud launch" beats "Boat launch" a mile closer
         if best and best[0] <= max_mi:
             r["launch"] = {"name": best[3], "lat": best[1], "lon": best[2], "mi": round(best[0], 1), "note": best[4]}
 

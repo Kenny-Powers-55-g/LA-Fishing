@@ -473,6 +473,25 @@ class BoatLaunches(unittest.TestCase):
         finally:
             shutil.rmtree(d)
 
+    def test_coast_guard_and_military_ramps_are_left_out(self):
+        j = {"elements": [{"type": "node", "lat": 29.26, "lon": -89.96, "tags": {"leisure": "slipway", "name": "U.S. Coast Guard - Station Grand Isle"}},
+                          {"type": "node", "lat": 29.27, "lon": -89.97, "tags": {"leisure": "slipway", "operator": "US Navy"}},
+                          {"type": "node", "lat": 29.28, "lon": -89.98, "tags": {"leisure": "slipway", "name": "Venice Marina Boat Launch"}}]}
+        self.assertEqual([r[2] for r in ingest.parse_launches(j)], ["Venice Marina Boat Launch"])
+
+    def test_named_ramp_preferred_when_nearly_as_close(self):
+        d = tempfile.mkdtemp()
+        try:
+            path = os.path.join(d, "launches.json")
+            with open(path, "w") as f:   # an older weekly file can still hold a Coast Guard ramp
+                json.dump({"launches": [[29.250, -90.210, "Coast Guard", ""], [29.255, -90.210, "Boat launch", ""],
+                                        [29.270, -90.210, "Bayou Lafourche public launch", "free"]]}, f)
+            spots = [{"id": "leeville", "lat": 29.25, "lon": -90.21, "zone": "inshore"}]
+            ingest.nearest_launches(spots, path)
+            self.assertEqual(spots[0]["launch"]["name"], "Bayou Lafourche public launch")
+        finally:
+            shutil.rmtree(d)
+
     def test_failed_download_waits_before_retrying(self):
         d = tempfile.mkdtemp()
         calls = []
