@@ -160,6 +160,9 @@ ${P.tip ? `<h2>Tips</h2><p>${esc(P.tip)}</p>` : ""}
 <h2>Fish</h2><p>${fishIds.map(k => `<a href="../fish/${k}.html">${esc(api.SP[k].name)}</a>`).join(" · ")}</p>
 ${Object.keys(byArea).sort().map(a => `<h2>${esc(a)}</h2><p>${byArea[a].sort((x, y) => x.name.localeCompare(y.name)).map(s => `<a href="${s.id}.html">${esc(s.name)}</a>`).join(" · ")}</p>`).join("\n")}`;
   write("spots/index.html", page(T, "spots/index.html", "Louisiana fishing spots and fish | OceanCast", "Every Louisiana fishing spot and fish OceanCast scores, with today's best spots, conditions and limits, updated every hour.", dir));
+  // fish/index.html: the same directory (its links are written for the spots/ folder, so fix them up)
+  fs.writeFileSync(path.join(DIR, "fish/index.html"), page(T, "spots/index.html", "Louisiana fishing spots and fish | OceanCast", "Every Louisiana fishing spot and fish OceanCast scores, with today's best spots, conditions and limits, updated every hour.",
+    dir.replace(/href="([a-z0-9_-]+\.html)"/gi, 'href="../spots/$1"')));
 
   // ---- Sitemap: the site's own pages plus these
   const day = new Date(now).toISOString().slice(0, 10);

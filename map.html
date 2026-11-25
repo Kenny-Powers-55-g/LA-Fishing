@@ -5,7 +5,7 @@
      Outside scripts are allowed by their exact file (Leaflet and the Supabase library), not whole sites, and
      only this site's own Supabase project may be contacted. Changing supabaseUrl in config.js? Change both
      of its addresses in connect-src too (node tests/check_page.js checks they match). -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-ap5MSQrXWR0reWT9leoroLT0xlM5zuuNBvia3r/cTEw=' 'sha256-QaPZXNRMfODGzbi0ukYwVXOZDtF9cybeWr/teRmEGBk=' https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.118.0/dist/umd/supabase.js https://challenges.cloudflare.com/turnstile/; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https://*.noaa.gov https://gibs.earthdata.nasa.gov https://tile.openstreetmap.org https://cdnjs.cloudflare.com; connect-src 'self' https://kenny-powers-55-g.github.io https://*.noaa.gov https://gibs.earthdata.nasa.gov https://tile.openstreetmap.org https://api.open-meteo.com https://qpbqepzdxkadmulkmfbj.supabase.co wss://qpbqepzdxkadmulkmfbj.supabase.co https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://fonts.googleapis.com https://fonts.gstatic.com; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-src https://challenges.cloudflare.com; upgrade-insecure-requests">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-ap5MSQrXWR0reWT9leoroLT0xlM5zuuNBvia3r/cTEw=' 'sha256-lCdzazFDmS9eDlrHAeS4WoUKP6KLGQ3f6qERVlBpk9I=' https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.118.0/dist/umd/supabase.js https://challenges.cloudflare.com/turnstile/; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https://*.noaa.gov https://gibs.earthdata.nasa.gov https://tile.openstreetmap.org https://cdnjs.cloudflare.com; connect-src 'self' https://kenny-powers-55-g.github.io https://*.noaa.gov https://gibs.earthdata.nasa.gov https://tile.openstreetmap.org https://api.open-meteo.com https://qpbqepzdxkadmulkmfbj.supabase.co wss://qpbqepzdxkadmulkmfbj.supabase.co https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://fonts.googleapis.com https://fonts.gstatic.com; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-src https://challenges.cloudflare.com; upgrade-insecure-requests">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -787,7 +787,11 @@ body.loading main>*:not(#skeleton):not(#welcome){display:none!important}
 html.boat[data-theme="light"]{--mu:#3a3a3c;--bd:#8e8e93;--hair:#8e8e93;--tx:#000}
 @media(prefers-color-scheme:dark){html.boat:not([data-theme="light"]){--mu:#d1d1d6;--bd:#8e8e93;--hair:#8e8e93;--tx:#fff}}
 html.boat[data-theme="dark"]{--mu:#d1d1d6;--bd:#8e8e93;--hair:#8e8e93;--tx:#fff}
-html.boat main>*,html.boat #appear,html.boat .tropbar,html.boat .offline-banner{zoom:1.18}
+html.boat main>*,html.boat .tropbar,html.boat .offline-banner{zoom:1.18}
+/* Settings isn't zoomed (zoom also scales its position, pushing it off the left edge): bigger text instead */
+html.boat #appear{font-size:118%}html.boat #appear button,html.boat #appear .ap-boat{min-height:52px}
+/* The spot page sits inside zoomed content, so its distance from the top is scaled too: undo that */
+@media(max-width:899px){html.boat body.spotopen #spotsheet{top:calc((var(--appbar) + env(safe-area-inset-top,0px)) / 1.18)}}
 html.boat .rank,html.boat .drv,html.boat .dsec>summary{min-height:56px}
 html.boat .rank b,html.boat .drv-l{font-weight:700}
 html.boat .note{color:var(--mu)}
@@ -1025,8 +1029,9 @@ select option,select optgroup{background-color:var(--card);color:var(--tx)}
 .reglist{list-style:none;margin:8px 0 0;padding:0;display:grid;gap:6px}
 .reglist li{display:flex;justify-content:space-between;gap:12px;padding:8px 12px;border-radius:10px;background:var(--s2)}
 .reglist li>span{color:var(--mu)}.reglist b.closed{color:var(--r)}
-.keepchk{margin:-4px 0 10px;min-height:0}.keepchk.ok{color:var(--g)}.keepchk.no{color:var(--r);font-weight:600}
-.ww-b.l2{background:#2E7D32}.ww-b.l1{background:#F59E0B;color:#1c1200}.ww-b.l0{background:#C8423B}
+.keepchk{margin:-4px 0 10px;min-height:0}
+#logForm,#panel-log h3{scroll-margin-top:calc(var(--appbar,56px) + 16px)}.keepchk.ok{color:var(--g)}.keepchk.no{color:var(--r);font-weight:600}
+.ww-b.l2{background:#2E7D32}.ww-b.l1{background:#F59E0B;color:#1c1200}.ww-b.l0{background:#C8423B}.ww-b.lw{background:var(--fill);color:var(--mu);font-weight:600}
 .gorow{margin:4px 0 6px;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
 .nowrap{white-space:nowrap}
 .gochip{border:0;cursor:pointer;font:700 13px var(--sys,system-ui);min-height:30px;padding:5px 12px;position:relative}
@@ -1184,12 +1189,13 @@ select:not(#basesel){appearance:none;-webkit-appearance:none;padding-right:34px!
  </div>
 </header>
 <div id="tropbar" class="tropbar" role="alert" hidden></div>
-<div id="appear" role="menu" aria-label="Settings" hidden>
+<div id="appear" role="dialog" aria-label="Settings" hidden>
  <div class="ap-h">Settings</div>
  <div class="seg" role="radiogroup" aria-label="Theme"><button type="button" role="radio" data-theme-v="auto">Automatic</button><button type="button" role="radio" data-theme-v="light">Light</button><button type="button" role="radio" data-theme-v="dark">Dark</button></div>
  <button type="button" class="t ap-setup" id="rerunsetup">Setup: fish and launch area</button>
  <label class="ap-boat"><span><b>Boat mode</b><span class="note">Bigger text and buttons, stronger contrast for sun glare and wet hands</span></span><input type="checkbox" id="boatchk" role="switch"></label>
 </div>
+<div id="linknote" class="offline-banner" role="status" hidden>That link's spot or fish isn't in OceanCast any more, so here's today's best instead.</div>
 <div id="offline" class="offline-banner" hidden>You're offline — showing the last saved readings.</div>
 <section class="card" id="mapcard" style="grid-column:1/-1;padding:0;overflow:hidden"><div id="map" style="height:250px"></div>
   <div class="fabs"><button type="button" class="fab" id="layersbtn" aria-expanded="false" aria-controls="mapbar" title="Map layers">
@@ -2601,7 +2607,9 @@ function mapInit(){
    cont.addEventListener("pointerdown",e=>{down=e.target.closest(skip)?0:Date.now()},{passive:true});
    const go=()=>{if(down&&Date.now()-down<4000&&isPhoneLayout()&&!document.body.classList.contains("mapfull"))setMapFull(true)};
    MAP.on("dragstart",go);MAP.on("zoomstart",go);MAP.on("click",go)}
-  const lp=open=>{$("mapcard").classList.toggle("layers-open",open);$("layersbtn").setAttribute("aria-expanded",open)};
+  const lp=(open,fromBack)=>{const was=$("mapcard").classList.contains("layers-open");if(was===open)return;
+   $("mapcard").classList.toggle("layers-open",open);$("layersbtn").setAttribute("aria-expanded",open);
+   if(open)ovlPush("layers",()=>lp(false,true));else if(!fromBack)ovlPop("layers")};
   $("layersbtn").onclick=()=>lp(!$("mapcard").classList.contains("layers-open"));
   $("mapcard").addEventListener("click",e=>{if(e.target===$("mapcard")&&$("mapcard").classList.contains("layers-open"))lp(false)});   // the dimmed area around the sheet on phones
   $("layersclose").onclick=()=>lp(false);
@@ -2765,12 +2773,14 @@ function waterAccess(spot){
  return{lv:1,label:"Water high",txt:`${ft} ft above the tide table${src}. Grass edges are flooded. ${front}`.trim()}}
 function boatNow(spot,c){
  const B=BOATS[boat()]||BOATS.mid,f=FC&&FC.spots&&FC.spots[spot.id];let w=c.wind,g=null,h=c.wave,hasW=c.wave!=null;
+ if(!f&&FC_WAIT)return{wait:true};          // gusts come with the forecast: don't say "Go" before they're known
  if(f&&f.wind){const S=seaSeries(f),t0=Date.parse(f.start);let i=0;while(i<S.n-1&&t0+i*36e5<Date.now()-18e5)i++;
   hasW=S.wave.some(v=>v!=null);if(S.wind[i]!=null){w=S.wind[i];g=S.gust[i];h=S.wave[i]}}
  let lv=seaLevel(B,w,g,h,hasW),why=w==null?"":`wind ${wspd(w)} ${windUnit()}${g!=null&&g>=w+5?`, gusts ${wspd(g)}`:""}${hasW&&h!=null?`, waves ${ftTxt(h)}`:""}`;
  const al=c.alerts||"",tr=DATA&&DATA.tropical;
  if(/Gale|Storm|Hurricane|Tropical|Hazardous Seas/i.test(al)||(spot.zone==="offshore"&&tr&&tr.rank>=4)){lv=0;why="marine warning or storm"}
  else if(/Small Craft/i.test(al)&&lv!=null){lv=Math.min(lv,1);why="small craft advisory"+(why?", "+why:"")}
+ if(!f&&lv!=null&&why)why+=", gusts unknown";
  return lv==null?null:{lv,why,boat:BOAT_SHORT[boat()]||"boat"}}
 const ftTxt=v=>v==null?"":v<1?"under 1 ft":Math.round(v)+" ft";
 function ftRange(a){const v=a.filter(x=>x!=null);if(!v.length)return"";const lo=Math.round(Math.min(...v)),hi=Math.round(Math.max(...v));
@@ -2868,7 +2878,18 @@ function sec(k,title,body,open){if(!body)return"";const st=secState()[k];
 let RANK_ALL=false,NA_OPEN=false;
 // ---- Full-screen map (phones and tablets) ----
 const isPhoneLayout=()=>innerWidth<900;
-let MAPFULL_HIST=false;
+// ---- Back gesture: one history entry per open layer (full map, spot page, layers sheet, settings menu), so
+// "back" closes the top one instead of leaving the app. Closing with a button steps back past its entry.
+// The fish and spot shown are put back in the address afterwards: the older entry still has the ones from
+// when the layer opened, and its hashchange would otherwise switch back to them.
+const OVL=[];let OVL_SKIP=0;
+const ovlTop=()=>OVL.length?OVL[OVL.length-1].k:null;
+function ovlPush(k,close){if(OVL.some(o=>o.k===k))return;OVL.push({k,close});try{history.pushState({ovl:k},"")}catch(e){}}
+function ovlPop(k){const i=OVL.findIndex(o=>o.k===k);if(i<0)return;OVL.splice(i,1);OVL_SKIP++;try{history.back()}catch(e){OVL_SKIP--}}
+addEventListener("popstate",()=>{
+ if(OVL_SKIP>0)OVL_SKIP--;
+ else{const top=OVL.pop();if(top)top.close()}
+ writeHash()});
 function setMapFull(on,fromBack){
  const b=document.body;if(on===b.classList.contains("mapfull"))return;
  if(on&&b.classList.contains("nomap"))setMapHidden(false);
@@ -2877,12 +2898,10 @@ function setMapFull(on,fromBack){
   ms.innerHTML=on?'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>'
    :'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>'}
  document.querySelectorAll('#bnav [data-nav="map"]').forEach(x=>x.classList.toggle("on",on));
- if(on){scrollTo(0,0);try{history.pushState({mapfull:1},"");MAPFULL_HIST=true}catch(e){}}
- else{const pp=$("pinprev");if(pp)pp.hidden=true;
-  if(MAPFULL_HIST&&!fromBack){MAPFULL_HIST=false;try{history.back()}catch(e){}}else MAPFULL_HIST=false}
+ if(on){scrollTo(0,0);ovlPush("map",()=>setMapFull(false,true))}
+ else{const pp=$("pinprev");if(pp)pp.hidden=true;if(!fromBack)ovlPop("map")}
  if(MAP)setTimeout(()=>MAP.invalidateSize(),330);
 }
-addEventListener("popstate",()=>{if(document.body.classList.contains("mapfull")){MAPFULL_HIST=false;setMapFull(false,true)}});
 addEventListener("resize",()=>{if(!isPhoneLayout()&&document.body.classList.contains("mapfull"))setMapFull(false)});
 // Small card over the full-screen map for the tapped pin
 function pinPreview(){
@@ -2896,33 +2915,34 @@ function pinPreview(){
  el.hidden=false;
  el.querySelector(".pp-x").onclick=()=>{el.hidden=true};
  el.querySelector(".pp-log").onclick=()=>quickLog(sp,spot.id);
- el.querySelector(".pp-go").onclick=()=>{setMapFull(false);showPanel("fish");setTimeout(()=>$("detail").scrollIntoView({behavior:"smooth",block:"start"}),360)};
+ el.querySelector(".pp-go").onclick=()=>{if(isPhoneLayout()){document.querySelectorAll(".panel-tabs [data-panel],#bnav [data-panel]").forEach(b=>b.classList.toggle("on",b.dataset.panel==="fish"));for(const p of ["fish","log","friends"])$("panel-"+p).hidden=p!=="fish";openSheet();return}
+  setMapFull(false);showPanel("fish");setTimeout(()=>$("detail").scrollIntoView({behavior:"smooth",block:"start"}),360)};
 }
 function pick(noSheet){countView();render();
  const s=DATA&&DATA.spots.find(x=>x.id===sel);
  if(MAP&&s&&s.lat!=null&&!MAP.getBounds().pad(-.1).contains([s.lat,s.lon]))MAP.panTo([s.lat,s.lon]);
  if(innerWidth<900&&!noSheet)openSheet()}
 // ---- Spot page on phones: details open on top of the list; "All spots" or the phone's back gesture closes it ----
-let SHEET_HIST=false,SHEET_POP=false;
+
 const sheetIsOpen=()=>document.body.classList.contains("spotopen");
 function sheetHead(){const b=$("sheetfish");if(b&&SP[sp])b.textContent=SP[sp].name+" ▾"}
 function openSheet(){
  if(innerWidth>=900)return;
- if(document.body.classList.contains("mapfull"))setMapFull(false);
- const was=sheetIsOpen();document.body.classList.add("spotopen");sheetHead();
+ if(document.body.classList.contains("mapfull")){setMapFull(false,true);const o=OVL.find(x=>x.k==="map");if(o){o.k="sheet";o.close=()=>closeSheet(true)}}
+ document.body.classList.add("spotopen");sheetHead();sheetInert(true);
  const sh=$("spotsheet");if(sh)sh.scrollTop=0;
- if(!was&&!SHEET_HIST){try{history.pushState({sheet:1},"");SHEET_HIST=true}catch(e){}}
+ ovlPush("sheet",()=>closeSheet(true));
  const b=$("sheetback");if(b)setTimeout(()=>b.focus({preventScroll:true}),50)}
 function closeSheet(fromBack){
- if(!sheetIsOpen())return;document.body.classList.remove("spotopen");
- if(SHEET_HIST&&!fromBack){SHEET_HIST=false;SHEET_POP=true;try{history.back()}catch(e){SHEET_POP=false}}else SHEET_HIST=false;
+ if(!sheetIsOpen())return;document.body.classList.remove("spotopen");sheetInert(false);
+ if(!fromBack)ovlPop("sheet");
  const r=document.querySelector(`#ranks .rank[data-id="${CSS.escape(sel||"")}"]`);if(r)r.focus({preventScroll:true})}
-// Closing steps back past the entry the page added. That older entry still holds the fish and spot from when
-// the page opened, so put the current ones back before the hashchange that follows would switch to the old ones.
-addEventListener("popstate",()=>{
- if(sheetIsOpen()){SHEET_HIST=false;SHEET_POP=true;closeSheet(true)}
- if(SHEET_POP){SHEET_POP=false;writeHash()}});
-document.addEventListener("keydown",e=>{if(e.key==="Escape"&&sheetIsOpen()&&!document.querySelector("dialog[open]"))closeSheet()});
+document.addEventListener("keydown",e=>{if(e.key==="Escape"&&ovlTop()==="sheet"&&!document.querySelector("dialog[open]"))closeSheet()});
+// While the spot page is open, everything behind it is out of reach of the keyboard and screen readers
+let INERT=[];
+function sheetInert(on){INERT.forEach(el=>el.inert=false);INERT=[];if(!on)return;
+ for(let el=$("spotsheet");el&&el!==document.body;el=el.parentElement)
+  for(const sib of el.parentElement.children)if(sib!==el&&!sib.inert&&!["SCRIPT","STYLE","DIALOG","HEADER","NAV"].includes(sib.tagName)&&sib.id!=="bnav"&&sib.id!=="appear"){sib.inert=true;INERT.push(sib)}}
 document.addEventListener("click",e=>{if(e.target.closest("#sheetback"))closeSheet();else if(e.target.closest("#sheetfish"))openPicker()});
 function ago(iso){const m=Math.round((Date.now()-new Date(iso))/60000);
  return m<1?"just now":m<90?m+" min ago":Math.round(m/60)+" hr ago"}
@@ -3121,7 +3141,7 @@ function render(){
   <div style="font-size:17px;font-weight:600">${p.name} at ${esc(spot.name)} <button class="fav ${favs.includes(spot.id)?"on":""}" data-fav="${spot.id}" title="Pin spot" aria-label="Pin ${esc(spot.name)}" aria-pressed="${favs.includes(spot.id)}">★</button></div>
   ${(W=>W?`<div class="gorow"><span class="ww-b l${W.lv}">${W.label}</span> <span class="note">${esc(W.txt)}</span></div>`:"")(waterAccess(spot))}
   ${spot.launch&&spot.launch.name?`<div class="gorow note">Nearest launch: ${esc(spot.launch.name)}, ${spot.launch.mi} mi${spot.launch.note?" ("+esc(spot.launch.note)+")":""} <span class="nowrap">· <a href="https://www.google.com/maps/dir/?api=1&destination=${(+spot.launch.lat).toFixed(5)},${(+spot.launch.lon).toFixed(5)}" target="_blank" rel="noopener">Directions</a></span></div>`:""}
-  ${(B=>B?`<div class="gorow"><button type="button" class="ww-b l${B.lv} gochip" data-gowind aria-label="${LV_TXT[B.lv]} for a ${B.boat} now: ${esc(B.why)}. Open wind and waves">${LV_TXT[B.lv]} · ${B.boat}</button> <span class="note">now${B.why?": "+esc(B.why):""}</span></div>`:"")(boatNow(spot,c))}
+  ${(B=>B&&B.wait?`<div class="gorow"><span class="ww-b lw">Checking wind…</span></div>`:B?`<div class="gorow"><button type="button" class="ww-b l${B.lv} gochip" data-gowind aria-label="${LV_TXT[B.lv]} for a ${B.boat} now: ${esc(B.why)}. Open wind and waves">${LV_TXT[B.lv]} · ${B.boat}</button> <span class="note">now${B.why?": "+esc(B.why):""}</span></div>`:"")(boatNow(spot,c))}
   ${r.gate?`<span class="pill" style="background:var(--mu)">Not applicable</span> <span class="note">${esc(r.gate)}</span>`
   :`<span class="pill" style="background:${col(r.total)}">${lab(r.total)}</span>
      <span class="conf ${confClass(r.coverage)}${(scoreAge(r,q)||0)>180?" stale":""}" title="How many of the readings this score uses are available, and how old they are"><span class="dot"></span>${confLabel(r.coverage)}${scoreAge(r,q)!=null?` · ${ageTxt(scoreAge(r,q))}`:""}</span>
@@ -3543,7 +3563,7 @@ function renderLog(){
   let verdict="";
   if(avgN!=null&&caught.length>=3&&none.length>=3)verdict=avg-avgN>=8?" The model scored your good days clearly higher, so it's tracking well for you."
    :avg-avgN<=-3?" The model scored your slow days higher than your good ones, so treat its scores with caution for your spots.":" There isn't much difference yet between good and slow days.";
-  assess.innerHTML=`<div>Model check on <b>${caught.length}</b> “caught” logs${none.length?` and <b>${none.length}</b> slow or empty trips`:""}</div>
+  assess.innerHTML=`<div>Model check on <b>${caught.length}</b> “caught” ${caught.length===1?"log":"logs"}${none.length?` and <b>${none.length}</b> slow or empty ${none.length===1?"trip":"trips"}`:""}</div>
    <div class="bigish" style="color:${col(avg)}">${avg}${avgN!=null?` <span class="note" style="font-size:14px;font-weight:400">vs ${avgN} on slow days</span>`:""}</div>
    <div class="note">Average model score on days you logged a catch. ${high} were Good or Excellent (55+), ${low} were Poor (under 35).${verdict} Amounts and notes stay private to you.</div>`+accuracyReport(all);
  }
@@ -4138,9 +4158,10 @@ function setBoatMode(on){try{if(on)localStorage.setItem("oc-boatmode","1");else 
  document.documentElement.classList.toggle("boat",on);if(MAP)setTimeout(()=>MAP.invalidateSize(),50)}
 function drawAppear(){const t=themePref();document.querySelectorAll("#appear [data-theme-v]").forEach(x=>{const on=x.dataset.themeV===t;x.classList.toggle("on",on);x.setAttribute("aria-checked",on)});
  const c=$("boatchk");if(c)c.checked=boatMode()}
-function toggleAppear(show){const m=$("appear"),b=$("themebtn");if(!m)return;const open=show??m.hidden;
+function toggleAppear(show,fromBack){const m=$("appear"),b=$("themebtn");if(!m)return;const open=show??m.hidden;if(open===!m.hidden)return;
  if(open){drawAppear();const r=b.getBoundingClientRect();m.style.top=(r.bottom+8)+"px";m.style.right=Math.max(8,innerWidth-r.right)+"px"}
- m.hidden=!open;b.setAttribute("aria-expanded",open);if(open)(m.querySelector("[data-theme-v].on")||m.querySelector("button")).focus()}
+ m.hidden=!open;b.setAttribute("aria-expanded",open);if(open)(m.querySelector("[data-theme-v].on")||m.querySelector("button")).focus();
+ if(open)ovlPush("settings",()=>toggleAppear(false,true));else if(!fromBack)ovlPop("settings")}
 function themePref(){try{const t=localStorage.getItem("oc-theme");return t==="light"||t==="dark"||t==="auto"?t:"light"}catch(e){return"light"}}
 function applyTheme(t){
  const r=document.documentElement;if(!r||!r.dataset)return;if(t==="auto")delete r.dataset.theme;else r.dataset.theme=t;
@@ -4220,7 +4241,8 @@ async function load(isRefresh){
  if(!isRefresh||!FROM_SAVED)REFRESH_FAILED=false;
  showAge();
  tropBanner();
- if(!isRefresh&&!isSetupDone())setTimeout(openSetup,500);
+ // Someone arriving from a link to one spot sees that spot; setup waits for their next plain visit
+ if(!isRefresh&&!isSetupDone()&&!/^#[a-z]+\/[A-Za-z0-9_-]+$/.test(location.hash||""))setTimeout(openSetup,500);
  if(!isRefresh){
   $("tabs").onclick=e=>{const b=e.target.closest("button");if(!b)return;if(b.dataset.all)openPicker();else if(b.dataset.k)setSpecies(b.dataset.k)};
   $("spbar").onclick=e=>{if(e.target.closest("#sppick"))openPicker()};
@@ -4301,7 +4323,7 @@ async function load(isRefresh){
      +(shareTo?` Sharing it anonymously with the ${areaName(shareTo)} area…`:"");
     if(shareTo)flushReports().then(n=>{const m=$("logMsg");if(!m.textContent.includes("anonymously"))return;
      m.textContent=m.textContent.replace(/ Sharing it anonymously.*$/,n.sent?` Shared anonymously with the ${areaName(shareTo)} area. Thank you!`:n.left?" It will be shared anonymously when you're back online.":" It couldn't be shared this time.")});
-    for(const id of ["logLen","logLbs","logKept","logRel","logBait","logNotes","logPhoto"])$(id).value="";$("logPhotoPrev").innerHTML="";renderLog()};
+    for(const id of ["logLen","logLbs","logKept","logRel","logBait","logNotes","logPhoto"])$(id).value="";$("logPhotoPrev").innerHTML="";$("logLen").dispatchEvent(new Event("input"));renderLog()};
    if(photoFile)savePhoto(entry.id,photoFile).then(()=>done(true),()=>{const a2=getLogs();const L2=a2.find(x=>x.id===entry.id);if(L2){L2.photo=false;saveLogs(a2)}done(false)});
    else done(true);
   };
@@ -4321,9 +4343,10 @@ async function load(isRefresh){
  addMySpots();
  LAST_LOAD=Date.now();
  // A link to one spot (home page card, search pages, shared scores) opens its page straight away on phones
- const viaLink=!isRefresh&&/^#[a-z]+\/[A-Za-z0-9_-]+$/.test(location.hash||"");
+ const viaLink=!isRefresh&&/^#[a-z]+\/[A-Za-z0-9_-]+$/.test(location.hash||""),linkOK=viaLink&&readHash();
+ if(viaLink&&!linkOK){const n=$("linknote");if(n){n.hidden=false;setTimeout(()=>{n.hidden=true},8000)}}   // old or mistyped link
  if(!isRefresh&&location.hash==="#tropical")setTimeout(showTropical,300);
- else if(!isRefresh&&!readHash()){          // no link to follow: pick up where you left off, or start with your fish
+ else if(!isRefresh&&!linkOK){          // no link to follow: pick up where you left off, or start with your fish
   const last=getLast(),mine=getMyFish();
   if(last){sp=last.sp;if(DATA.spots.some(s=>s.id===last.sel))sel=last.sel}else if(mine.length)sp=mine[0]}
  if(!sel||!DATA.spots.some(s=>s.id===sel))sel=bestSpotId(sp);
@@ -4332,7 +4355,7 @@ async function load(isRefresh){
  $("main").hidden=false;
  if(!MAP)mapInit();
  render();
- if(viaLink&&readHash()!==false&&innerWidth<900)openSheet();
+ if(linkOK&&innerWidth<900)openSheet();
  if(MAP)setTimeout(()=>MAP.invalidateSize(),200);
  fcP.then(()=>{if(!FC)return;for(const x of DATA.spots)if(x.user&&FC.spots&&FC.spots[x.base])FC.spots[x.id]=FC.spots[x.base];   // your own pins use the nearest spot's forecast
   if(DATA&&sel)render()});

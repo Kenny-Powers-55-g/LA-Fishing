@@ -256,9 +256,14 @@ def fake_bytes(url, timeout=60):
         return None                                  # default: BOEM files "down", ArcGIS fallback is used
     return boem_zip("loc" if "platloc" in url else "stru")
 
+def no_network(*a, **k):
+    """Anything that still tries the real internet in a test fails at once instead of waiting on it."""
+    raise OSError("tests must not use the network")
+
 def install(ingest):
     ingest.get_json = fake_json
     ingest.get_text = fake_text
     ingest.get_bytes = fake_bytes
+    ingest.urlopen = no_network
     ingest.USGS_KEY = "test-key"
     CALLS.clear()
