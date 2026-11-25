@@ -199,7 +199,7 @@ def fake_text(url, params=None, quiet_404=False):
     if "realtime2" in url:
         bump("ndbc-obs")
         if "/kvaf." in url:                     # a coastal station with no realtime file (404)
-            bump("ndbc-404"); return None
+            bump("ndbc-404"); ING["ingest"]._NOT_FOUND.add(url); return None
         hdr="#YY  MM DD hh mm WDIR WSPD GST  WVHT   DPD   APD MWD   PRES  ATMP  WTMP  DEWP  VIS PTDY  TIDE\n#yr  mo dy hr mn degT m/s  m/s     m   sec   sec degT   hPa  degC  degC  degC  nmi  hPa    ft\n"
         rows="".join(f"{t:%Y %m %d %H %M} 180 5.0 7.0 0.9 6 5 180 1015.0 24.0 25.5 20 MM MM MM\n" for t in [now-timedelta(minutes=30*k) for k in range(60)])
         return hdr+rows
@@ -260,7 +260,9 @@ def no_network(*a, **k):
     """Anything that still tries the real internet in a test fails at once instead of waiting on it."""
     raise OSError("tests must not use the network")
 
+ING = {}
 def install(ingest):
+    ING["ingest"] = ingest
     ingest.get_json = fake_json
     ingest.get_text = fake_text
     ingest.get_bytes = fake_bytes

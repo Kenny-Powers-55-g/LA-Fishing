@@ -4,7 +4,7 @@ on:
   schedule:
     # Hourly is enough for water and weather, but GitHub often starts scheduled runs 30-60 minutes late.
     # The :45 slot is a backup: the "fresh" job below skips the update when the live data is under
-    # 40 minutes old, so it only does the work when the :15 run was late or failed.
+    # 25 minutes old, so it only does the work when the :15 run was late or failed.
     - cron: "15 * * * *"
     - cron: "45 * * * *"
   workflow_dispatch:
@@ -13,6 +13,7 @@ permissions:
   contents: read
   pages: write
   id-token: write
+  actions: write      # only to keep the schedules switched on (see the last step)
 
 # Do not use the shared "pages" group — it collides with other Pages deploys and
 # cancels runs with "higher priority waiting request for pages exists".
@@ -41,7 +42,7 @@ jobs:
           gen=$(curl -sfL "$url?t=$(date +%s)" | python3 -c "import json,sys; print(json.load(sys.stdin)['generated'])" 2>/dev/null || true)
           age=$(python3 -c "import sys; from datetime import datetime, timezone as tz; print(int((datetime.now(tz.utc)-datetime.fromisoformat(sys.argv[1])).total_seconds()//60))" "$gen" 2>/dev/null || echo 999)
           echo "Live data is $age minutes old"
-          if [ "$age" -lt 40 ]; then echo "run=false" >> "$GITHUB_OUTPUT"; else echo "run=true" >> "$GITHUB_OUTPUT"; fi
+          if [ "$age" -lt 25 ]; then echo "run=false" >> "$GITHUB_OUTPUT"; else echo "run=true" >> "$GITHUB_OUTPUT"; fi
 
   build-and-deploy:
     needs: fresh
@@ -62,8 +63,9 @@ jobs:
         uses: actions/cache@v4
         with:
           path: stations_cache.json
-          key: stations-${{ github.run_id }}
-          restore-keys: stations-
+          # v2: started fresh after lookups that had failed were being kept forever
+          key: stations-v2-${{ github.run_id }}
+          restore-keys: stations-v2-
 
       - name: Test the code before using it
         run: |
@@ -75,13 +77,22 @@ jobs:
           node tests/check_pages.js
 
       - name: Get history and the weekly map layers from the live site
-        continue-on-error: true
+        # Retries each file. "Not there yet" (404) is fine, but if history, trends or alert state can't
+        # be fetched for any other reason the run stops here and the live site keeps its good copies,
+        # instead of publishing fresh empty ones over them.
         run: |
           owner="${GITHUB_REPOSITORY%%/*}"; repo="${GITHUB_REPOSITORY#*/}"
           site="https://$(echo "$owner" | tr 'A-Z' 'a-z').github.io/$repo"
+          lost=""
           for f in history.json scores-daily.json rigs.json reefs.json launches.json alerts_state.json tropical.json deadzone.json community.json; do
-            curl -sfL "$site/$f" -o "$f" && echo "$f: $(wc -c < "$f") bytes" || echo "no $f yet; it will be built"
+            code=$(curl -sL --retry 4 --retry-all-errors --retry-delay 5 --max-time 60 -w "%{http_code}" "$site/$f?t=$(date +%s)" -o "$f.dl" || echo 000)
+            if [ "$code" = "200" ] && [ -s "$f.dl" ]; then mv "$f.dl" "$f"; echo "$f: $(wc -c < "$f") bytes"
+            else rm -f "$f.dl"; echo "$f: not fetched (HTTP $code)"
+              case "$f" in history.json|scores-daily.json|alerts_state.json) [ "$code" = "404" ] || lost="$lost $f";; esac
+            fi
           done
+          [ -f history.json ] && cp history.json history.json.prev
+          if [ -n "$lost" ]; then echo "::error::Couldn't fetch$lost from the live site; stopping so the live copies aren't replaced"; exit 1; fi
 
       - name: Pull the latest readings
         run: python ingest.py once
@@ -97,20 +108,24 @@ jobs:
         run: python ingest.py validate
 
       - name: Update community tuning from anonymous catch reports
+        id: community
         # Reads totals (never single reports) from Supabase with the public key in config.js and
         # writes community.json. If Supabase can't be reached, the previous file is kept.
         continue-on-error: true
         run: node scripts/community.js
 
       - name: Save today's scores for trends
+        id: snapshot
         continue-on-error: true
         run: node scripts/snapshot.js
 
       - name: Write the search pages (one per spot and fish) and the sitemap
+        id: pages
         continue-on-error: true
         run: node scripts/pages.js
 
       - name: Send phone alerts
+        id: alerts
         # Rules live in alerts.json. Needs the NTFY_TOPIC repository secret; without it this
         # prints what it would have sent. Never blocks the deploy.
         continue-on-error: true
@@ -154,3 +169,26 @@ jobs:
       - id: deployment_retry
         if: steps.deployment.outcome == 'failure'
         uses: actions/deploy-pages@v4
+
+      - name: Mark the run failed if a side step failed
+        # Those steps don't stop the deploy (the scores still publish), but a red run gets GitHub's email,
+        # so a broken search-page or snapshot script doesn't go unnoticed.
+        if: always()
+        run: |
+          bad=""
+          [ "${{ steps.community.outcome }}" = "failure" ] && bad="$bad community"
+          [ "${{ steps.snapshot.outcome }}" = "failure" ] && bad="$bad snapshot"
+          [ "${{ steps.pages.outcome }}" = "failure" ] && bad="$bad search-pages"
+          [ "${{ steps.alerts.outcome }}" = "failure" ] && bad="$bad alerts"
+          if [ -n "$bad" ]; then echo "::error::These steps failed (the site still updated):$bad"; exit 1; fi
+
+      - name: Keep the schedules switched on
+        # GitHub switches off scheduled workflows in a public repository after 60 days without a commit,
+        # and deploying doesn't count. Re-enabling them once a day resets that clock. Never blocks a run.
+        if: always()
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          [ "$(date -u +%H)" = "12" ] || exit 0
+          for wf in update.yml health.yml; do gh api -X PUT "repos/${{ github.repository }}/actions/workflows/$wf/enable" && echo "$wf: enabled"; done
