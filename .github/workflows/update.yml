@@ -170,6 +170,17 @@ jobs:
         if: steps.deployment.outcome == 'failure'
         uses: actions/deploy-pages@v4
 
+      - name: Tell the uptime monitor the site updated
+        # Optional: set the HEALTHCHECK_URL repository secret to a healthchecks.io ping URL and it emails you
+        # when updates stop (README, "Keeping it running"). Without the secret this does nothing.
+        if: steps.deployment.outcome == 'success' || steps.deployment_retry.outcome == 'success'
+        continue-on-error: true
+        env:
+          HEALTHCHECK_URL: ${{ secrets.HEALTHCHECK_URL }}
+        run: |
+          [ -n "$HEALTHCHECK_URL" ] || { echo "No HEALTHCHECK_URL secret; skipping"; exit 0; }
+          curl -fsS -m 10 --retry 3 "$HEALTHCHECK_URL" > /dev/null && echo "pinged"
+
       - name: Mark the run failed if a side step failed
         # Those steps don't stop the deploy (the scores still publish), but a red run gets GitHub's email,
         # so a broken search-page or snapshot script doesn't go unnoticed.

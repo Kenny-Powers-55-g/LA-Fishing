@@ -144,9 +144,9 @@ email service under **Authentication → Emails → SMTP Settings** (Resend, Sen
   of them turns the run red, so GitHub emails you.
 - A data source that fails six calls in a row is skipped for the rest of that run, and after 20 minutes no
   new spots are started, so one slow service can't stop every deploy.
-- Worth doing once: add a free uptime monitor (UptimeRobot, Better Stack…) on
-  `https://kenny-powers-55-g.github.io/LA-Fishing/status.json` that alerts if it stops changing, and set the
-  `USGS_API_KEY` repository secret (free at api.waterdata.usgs.gov/signup): the logs show it's empty, and the
+- Worth doing once: create a free check at healthchecks.io (period 1 hour, grace 2 hours) and save its ping
+  URL as the `HEALTHCHECK_URL` repository secret; every successful update pings it, and it emails you if the
+  pings stop. Also set the `USGS_API_KEY` repository secret (free at api.waterdata.usgs.gov/signup): the logs show it's empty, and the
   old USGS service the job falls back on retires in February 2027.
 
 ## iPhone app (in progress)
