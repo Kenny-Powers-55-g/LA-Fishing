@@ -65,7 +65,7 @@ def save_station_cache(cache):
         if isinstance(k, tuple) and k and k[0] in ("sites", "buoys", "depth", "mzone", "cstn", "ngrid"):
             # JSON keys must be strings
             out["|".join(str(x) for x in k)] = v
-        elif k in ("buoys", "deadbuoys", "cstations", "launches_tried"):
+        elif k in ("buoys", "deadbuoys", "deadbuoys_t", "cstations", "launches_tried") and v:
             out[k] = v
     try:
         with open(STATION_CACHE + ".tmp", "w") as f:
@@ -76,7 +76,7 @@ def save_station_cache(cache):
 
 def hydrate_station_cache(cache, disk):
     for k, v in (disk or {}).items():
-        if k in ("buoys", "deadbuoys", "cstations", "launches_tried"):
+        if k in ("buoys", "deadbuoys", "deadbuoys_t", "cstations", "launches_tried"):
             cache.setdefault(k, v)
             continue
         if "|" in k:
@@ -318,9 +318,31 @@ def erddap_json(path, tries=1, timeout=12):
             return j
     return None
 
+# A host that keeps failing is skipped for the rest of the run, so one slow or broken service can't eat the
+# whole time budget (Open-Meteo, for one, sometimes stops answering for a while).
+HOST_GIVE_UP = 6                      # failed calls in a row
+_HOST_FAILS, _HOST_LOCK = {}, threading.Lock()
+_NOT_FOUND = set()                    # URLs that answered 404: really missing, not just a blip
+
+def host_down(url):
+    with _HOST_LOCK:
+        return _HOST_FAILS.get(urlparse(url).netloc, 0) >= HOST_GIVE_UP
+
+def host_result(url, ok):
+    host = urlparse(url).netloc
+    with _HOST_LOCK:
+        if ok:
+            _HOST_FAILS[host] = 0
+            return
+        _HOST_FAILS[host] = _HOST_FAILS.get(host, 0) + 1
+        if _HOST_FAILS[host] == HOST_GIVE_UP:
+            log.warning("%s failed %d times in a row; skipping it for the rest of this run", host, HOST_GIVE_UP)
+
 def get_json(url, params=None, tries=3, timeout=15, headers=None):
     if params:
         url += "?" + urlencode(params)
+    if host_down(url):
+        return None
     # Chlorophyll / busy mirrors: fail faster so one stuck host does not eat the job budget
     if "erddap" in url or "coastwatch" in url:
         timeout = min(timeout, 12)
@@ -335,6 +357,7 @@ def get_json(url, params=None, tries=3, timeout=15, headers=None):
             try:
                 with urlopen(req, timeout=timeout) as r:
                     body = r.read()
+                host_result(url, True)
                 try:
                     return json.loads(body)
                 except UnicodeDecodeError:                # some ArcGIS servers send Windows-1252 text
@@ -345,10 +368,13 @@ def get_json(url, params=None, tries=3, timeout=15, headers=None):
         except HTTPError as e:
             log.warning("HTTP %s for %s", e.code, url)
             if e.code < 500:
+                host_result(url, True)                    # the server answered; the request was the problem
                 return None
         except (URLError, TimeoutError, OSError, ValueError) as e:      # ValueError: not JSON / bad bytes
             log.warning("fetch failed (%s): %s", str(e)[:120], url)
-        time.sleep(2 ** i)
+        if i + 1 < tries:
+            time.sleep(2 ** i)
+    host_result(url, False)
     return None
 
 def get_bytes(url, timeout=60):
@@ -365,13 +391,21 @@ def get_bytes(url, timeout=60):
 def get_text(url, params=None, quiet_404=False):
     if params:
         url += "?" + urlencode(params)
+    if host_down(url):
+        return None
     try:
         with urlopen(Request(url, headers={"User-Agent": f"{APP} ({CONTACT})"}), timeout=20) as r:
-            return r.read().decode("utf-8", "replace")
+            txt = r.read().decode("utf-8", "replace")
+        host_result(url, True)
+        return txt
     except HTTPError as e:
+        host_result(url, e.code < 500)
+        if e.code == 404:
+            _NOT_FOUND.add(url)
         if not (quiet_404 and e.code == 404):
             log.warning("fetch failed (HTTP %s): %s", e.code, url)
     except (URLError, TimeoutError, OSError) as e:
+        host_result(url, False)
         log.warning("fetch failed (%s): %s", e, url)
         return None
 
@@ -498,6 +532,8 @@ def near_sites(spot, cache, pcode, radius_mi=50, limit=5):
     txt = get_text("https://waterservices.usgs.gov/nwis/site/", dict(
         format="rdb", parameterCd=pcode, hasDataTypeCd="iv", siteStatus="active",
         bBox=f"{spot['lon']-d:.4f},{spot['lat']-d:.4f},{spot['lon']+d:.4f},{spot['lat']+d:.4f}"))
+    if txt is None:
+        return []                                 # both USGS services failed: try again next run, don't remember this
     out, have = [], {sid for k, sid in spot["water"] if k == "usgs"}
     rows = [l.split("\t") for l in (txt or "").splitlines() if l and not l.startswith("#")]
     if len(rows) > 2:
@@ -1017,8 +1053,15 @@ BUOY_RADIUS_MI = 30
 def near_buoys(spot, cache, radius_mi=BUOY_RADIUS_MI, limit=6):
     """Nearest active NDBC stations with weather sensors (buoys and platforms)."""
     with _BUOY_LOCK:                          # one download of the station list per run
-        if "buoys" not in cache:
+        if not cache.get("buoys"):            # never keep an empty list: that was a failed download
             cache["buoys"] = buoy_list()
+        if cache.get("deadbuoys") and not cache.get("deadbuoys_t"):
+            cache["deadbuoys_t"] = datetime.now(UTC).isoformat()     # older saved lists had no date
+        try:                                  # stations marked dead get another chance after a week
+            if (datetime.now(UTC) - parse_iso(cache.get("deadbuoys_t"))).days >= 7:
+                cache["deadbuoys"], cache["deadbuoys_t"] = [], None
+        except (TypeError, ValueError):
+            pass
     dead = set(cache.get("deadbuoys") or [])          # stations with no realtime data file
     near = [(i, round(miles(spot["lat"], spot["lon"], la, lo))) for i, la, lo in cache["buoys"] if i not in dead]
     return sorted([x for x in near if x[1] <= radius_mi], key=lambda x: x[1])[:limit]
@@ -1037,9 +1080,12 @@ def buoy_list():
 
 def buoy_obs(sid):
     """Latest sea temp, waves, wind and pressure trend from an NDBC realtime2 file."""
-    txt = get_text(f"https://www.ndbc.noaa.gov/data/realtime2/{sid}.txt", quiet_404=True)
+    url = f"https://www.ndbc.noaa.gov/data/realtime2/{sid}.txt"
+    txt = get_text(url, quiet_404=True)
     if txt is None:
-        return None                                   # station has no realtime file
+        # None = the station has no realtime file (404) and can be skipped for a while;
+        # {} = it didn't answer this time, which says nothing about tomorrow
+        return None if url in _NOT_FOUND else {}
     lines = [l.split() for l in txt.splitlines() if l.strip()]
     if len(lines) < 3 or not lines[0][0].startswith("#"):
         return {}
@@ -1396,6 +1442,9 @@ def collect(spot, now, cache):
                         cache.setdefault("deadbuoys", [])
                         if sid not in cache["deadbuoys"]:
                             cache["deadbuoys"].append(sid)
+                            cache.setdefault("deadbuoys_t", None)
+                            if not cache["deadbuoys_t"]:
+                                cache["deadbuoys_t"] = datetime.now(UTC).isoformat()
                     cache[("ndbc", sid)] = {}
             for m, rec in cache[("ndbc", sid)].items():
                 age = (now - rec[1]).total_seconds() / 60
@@ -2609,12 +2658,17 @@ def update_history(results, river_data, now, path=HISTORY):
     os.replace(tmp, path)
     return h
 
+SPOT_BUDGET_S = 20 * 60          # stop starting new spots after this long (the workflow step allows 35 minutes)
+
 def run_once():
     now, cache, results = datetime.now(UTC), {}, []
     disk = load_station_cache()
     hydrate_station_cache(cache, disk)
     failed = []
     def one(spot):
+        if time.time() - t0 > SPOT_BUDGET_S:    # far over time: publish what's in rather than miss the deploy
+            log.warning("spot %s skipped: the run is over its %d-minute budget", spot["id"], SPOT_BUDGET_S // 60)
+            return None
         try:
             return collect(spot, now, cache)
         except Exception:                       # one bad spot must not stop the rest
@@ -2906,10 +2960,18 @@ def dead_sources(spots, min_spots=3):
             dead.append(f"{name} ({k}) is missing at all {len(want)} spots that use it")
     return dead
 
-def validate(path=OUT, min_spots=15, min_completeness=0.45, max_age_h=3, strict=False):
+# Readings outside these are broken sensors or unit mix-ups, not weather
+SANE = {"temp": (30, 105), "sal": (0, 45), "wind": (0, 120), "wave": (0, 60)}
+
+def validate(path=OUT, min_spots=None, min_completeness=0.45, max_age_h=3, strict=False):
     """Sanity-check a freshly written latest.json before it is deployed. Returns problems.
     A reading missing at every spot is only a warning when deploying (the scores still work without
-    it), but a problem with strict=True, which the daily health check uses so it opens an issue."""
+    it), but a problem with strict=True, which the daily health check uses so it opens an issue.
+    Next to a fresh latest.json it also checks forecast.json, and that history.json didn't shrink
+    (history.json.prev is the live copy the workflow downloaded first): a failed download must never
+    replace two weeks of history with an empty one."""
+    if min_spots is None:
+        min_spots = max(15, int(0.8 * len(SPOTS)))
     problems = []
     try:
         with open(path) as f:
@@ -2928,6 +2990,32 @@ def validate(path=OUT, min_spots=15, min_completeness=0.45, max_age_h=3, strict=
             problems.append(dead)
         else:
             print("WARNING:", dead)
+    odd = [f"{s.get('id')} {k}={(s.get('conditions') or {}).get(k)}" for s in spots for k, (lo, hi) in SANE.items()
+           if isinstance((s.get("conditions") or {}).get(k), (int, float)) and not lo <= s["conditions"][k] <= hi]
+    if len(odd) > 5:
+        problems.append(f"{len(odd)} readings out of range, e.g. {', '.join(odd[:4])}")
+    elif odd:
+        print("WARNING: readings out of range:", ", ".join(odd))
+    here = os.path.dirname(os.path.abspath(path))
+    fc_path, hist_path = os.path.join(here, "forecast.json"), os.path.join(here, HISTORY)
+    if not strict and os.path.exists(fc_path) and spots:
+        try:
+            with open(fc_path) as f:
+                n_fc = len((json.load(f).get("spots") or {}))
+            if n_fc < 0.8 * len(spots):
+                problems.append(f"forecast.json covers only {n_fc} of {len(spots)} spots")
+        except (OSError, ValueError, AttributeError) as e:
+            problems.append(f"can't read forecast.json: {e}")
+    if not strict and os.path.exists(hist_path + ".prev"):
+        try:
+            with open(hist_path) as f:
+                new_n = len(json.load(f).get("t") or [])
+            with open(hist_path + ".prev") as f:
+                old_n = len(json.load(f).get("t") or [])
+            if old_n >= 24 and new_n < old_n / 2:
+                problems.append(f"history.json shrank from {old_n} to {new_n} points")
+        except (OSError, ValueError) as e:
+            problems.append(f"can't compare history.json with the live copy: {e}")
     try:
         age = (datetime.now(UTC) - parse_iso(d["generated"])).total_seconds() / 3600
         if age > max_age_h:

@@ -436,10 +436,104 @@ class DeadSources(unittest.TestCase):
                 s["quality"]["completeness"] = 0.9
             with open(path, "w") as f:
                 json.dump({"generated": ingest.datetime.now(ingest.UTC).isoformat(), "spots": spots}, f)
-            self.assertEqual(ingest.validate(path), [])
-            self.assertTrue(any("sbreak" in p for p in ingest.validate(path, strict=True)))
+            self.assertEqual(ingest.validate(path, min_spots=15), [])
+            self.assertTrue(any("sbreak" in p for p in ingest.validate(path, min_spots=15, strict=True)))
         finally:
             shutil.rmtree(d)
+
+
+class NetworkTrouble(unittest.TestCase):
+    """A blip must not be remembered as "nothing here", and a dead host must not eat the run."""
+    def setUp(self):
+        # A separate copy of ingest.py: the other tests swap in fake network functions on the shared one
+        import importlib.util
+        spec = importlib.util.spec_from_file_location("ingest_net", os.path.join(os.path.dirname(HERE), "ingest.py"))
+        self.ing = importlib.util.module_from_spec(spec); spec.loader.exec_module(self.ing)
+
+    def test_failing_host_is_skipped_after_a_few_calls(self):
+        ing = self.ing
+        calls = []
+        def boom(*a, **k):
+            calls.append(1); raise OSError("down")
+        ing.urlopen, sleep = boom, ing.time.sleep
+        ing.time.sleep = lambda s: None
+        try:
+            for _ in range(10):
+                self.assertIsNone(ing.get_text("https://slow.example/x"))
+            self.assertEqual(len(calls), ing.HOST_GIVE_UP)         # then no more attempts this run
+            self.assertIsNone(ing.get_json("https://slow.example/y"))
+            self.assertEqual(len(calls), ing.HOST_GIVE_UP)
+            self.assertIsNone(ing.get_text("https://other.example/x"))
+            self.assertEqual(len(calls), ing.HOST_GIVE_UP + 1)     # other hosts are still tried
+        finally:
+            ing.time.sleep = sleep
+
+    def test_buoy_blip_is_not_a_dead_buoy(self):
+        ing = self.ing
+        def boom(*a, **k):
+            raise OSError("timeout")
+        ing.urlopen = boom
+        self.assertEqual(ing.buoy_obs("42001"), {})            # not None: don't mark it dead
+        def gone(req, *a, **k):
+            raise ing.HTTPError(req.full_url, 404, "Not Found", {}, None)
+        ing.urlopen = gone
+        self.assertIsNone(ing.buoy_obs("kxyz"))                  # a real 404: no realtime file
+
+    def test_empty_station_list_is_fetched_again(self):
+        ing = self.ing
+        cache = {"buoys": []}
+        real = ing.buoy_list
+        ing.buoy_list = lambda: [("42001", 25.9, -89.7)]
+        try:
+            ing.near_buoys({"lat": 26.0, "lon": -89.7}, cache)
+            self.assertEqual(cache["buoys"], [("42001", 25.9, -89.7)])
+        finally:
+            ing.buoy_list = real
+
+    def test_old_dead_buoys_get_another_chance(self):
+        ing = self.ing
+        cache = {"buoys": [("42001", 25.9, -89.7)], "deadbuoys": ["42001"],
+                 "deadbuoys_t": (ing.datetime.now(ing.UTC) - ing.timedelta(days=8)).isoformat()}
+        self.assertEqual([b[0] for b in ing.near_buoys({"lat": 26.0, "lon": -89.7}, cache)], ["42001"])
+        self.assertEqual(cache["deadbuoys"], [])
+
+
+class StricterCheck(unittest.TestCase):
+    def write(self, d, spots=80, hist=None, prev=None, temp=70, fc=80):
+        sp = [{"id": f"s{i}", "conditions": {"temp": temp, "wind": 5}, "quality": {"completeness": 0.9}} for i in range(spots)]
+        with open(os.path.join(d, "latest.json"), "w") as f:
+            json.dump({"generated": ingest.datetime.now(ingest.UTC).isoformat(), "spots": sp}, f)
+        with open(os.path.join(d, "forecast.json"), "w") as f:
+            json.dump({"spots": {f"s{i}": {} for i in range(fc)}}, f)
+        if hist is not None:
+            with open(os.path.join(d, "history.json"), "w") as f:
+                json.dump({"t": list(range(hist))}, f)
+        if prev is not None:
+            with open(os.path.join(d, "history.json.prev"), "w") as f:
+                json.dump({"t": list(range(prev))}, f)
+        return os.path.join(d, "latest.json")
+
+    def check(self, **kw):
+        d = tempfile.mkdtemp()
+        try:
+            return ingest.validate(self.write(d, **kw))
+        finally:
+            shutil.rmtree(d)
+
+    def test_a_normal_run_passes(self):
+        self.assertEqual(self.check(hist=331, prev=330), [])
+
+    def test_too_few_spots(self):
+        self.assertTrue(any("spots" in p for p in self.check(spots=40, fc=40)))
+
+    def test_forecast_missing_for_most_spots(self):
+        self.assertTrue(any("forecast.json" in p for p in self.check(fc=10)))
+
+    def test_history_wiped(self):
+        self.assertTrue(any("shrank" in p for p in self.check(hist=1, prev=330)))
+
+    def test_broken_sensors(self):
+        self.assertTrue(any("out of range" in p for p in self.check(temp=212)))
 
 
 class BoatLaunches(unittest.TestCase):

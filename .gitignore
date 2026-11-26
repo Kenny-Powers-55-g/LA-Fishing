@@ -21,3 +21,6 @@ community.json
 # search pages, written by scripts/pages.js in the hourly job
 spots/
 fish/
+history.json.prev
+board.json
+scores-daily.json

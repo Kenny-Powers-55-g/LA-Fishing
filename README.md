@@ -132,6 +132,23 @@ email service under **Authentication → Emails → SMTP Settings** (Resend, Sen
   Lake Pontchartrain" and the like. They are built on the server only (not kept in the repository). To get them
   indexed faster, add the site to Google Search Console and submit `sitemap.xml`.
 
+## Keeping it running
+
+- The hourly update runs at :15, with a backup at :45 that only does the work when the live data is over
+  25 minutes old. Once a day it re-enables both scheduled workflows, because GitHub switches schedules off
+  after 60 days without a commit.
+- It stops (and leaves the live site as it is) if it can't fetch the live history, trends or alert state,
+  if far fewer spots than usual came in, if the forecast is missing for most spots, if readings are out of
+  physical range, or if the history would shrink by half.
+- Side steps (search pages, trends, community tuning, alerts) never block the update, but a failure in any
+  of them turns the run red, so GitHub emails you.
+- A data source that fails six calls in a row is skipped for the rest of that run, and after 20 minutes no
+  new spots are started, so one slow service can't stop every deploy.
+- Worth doing once: create a free check at healthchecks.io (period 1 hour, grace 2 hours) and save its ping
+  URL as the `HEALTHCHECK_URL` repository secret; every successful update pings it, and it emails you if the
+  pings stop. Also set the `USGS_API_KEY` repository secret (free at api.waterdata.usgs.gov/signup): the logs show it's empty, and the
+  old USGS service the job falls back on retires in February 2027.
+
 ## iPhone app (in progress)
 
 The page can also run inside an iPhone app built with Capacitor. Inside the app it loads the
