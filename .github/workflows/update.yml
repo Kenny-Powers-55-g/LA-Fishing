@@ -60,7 +60,8 @@ jobs:
           python-version: "3.12"
 
       - name: Restore saved station lookups
-        uses: actions/cache@v4
+        id: stations
+        uses: actions/cache/restore@v4
         with:
           path: stations_cache.json
           # v2: started fresh after lookups that had failed were being kept forever
@@ -102,6 +103,15 @@ jobs:
           # secret named USGS_API_KEY. Without it, USGS may rate-limit the hourly run.
           USGS_API_KEY: ${{ secrets.USGS_API_KEY }}
           INGEST_WORKERS: "4"
+
+      - name: Save the station lookups
+        # Saved even when a later step fails, so a slow first run's lookups aren't thrown away
+        # and the next run doesn't have to start from nothing again.
+        if: always() && hashFiles('stations_cache.json') != ''
+        uses: actions/cache/save@v4
+        with:
+          path: stations_cache.json
+          key: stations-v2-${{ github.run_id }}
 
       - name: Check the new data before publishing it
         # If this fails, nothing is deployed and the site keeps the last good data.
