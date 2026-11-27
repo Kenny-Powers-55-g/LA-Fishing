@@ -98,6 +98,29 @@ const at = d => Date.parse(d + "T18:00:00Z");
   if (/salinity/i.test(cf.reason)) fail(`fresh water shouldn't be a freshwater fish's headline reason ("${cf.reason}")`);
 }
 
+// ---- One weather event counted once; the moon only where and when there's evidence ----
+{
+  const api = load(), d = at("2027-03-10");
+  for (const [k, p] of Object.entries(api.SP)) {
+    let tot = 0, fr = 0;
+    for (const F of p.factors) { if (F.months && !F.months.includes(3)) continue; tot += F.w; if (["pres", "front", "dtemp", "fphase"].includes(F.k)) fr += F.w; }
+    if (fr / tot > 0.22) fail(`${k}: one cold front is ${Math.round(100 * fr / tot)}% of the score (pressure, front, water change and timing together)`);
+  }
+  const base = { zone: "inshore", sal: 0.1, wind: 8, clar: "Stained", cloud: 50, rain: 0, light: "Dawn", level: "Steady", temp: 52, mon: 12, pres: "Steady", front: 0, dtemp: 0 };
+  const full = api.scoreC("chinquapin", { ...base, moon: { s: 1, illum: 1 } }, {}, at("2026-12-24")).total, quarter = api.scoreC("chinquapin", { ...base, moon: { s: .45, illum: .5 } }, {}, at("2026-12-10")).total;
+  if (full !== quarter) fail(`the moon shouldn't move chinquapin in December (full ${full}, quarter ${quarter})`);
+  const coast = { zone: "inshore", sal: 15, wind: 8, clar: "Stained", cloud: 50, rain: 0, light: "Dawn", trange: 1, tcur: .6, temp: 72, mon: 10, tide: "Incoming", pres: "Steady", front: 0, dtemp: 0, moon: { s: .6, illum: .5 } };
+  const moving = api.scoreC("redfish", coast, {}, at("2027-10-10")).total, slack = api.scoreC("redfish", { ...coast, tide: "Slack" }, {}, at("2027-10-10")).total;
+  if (moving - slack > 15) fail(`slack water shouldn't sink a redfish day (moving ${moving}, slack ${slack})`);
+  const open = api.scoreC("trout", { ...coast, mon: 5, temp: 78, divert: { s: .05, txt: "Bonnet Carré Spillway: open" } }, {}, at("2027-05-10"));
+  if (!(api.scoreC("trout", { ...coast, mon: 5, temp: 78 }, {}, at("2027-05-10")).total - open.total >= 20) || !/Bonnet/.test(open.reason)) fail(`an open Bonnet Carré must pull Pontchartrain trout down and say why (${open.total}, "${open.reason}")`);
+  const muddy = { ...coast, clar: "Muddy" };
+  if (!(api.scoreC("redfish", muddy, { estimated: ["clar"] }, d).total > api.scoreC("redfish", muddy, {}, d).total)) fail("clarity estimated from the wind should count less than measured clarity");
+  if (!(api.scoreC("redfish", { ...coast, wl_anom: -1.8 }, {}, d).total < api.scoreC("redfish", { ...coast, wl_anom: -0.4 }, {}, d).total)) fail("a north-wind blowout should lower redfish scores");
+  // The map library is the global L: the page must never declare its own
+  if (/^(const|let|var)\s+L\s*=/m.test(fs.readFileSync(path.join(__dirname, "..", "map.html"), "utf8"))) fail("map.html declares L, which hides the map library");
+}
+
 // ---- Personal tuning is per fish ----
 {
   // 6 good and 4 slow bass trips where warm water matched the good days

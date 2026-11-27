@@ -5,7 +5,7 @@
      Outside scripts are allowed by their exact file (Leaflet and the Supabase library), not whole sites, and
      only this site's own Supabase project may be contacted. Changing supabaseUrl in config.js? Change both
      of its addresses in connect-src too (node tests/check_page.js checks they match). -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-ap5MSQrXWR0reWT9leoroLT0xlM5zuuNBvia3r/cTEw=' 'sha256-dGc7nMxLMSMRyh1OMUJy5J7Mq1TQQwcVEn5QwguGcNY=' https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.118.0/dist/umd/supabase.js https://challenges.cloudflare.com/turnstile/; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https://*.noaa.gov https://gibs.earthdata.nasa.gov https://tile.openstreetmap.org https://cdnjs.cloudflare.com; connect-src 'self' https://kenny-powers-55-g.github.io https://*.noaa.gov https://gibs.earthdata.nasa.gov https://tile.openstreetmap.org https://api.open-meteo.com https://qpbqepzdxkadmulkmfbj.supabase.co wss://qpbqepzdxkadmulkmfbj.supabase.co https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://fonts.googleapis.com https://fonts.gstatic.com; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-src https://challenges.cloudflare.com; upgrade-insecure-requests">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-ap5MSQrXWR0reWT9leoroLT0xlM5zuuNBvia3r/cTEw=' 'sha256-CsB0odwyMsLmxT5z5MDq/T8LE6QjMtXQTrmLVKvApMI=' https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.118.0/dist/umd/supabase.js https://challenges.cloudflare.com/turnstile/; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https://*.noaa.gov https://gibs.earthdata.nasa.gov https://tile.openstreetmap.org https://cdnjs.cloudflare.com; connect-src 'self' https://kenny-powers-55-g.github.io https://*.noaa.gov https://gibs.earthdata.nasa.gov https://tile.openstreetmap.org https://api.open-meteo.com https://qpbqepzdxkadmulkmfbj.supabase.co wss://qpbqepzdxkadmulkmfbj.supabase.co https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://fonts.googleapis.com https://fonts.gstatic.com; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-src https://challenges.cloudflare.com; upgrade-insecure-requests">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -1483,7 +1483,7 @@ const SP={
   {k:"level",l:"Water level trend",w:2,f:E({Rising:1,Steady:.75,Falling:.5}),t:v=>v},
   {k:"clar",l:"Water clarity",w:1,f:E({Clear:.6,Stained:1,Muddy:1}),t:v=>v},
   {k:"wind",l:"Wind",w:1,f:v=>trap(v,[-1,0,10,24]),t:v=>v+" mph"},dtemp(1),rain(1,6),light(1,NIGHT),depth(1.2,[3, 8, 25, 50])]},
- bream:{name:"Bream (Bluegill)",tip:"Bream bed in shallow, firm-bottom pockets around the full moon from April to August. Crickets, worms or small jigs under a light cork.",gate:c=>c.sal!=null&&c.sal>4?"Too salty for bream":null,factors:[
+ bream:{name:"Bream (Bluegill)",tip:"Bream bed in shallow, firm-bottom pockets from April to August, in waves every couple of weeks; many anglers look for beds around the full moon. Crickets, worms or small jigs under a light cork.",gate:c=>c.sal!=null&&c.sal>4?"Too salty for bream":null,factors:[
   {k:"temp",l:"Water temp",w:4,f:v=>trap(v,[50,68,86,96]),t:v=>v+"°F"},
   {k:"wind",l:"Wind",w:1.5,f:v=>trap(v,[-1,0,7,16]),t:v=>v+" mph"},
   {k:"clar",l:"Water clarity",w:1,f:E({Clear:1,Stained:.9,Muddy:.4}),t:v=>v},
@@ -1504,7 +1504,7 @@ const SP={
   {k:"sal",l:"Salinity",w:2,f:v=>trap(v,[14,20,38,42]),t:v=>v+" ppt"},
   {k:"tide",l:"Tide movement",w:1.5,f:E({Incoming:1,Outgoing:.9,Slack:.4}),t:v=>v},
   {k:"wind",l:"Wind",w:2,f:v=>trap(v,[-1,0,12,20]),t:v=>v+" mph"},
-  light(1),depth(1,[3,6,30,60]),seas(1.5,[0,0,.1,.6,1,1,1,1,1,.7,.2,0])]},
+  light(1),depth(1,[3,6,30,60]),seas(1.5,[.05,.05,.1,.6,1,1,1,1,1,.7,.2,.05])]},
  pompano:{name:"Pompano",tip:"Pompano work the surf troughs and sandy beachfronts in clear, salty water, best in spring and fall runs. Small jigs (pompano jigs) bounced on the bottom or sand fleas and shrimp on a surf rig.",gate:c=>c.sal!=null&&c.sal<15?"Pompano need clear, salty water":null,near:NEAR,factors:[
   {k:"temp",l:"Water temp",w:3,f:v=>trap(v,[60,68,87,95]),t:v=>v+"°F"},
   {k:"clar",l:"Water clarity",w:2.5,f:E({Clear:1,Stained:.6,Muddy:.15}),t:v=>v},
@@ -1584,7 +1584,7 @@ const SP={
   {k:"wind",l:"Wind",w:1,f:v=>trap(v,[-1,2,12,24]),t:v=>v+" mph"},
   {k:"cloud",l:"Cloud cover",w:0.8,f:v=>.6+.4*trap(v,[-1,40,101,102]),t:v=>v+"%"},
   dtemp(1.5),front(2),rain(1,3),light(1),depth(1.2,[3,6,20,35])]},
- chinquapin:{name:"Chinquapin (Redear)",tip:"Chinquapin bed a little deeper than bluegill, on shell and firm bottom, peaking around the full moons of April and May. Worms fished right on the bottom.",gate:c=>c.sal!=null&&c.sal>6?"Too salty for chinquapin":null,factors:[
+ chinquapin:{name:"Chinquapin (Redear)",tip:"Chinquapin bed a little deeper than bluegill, on shell and firm bottom, starting in March in south Louisiana and peaking in April; many anglers fish the full moons. Worms fished right on the bottom.",gate:c=>c.sal!=null&&c.sal>6?"Too salty for chinquapin":null,factors:[
   {k:"temp",l:"Water temp",w:4,f:v=>trap(v,[52,64,82,93]),t:v=>v+"°F"},
   {k:"wind",l:"Wind",w:1.5,f:v=>trap(v,[-1,0,10,20]),t:v=>v+" mph"},
   {k:"clar",l:"Water clarity",w:1,f:E({Clear:1,Stained:.9,Muddy:.4}),t:v=>v},
@@ -1615,7 +1615,7 @@ const SP={
   {k:"temp",l:"Sea temp",w:1.5,f:v=>trap(v,[56,64,86,92]),t:v=>v+"°F"},wave(3),windO(2),cur(2,2),presO(1),light(1,E({Daytime:1,Dawn:.8,Dusk:.7,Night:.15})),depth(2,[40,60,180,300])]},
  marlin:{name:"Blue Marlin",zone:"offshore",note:LIM+" Billfish have federal permit and reporting rules.",tip:"Blue marlin work the deep blue-water edges, rips and the big floating platforms in summer. Trolled lures or live tuna along temperature and color breaks.",gate:c=>offGate(c)||(c.temp!=null&&c.temp<72?`Too cold for blue marlin (${c.temp}°F)`:null),factors:[sbreak(2),visO(2,40),
   {k:"temp",l:"Sea temp",w:3,f:v=>trap(v,[74,79,88,92]),t:v=>v+"°F"},wave(2),windO(1),cur(1.5),presO(1),moon(1),
-  seas(2,[0,0,.1,.3,.7,1,1,1,.9,.5,.1,0])]},
+  seas(2,[.05,.05,.1,.3,.7,1,1,1,.9,.5,.1,.05])]},
  swordfish:{night:true,name:"Swordfish",zone:"offshore",note:LIM+" Swordfish need a federal HMS permit.",tip:"Swordfish are caught deep-dropping in daylight over 1,200 to 1,800 feet, or drifting baits at night near the surface. Calm seas and a manageable current matter most.",gate:offGate,factors:[
   {k:"temp",l:"Sea temp",w:0.5,f:v=>trap(v,[55,62,90,95]),t:v=>v+"°F"},wave(3.5),windO(2.5),cur(2.5,2.5),presO(1),moon(1.2)]}
 };
@@ -1661,7 +1661,7 @@ const SEASON={redfish:[.6,.6,.7,.8,.8,.8,.8,.8,.9,1,1,.8],trout:[.6,.6,.7,.9,1,1
  sheepshead:[1,1,1,.8,.6,.5,.5,.5,.6,.7,.8,1],drum:[1,1,1,.8,.6,.5,.5,.5,.6,.7,.8,.9],crappie:[.8,.9,1,.8,.6,.5,.5,.5,.6,.8,.9,.9],
  catfish:[.5,.5,.7,.9,1,1,1,1,.9,.8,.6,.5],yft:[.6,.6,.7,.8,.9,1,1,.9,.8,.8,.8,.7],mahi:[.03,.03,.2,.6,.95,1,1,.85,.7,.45,.12,.03],
  wahoo:[.8,.7,.6,.6,.6,.5,.5,.5,.6,.8,1,.9],snapper:[.5,.5,.6,.7,.9,1,1,.9,.8,.7,.6,.5],amberjack:[.6,.6,.7,.8,.8,.8,.8,.8,.8,.8,.7,.6],
- kingmack:[.1,.1,.2,.5,.8,1,1,1,.9,.6,.3,.1],cobia:[0,0,.4,1,1,.8,.7,.6,.5,.4,.1,0],tripletail:[0,0,.1,.4,.8,1,1,1,.9,.5,.1,0],
+ kingmack:[.1,.1,.2,.5,.8,1,1,1,.9,.6,.3,.1],cobia:[.05,.05,.4,1,1,.8,.7,.6,.5,.4,.1,.05],tripletail:[0,0,.1,.4,.8,1,1,1,.9,.5,.1,0],
  mangrove:[.3,.3,.4,.6,.8,1,1,1,.9,.7,.5,.3],cubera:[.3,.3,.4,.5,.7,1,1,1,.8,.6,.4,.3],blackfin:[.8,.8,.8,.8,.7,.6,.6,.6,.7,.8,.9,.9],
  grouper:[.7,.7,.7,.7,.7,.7,.7,.7,.7,.8,.8,.7],
  striper:[.85,.9,.95,.85,.7,.55,.45,.45,.6,.8,.95,.9],spotbass:[.7,.85,1,1,.85,.65,.6,.6,.7,.85,.85,.75],
@@ -1673,6 +1673,81 @@ const SEASON={redfish:[.6,.6,.7,.8,.8,.8,.8,.8,.9,1,1,.8],trout:[.6,.6,.7,.9,1,1
 // Mahi weigh it most: they leave in winter even when the blue water stays warm
 const SEASON_W={cobia:2.5,tripletail:2.5,kingmack:2.5,mahi:6,wahoo:2,yft:1.5,choupique:.8,vermilion:.5,trigger:1.5,swordfish:.5};
 for(const[k,m]of Object.entries(SEASON))if(SP[k]&&!SP[k].factors.some(F=>F.k==="mon"))SP[k].factors.push(seas(SEASON_W[k]||1,m));
+// ---- One weather event, counted once (species research, Nov 2026) ----
+// Pressure trend, the air-temperature front, the water-temperature change and the front-cycle timing all
+// respond to the same cold front. Studies find no reliable catch effect from the barometer itself, and the
+// water-temperature change is the physical cause, so it keeps its weight and the others are capped. The same
+// review found no catch-rate support for solunar tables, so the moon is a light touch (and, where there is some
+// evidence, only in the months it applies). Tide stage, tide swing and tidal current are three views of one
+// thing, so each weighs less, and a weak tide isn't treated as dead water. Light (time of day) follows each fish.
+const PRES_IN=E({Falling:1,Steady:.85,Rising:.65}),PRES_OFF=E({Falling:.9,Steady:.85,Rising:.75});
+const TRANGE_F=v=>.35+.65*trap(v,[0,.6,2.5,4]);
+const TIDE=(o)=>E({Incoming:o.In??1,Outgoing:o.Out??1,Slack:o.Slack});
+const LM=(o)=>E(o);
+// Moonlight for night swordfishing: a brighter moon brings them shallower; by day the moon doesn't matter
+const illum=w=>({k:"moon",l:"Moonlight",w,f:v=>v.night?.6+.4*v.illum:.8,t:v=>`${Math.round(v.illum*100)}% lit`});
+const FPH_W={redfish:1.2,trout:1.2,crab:.3,catfish:.8,drum:.6,choupique:.6,gar:.6,pompano:.4,spanish:.6,sheepshead:.8};
+// [weight] or [weight, f] for a reading; weight 0 removes it. "+" adds factors; "months" limits one to certain months.
+const WX_TUNE={
+ redfish:{tide:[2,TIDE({Out:1,In:.9,Slack:.45})],pres:[.5,E({Falling:1,Steady:.8,Rising:.6})],front:[.6],moon:[.4],light:[.7,LM({Dawn:1,Dusk:1,Daytime:.8,Night:.6})],riv:[1]},
+ trout:{tide:[2,TIDE({In:1,Out:1,Slack:.3})],pres:[.5,E({Falling:1,Steady:.9,Rising:.7})],front:[.75],moon:[.4],light:[0],
+  "+":[{...light(1,LM({Dawn:1,Dusk:1,Night:.75,Daytime:.55})),months:[6,7,8,9]},{...light(1,LM({Dawn:.75,Dusk:.85,Daytime:.9,Night:.45})),months:[12,1,2]},{...light(1),months:[3,4,5,10,11]}]},
+ bass:{pres:[.5],front:[1],moon:[.4]},
+ spotbass:{pres:[.5],front:[.75]},
+ crappie:{pres:[.5,E({Falling:.9,Steady:1,Rising:.7})],front:[.75],"+":[light(.8,LM({Dawn:1,Dusk:1,Night:.8,Daytime:.7}))]},
+ crab:{tide:[1.5,TIDE({In:1,Out:1,Slack:.4})],moon:[.25],riv:[.7]},
+ flounder:{tide:[2,TIDE({In:.85,Out:1,Slack:.25})],light:[1,LM({Dawn:1,Dusk:1,Daytime:.65,Night:.75})],moon:[.4],riv:[1]},
+ sheepshead:{tide:[1.5,TIDE({In:1,Out:1,Slack:.5})],front:[0]},
+ drum:{tide:[1.5,TIDE({In:1,Out:1,Slack:.5})]},
+ bream:{moon:[0],front:[.75],pres:[.5],light:[1,LM({Dawn:1,Dusk:1,Daytime:.8,Night:.35})],"+":[{...moon(.5),months:[4,5,6,7,8]}]},
+ bullred:{tide:[2,TIDE({Out:1,In:.95,Slack:.3})],pres:[.5],moon:[0],light:[.5,LM({Dusk:1,Dawn:.9,Night:.8,Daytime:.7})],riv:[1],
+  "+":[{...moon(.7),months:[8,9,10]},{...moon(.4),months:[11,12,1,2,3,4,5,6,7]}]},
+ spanish:{light:[1,LM({Dawn:1,Daytime:.85,Dusk:.9,Night:.2})]},
+ pompano:{light:[.5,LM({Dawn:1,Daytime:.85,Dusk:.8,Night:.3})]},
+ tarpon:{moon:[.3],light:[1,LM({Dawn:1,Dusk:.9,Daytime:.85,Night:.5})]},
+ whitetrout:{tide:[2,TIDE({Out:1,In:.9,Slack:.25})]},
+ whitebass:{pres:[.5,E({Falling:.9,Steady:.85,Rising:.7})],front:[.75],light:[1,LM({Dawn:1,Dusk:1,Daytime:.8,Night:.45})]},
+ striper:{pres:[.5,E({Falling:.9,Steady:.85,Rising:.7})],front:[.75],moon:[0],light:[2,LM({Dawn:1,Dusk:1,Daytime:.6,Night:.7})]},
+ chinquapin:{moon:[0],pres:[.5],front:[.75],light:[1,LM({Dawn:1,Dusk:.95,Daytime:.85,Night:.3})],"+":[{...moon(.75),months:[3,4,5]}]},
+ choupique:{front:[.5],light:[1.5,LM({Dawn:1,Dusk:1,Daytime:.7,Night:.8})]},
+ gar:{front:[1],light:[1,LM({Daytime:1,Dusk:.9,Dawn:.8,Night:.75})]},
+ cobia:{front:[.75],light:[1,LM({Daytime:1,Dawn:.8,Dusk:.8,Night:.4})]},
+ tripletail:{light:[1,LM({Daytime:1,Dawn:.7,Dusk:.6,Night:.2})]},
+ kingmack:{front:[.75]},
+ snapper:{wind:[1]},amberjack:{wind:[1]},grouper:{wind:[1]},trigger:{wind:[1]},vermilion:{wind:[1.2]},
+ mangrove:{wind:[1],light:[1,NIGHT]},
+ cubera:{wind:[1],"+":[light(1,NIGHT)]},
+ blackfin:{moon:[.3]},
+ marlin:{pres:[.5],moon:[.5],"+":[light(2,LM({Dawn:.9,Daytime:1,Dusk:.9,Night:.25}))]},
+ swordfish:{pres:[.5],moon:[0],"+":[illum(1)]}};
+for(const[k,p]of Object.entries(SP)){
+ const off=p.zone==="offshore",T=WX_TUNE[k]||{};
+ for(const F of p.factors){
+  if(F.k==="pres"){F.w=Math.min(F.w,off?.3:.5);F.f=off?PRES_OFF:PRES_IN}
+  if(F.k==="front")F.w=Math.min(F.w,.75);
+  if(F.k==="fphase")F.w=FPH_W[k]??.8;
+  if(F.k==="trange"){F.w=Math.min(F.w,1);F.f=TRANGE_F}
+  if(F.k==="tide")F.w=Math.min(F.w,2);
+  const o=T[F.k];if(o){F.w=o[0];if(o[1])F.f=o[1]}}
+ p.factors=p.factors.filter(F=>F.w>0).concat(T["+"]||[]);
+}
+// A low-oxygen bottom pushes reef fish up the rig legs rather than away; open-bottom fish do leave
+const OXY_LOW={snapper:.35,mangrove:.35,cubera:.35,amberjack:.35};
+for(const[k,p]of Object.entries(SP))for(const F of p.factors)if(F.k==="oxy"){const lo=OXY_LOW[k]??.2;F.f=E({OK:1,Low:lo});F.t=v=>v==="Low"?(lo>.2?"Low (dead zone): fish may hold higher at rigs":"Low (dead zone)"):"OK"}
+// Water level against the tide table: a north-wind drain-out or a south-wind flood (feet). Redfish and
+// flounder feed on the edges when water is a little low; a blowout or a flood scatters them.
+const pw=pts=>v=>{if(v<=pts[0][0])return pts[0][1];for(let i=1;i<pts.length;i++)if(v<=pts[i][0]){const[a,fa]=pts[i-1],[b,fb]=pts[i];return fa+(fb-fa)*(v-a)/(b-a)}return pts[pts.length-1][1]};
+const wlAnom=(w,pts)=>({k:"wl_anom",l:"Water vs tide table",w,f:pw(pts),t:v=>(v>0?"+":"")+v+" ft"});
+SP.redfish.factors.push(wlAnom(1,[[-1.6,.45],[-1,.9],[-.6,1],[-.2,1],[.2,.85],[.6,.7],[1.2,.5],[2,.4]]));
+SP.flounder.factors.push(wlAnom(1,[[-2,.5],[-1.5,1],[-.2,1],[.5,.8],[.6,.6]]));
+// River diversions: an open spillway or a big diversion flow freshens and muddies the water downstream
+const DIV_SPOTS={bonnet:["pont","chef","rigolets","borgne"],davis:["cataouatche","salvador","barat"],caern:["delacroix","blackbay","hopedale"]};
+const DIV_V={Open:.05,Flowing:.6,"Low flow":.95,Closed:1};
+const divert=w=>({k:"divert",l:"River diversion",w,f:v=>v.s,t:v=>v.txt});
+for(const[k,w]of[["trout",4],["redfish",2],["flounder",2],["drum",2],["sheepshead",2],["whitetrout",2.5],["crab",1],["bullred",2],["spanish",2.5],["pompano",2.5],["jack",2],["tarpon",1]])SP[k].factors.push(divert(w));
+function divertInfo(spot){const id=spot.base||spot.id,D=DATA&&DATA.diversions||{};
+ for(const[d,spots]of Object.entries(DIV_SPOTS))if(spots.includes(id)&&D[d]&&DIV_V[D[d].status]!=null)return{s:DIV_V[D[d].status],txt:`${D[d].name}: ${D[d].status.toLowerCase()}`};
+ return null}
 const seasonOf=k=>{const f=SP[k].factors.find(F=>F.k==="mon");return f?MON.map((_,i)=>f.f(i+1)):SEASON[k]||null};
 const SRC={weed:"weed",tcur:"tcur",oxy:"oxy",riv:"riv",wl_anom:"wl_anom",vis:"vis",sbreak:"sbreak",wave:"wave",cur:"cur",temp:"temp_f",wind:"wind_mph",pres:"pres",tide:"tide",trange:"tide",sal:"sal",cloud:"cloud",dtemp:"temp_d24",rain:"rain",front:"front",level:"level_d6"};
 
@@ -1717,7 +1792,7 @@ function shrimpInfo(c,ts=Date.now()){
  const txt=ph[0]>=.2?ph[1]+(/out/.test(ph[1])&&tide==="Outgoing"?", falling tide":""):SHRIMP_RES[m]<=.3?"Few shrimp in the marsh (winter)":"Shrimp in the marsh, not running";
  return{s:Math.round(s*100)/100,txt,out,ph:ph[0]>=.2?ph[1]:null,wo,bo,bi,wi};
 }
-function addCtx(c,spot,ts){c.fphase=frontInfo(spot,ts);c.shrimp=spot.zone==="offshore"?null:shrimpInfo(c,ts);return c}
+function addCtx(c,spot,ts){c.fphase=frontInfo(spot,ts);c.divert=spot.zone==="offshore"?null:divertInfo(spot);c.shrimp=spot.zone==="offshore"?null:shrimpInfo(c,ts);return c}
 
 // Sunrise/sunset from lat/lon (NOAA approximation), good to a few minutes
 function sunMins(lat,lon,dayUTC){
@@ -1799,7 +1874,7 @@ function moonInfo(spot,ts=Date.now()){
  const phaseS=1-Math.min(1,ph/0.12);
  const w=solunarWindows(spot,ts).find(x=>ts>=x.from&&ts<=x.to);
  const s=0.45+0.35*phaseS+(w?(w.major?0.2:0.1):0);
- return{s:Math.min(1,s),txt:moonLabel(p)+(w?(w.major?", major solunar period":", minor solunar period"):"")};
+ return{s:Math.min(1,s),illum:(1-Math.cos(2*Math.PI*p))/2,night:lightNow(spot,ts)==="Night",txt:moonLabel(p)+(w?(w.major?", major solunar period":", minor solunar period"):"")};
 }
 function windCompass(deg){
  if(deg==null||isNaN(deg))return null;
@@ -2048,6 +2123,8 @@ function reasonText(R){
   case"oxy":return x==="Low"?"Low bottom oxygen (dead zone)":"Bottom oxygen OK";
   case"weed":return g?`Weedline ${t}`:"No weedline nearby";
   case"moon":case"fphase":case"shrimp":return t;
+  case"divert":return b?`Fresh river water (${t})`:t;
+  case"wl_anom":return g?`Good water level (${t} vs the tide table)`:x<0?`Water blown out (${t} vs the tide table)`:`High water (${t} vs the tide table)`;
   default:return`${R.l}: ${t}`;
  }
 }
@@ -2061,7 +2138,7 @@ function scoreC(spId,c,q,ts=Date.now()){
  const gate=closedNow(p,ts)||zoneGate(p,c)||p.gate(c); if(gate)return{gate};
  const na=q.not_applicable||[];
  // moon is always available when we inject it
- const usable=p.factors.filter(F=>!na.includes(F.k));
+ const usable=p.factors.filter(F=>!na.includes(F.k)&&(!F.months||F.months.includes(c.mon)));
  const have=usable.filter(F=>c[F.k]!=null);
  if(!have.length)return{gate:"Not enough data right now"};
  // Factors are combined as a weighted geometric mean: one really bad condition (water far too cold,
@@ -2069,7 +2146,8 @@ function scoreC(spId,c,q,ts=Date.now()){
  let sw=0,s=0,lg=0;
  // Personal tuning from your own catch log comes first; community tuning (anonymous reports) fills in the rest
  const ct=commCell(spId,c.area),CT=ct&&ct.tune,pt=tuneFor(spId),PT=pt&&pt.t;
- const wOf=F=>F.w*(PT&&PT[F.k]||CT&&CT[F.k]||1);
+ // Water clarity and lake temperature estimated from wind and air count half: they echo readings already scored
+ const est=q.estimated||[],wOf=F=>F.w*((F.k==="clar"||F.k==="temp")&&est.includes(F.k)?.5:1)*(PT&&PT[F.k]||CT&&CT[F.k]||1);
  const rows=have.map(F=>{const v=F.f(c[F.k]),w=wOf(F);sw+=w;s+=w*v;lg+=w*Math.log(Math.max(v,.02));return{...F,w:Math.round(w*10)/10,v,raw:c[F.k],txt:F.t(c[F.k])}});
  const tw=usable.reduce((a,F)=>a+wOf(F),0);
  // one-sentence reason from the strongest positive or negative factor

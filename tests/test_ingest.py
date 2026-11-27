@@ -38,6 +38,14 @@ class Conversions(unittest.TestCase):
         pts = [(t0 - ingest.timedelta(hours=3), 1.2, "H"), (t0 + ingest.timedelta(hours=3), 0.1, "L")]
         self.assertEqual(ingest.stage_at(pts, t0)[0], "Outgoing")
 
+    def test_weak_tide_still_moves(self):
+        # A 0.4 ft neap tide is Incoming mid-way, and Slack only near the turn
+        from datetime import datetime, timedelta, timezone
+        t0 = datetime(2027, 1, 10, 12, tzinfo=timezone.utc)
+        pts = [(t0 - timedelta(hours=6), 0.2, "L"), (t0 + timedelta(hours=6), 0.6, "H")]
+        self.assertEqual(ingest.stage_at(pts, t0)[0], "Incoming")
+        self.assertEqual(ingest.stage_at(pts, t0 - timedelta(hours=5, minutes=45))[0], "Slack")
+
 
 class FullRun(unittest.TestCase):
     """Runs the whole pipeline once against canned data and checks what the page will read."""
