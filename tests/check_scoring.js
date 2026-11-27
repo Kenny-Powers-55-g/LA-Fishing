@@ -53,6 +53,10 @@ const at = d => Date.parse(d + "T18:00:00Z");
   const c = { zone: "offshore", temp: 76, wind: 4, wave: 1, clar: "Clear", vis: 20, area: "offshore" };
   const july = api.scoreC("cobia", { ...c, mon: 4 }, {}, at("2027-04-15")).total, nov = api.scoreC("cobia", { ...c, mon: 11 }, {}, at("2026-11-23")).total;
   if (!(nov < 60 && july - nov >= 20)) fail(`cobia should score well below "Good" in November, when most have left (April ${july}, November ${nov})`);
+  // Mahi leave Louisiana waters in winter even when the blue water is still warm
+  const bw = { zone: "offshore", temp: 72, wind: 6, wave: 2, cur: 0.5, vis: 40, light: "Dawn", bdepth: 2000 };
+  const jan = api.scoreC("mahi", { ...bw, mon: 1 }, {}, at("2027-01-15")).total, jul = api.scoreC("mahi", { ...bw, temp: 86, mon: 7 }, {}, at("2027-07-15")).total;
+  if (!(jan < 40 && jul >= 80)) fail(`mahi should be Poor in January and strong in July (January ${jan}, July ${jul})`);
 }
 
 // ---- Ordinary Louisiana water never grades a fish's temperature at zero while it's in season ----

@@ -5,7 +5,7 @@
      Outside scripts are allowed by their exact file (Leaflet and the Supabase library), not whole sites, and
      only this site's own Supabase project may be contacted. Changing supabaseUrl in config.js? Change both
      of its addresses in connect-src too (node tests/check_page.js checks they match). -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-ap5MSQrXWR0reWT9leoroLT0xlM5zuuNBvia3r/cTEw=' 'sha256-Ra0qJ2OCedjf7lq/lHCKfUMOgQCHpv03F/vczuZpuGc=' https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.118.0/dist/umd/supabase.js https://challenges.cloudflare.com/turnstile/; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https://*.noaa.gov https://gibs.earthdata.nasa.gov https://tile.openstreetmap.org https://cdnjs.cloudflare.com; connect-src 'self' https://kenny-powers-55-g.github.io https://*.noaa.gov https://gibs.earthdata.nasa.gov https://tile.openstreetmap.org https://api.open-meteo.com https://qpbqepzdxkadmulkmfbj.supabase.co wss://qpbqepzdxkadmulkmfbj.supabase.co https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://fonts.googleapis.com https://fonts.gstatic.com; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-src https://challenges.cloudflare.com; upgrade-insecure-requests">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-ap5MSQrXWR0reWT9leoroLT0xlM5zuuNBvia3r/cTEw=' 'sha256-dGc7nMxLMSMRyh1OMUJy5J7Mq1TQQwcVEn5QwguGcNY=' https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.118.0/dist/umd/supabase.js https://challenges.cloudflare.com/turnstile/; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https://*.noaa.gov https://gibs.earthdata.nasa.gov https://tile.openstreetmap.org https://cdnjs.cloudflare.com; connect-src 'self' https://kenny-powers-55-g.github.io https://*.noaa.gov https://gibs.earthdata.nasa.gov https://tile.openstreetmap.org https://api.open-meteo.com https://qpbqepzdxkadmulkmfbj.supabase.co wss://qpbqepzdxkadmulkmfbj.supabase.co https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://fonts.googleapis.com https://fonts.gstatic.com; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-src https://challenges.cloudflare.com; upgrade-insecure-requests">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -1515,7 +1515,7 @@ const SP={
  yft:{name:"Yellowfin Tuna",zone:"offshore",gate:offGate,factors:[sbreak(2),visO(1.5,30),
   {k:"temp",l:"Sea temp",w:3,f:v=>trap(v,[66,72,86,92]),t:v=>v+"°F"},wave(2),windO(1),cur(1),presO(1),dtemp(1),light(1)]},
  mahi:{name:"Mahi-Mahi",zone:"offshore",gate:offGate,factors:[sbreak(2),visO(1.5,25),
-  {k:"temp",l:"Sea temp",w:3,f:v=>trap(v,[70,76,84,91]),t:v=>v+"°F"},wave(2),windO(1),presO(1),dtemp(1),light(1),depth(1.5,[20,40,150,300])]},
+  {k:"temp",l:"Sea temp",w:3,f:v=>trap(v,[68,74,84,91]),t:v=>v+"°F"},wave(2),windO(1),presO(1),dtemp(1),light(1),depth(1.5,[20,40,150,300])]},
  wahoo:{name:"Wahoo",zone:"offshore",gate:offGate,factors:[sbreak(2),visO(1.5,30),
   {k:"temp",l:"Sea temp",w:3,f:v=>trap(v,[65,70,84,90]),t:v=>v+"°F"},wave(2),windO(1),cur(1),light(1),depth(1.5,[40,60,200,400])]},
  snapper:{name:"Red Snapper",zone:"offshore",note:LIM,gate:offGate,factors:[
@@ -1659,7 +1659,7 @@ for(const k of["snapper","grouper","mangrove","cubera","amberjack","trigger"])SP
 const SEASON={redfish:[.6,.6,.7,.8,.8,.8,.8,.8,.9,1,1,.8],trout:[.6,.6,.7,.9,1,1,.9,.8,.8,.9,1,.8],
  bass:[.5,.6,.9,1,1,.8,.7,.7,.8,.9,.8,.6],crab:[.2,.2,.4,.6,.8,1,1,1,.9,.7,.4,.2],flounder:[.3,.3,.5,.6,.7,.7,.7,.7,.9,1,1,.5],
  sheepshead:[1,1,1,.8,.6,.5,.5,.5,.6,.7,.8,1],drum:[1,1,1,.8,.6,.5,.5,.5,.6,.7,.8,.9],crappie:[.8,.9,1,.8,.6,.5,.5,.5,.6,.8,.9,.9],
- catfish:[.5,.5,.7,.9,1,1,1,1,.9,.8,.6,.5],yft:[.6,.6,.7,.8,.9,1,1,.9,.8,.8,.8,.7],mahi:[.1,.1,.2,.5,.9,1,1,.9,.7,.4,.2,.1],
+ catfish:[.5,.5,.7,.9,1,1,1,1,.9,.8,.6,.5],yft:[.6,.6,.7,.8,.9,1,1,.9,.8,.8,.8,.7],mahi:[.03,.03,.2,.6,.95,1,1,.85,.7,.45,.12,.03],
  wahoo:[.8,.7,.6,.6,.6,.5,.5,.5,.6,.8,1,.9],snapper:[.5,.5,.6,.7,.9,1,1,.9,.8,.7,.6,.5],amberjack:[.6,.6,.7,.8,.8,.8,.8,.8,.8,.8,.7,.6],
  kingmack:[.1,.1,.2,.5,.8,1,1,1,.9,.6,.3,.1],cobia:[0,0,.4,1,1,.8,.7,.6,.5,.4,.1,0],tripletail:[0,0,.1,.4,.8,1,1,1,.9,.5,.1,0],
  mangrove:[.3,.3,.4,.6,.8,1,1,1,.9,.7,.5,.3],cubera:[.3,.3,.4,.5,.7,1,1,1,.8,.6,.4,.3],blackfin:[.8,.8,.8,.8,.7,.6,.6,.6,.7,.8,.9,.9],
@@ -1670,7 +1670,8 @@ const SEASON={redfish:[.6,.6,.7,.8,.8,.8,.8,.8,.9,1,1,.8],trout:[.6,.6,.7,.9,1,1
 // Fish without a time-of-year factor of their own score with the guide above too. Fish that leave Louisiana
 // waters for part of the year (cobia, tripletail, king mackerel, mahi, wahoo) weigh it heavily, so a warm
 // November day doesn't rate them Excellent after they've gone; fish that stay all year weigh it lightly.
-const SEASON_W={cobia:2.5,tripletail:2.5,kingmack:2.5,mahi:2.5,wahoo:2,yft:1.5,choupique:.8,vermilion:.5,trigger:1.5,swordfish:.5};
+// Mahi weigh it most: they leave in winter even when the blue water stays warm
+const SEASON_W={cobia:2.5,tripletail:2.5,kingmack:2.5,mahi:6,wahoo:2,yft:1.5,choupique:.8,vermilion:.5,trigger:1.5,swordfish:.5};
 for(const[k,m]of Object.entries(SEASON))if(SP[k]&&!SP[k].factors.some(F=>F.k==="mon"))SP[k].factors.push(seas(SEASON_W[k]||1,m));
 const seasonOf=k=>{const f=SP[k].factors.find(F=>F.k==="mon");return f?MON.map((_,i)=>f.f(i+1)):SEASON[k]||null};
 const SRC={weed:"weed",tcur:"tcur",oxy:"oxy",riv:"riv",wl_anom:"wl_anom",vis:"vis",sbreak:"sbreak",wave:"wave",cur:"cur",temp:"temp_f",wind:"wind_mph",pres:"pres",tide:"tide",trange:"tide",sal:"sal",cloud:"cloud",dtemp:"temp_d24",rain:"rain",front:"front",level:"level_d6"};
