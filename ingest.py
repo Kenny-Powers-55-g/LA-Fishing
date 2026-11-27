@@ -634,7 +634,7 @@ def weather(lat, lon):
         latitude=lat, longitude=lon,
         current="wind_speed_10m,wind_direction_10m,cloud_cover,surface_pressure,temperature_2m",
         hourly="surface_pressure,temperature_2m,precipitation,wind_speed_10m,wind_direction_10m,wind_gusts_10m,cloud_cover",
-        past_hours=48, forecast_hours=169,
+        past_hours=240, forecast_hours=169,
         wind_speed_unit="mph", temperature_unit="fahrenheit", precipitation_unit="inch",
         timezone="GMT"))
     try:
@@ -642,6 +642,11 @@ def weather(lat, lon):
         t = datetime.fromisoformat(cur["time"]).replace(tzinfo=UTC)
         H = j["hourly"]
         times = [datetime.fromisoformat(a).replace(tzinfo=UTC) for a in H["time"]]
+        # Ten days back is only for the lake-temperature estimate; everything else uses the last 48 h
+        air_hist = [(ts, v) for ts, v in zip(times, H["temperature_2m"]) if v is not None and ts <= t]
+        i0 = next((i for i, ts in enumerate(times) if ts >= t - timedelta(hours=48)), 0)
+        times = times[i0:]
+        H = {k: (v[i0:] if isinstance(v, list) else v) for k, v in H.items()}
         def series(key):
             return [(ts, v) for ts, v in zip(times, H[key]) if v is not None]
         ref = nearest(series("surface_pressure"), t - timedelta(hours=3), timedelta(minutes=90))
@@ -653,7 +658,7 @@ def weather(lat, lon):
         rain48 = sum(rain) if len(rain) >= 40 else None      # need most of the window
         wdir = cur.get("wind_direction_10m")
         return {"time": t, "wind_mph": cur["wind_speed_10m"], "wind_dir": wdir, "cloud": cur["cloud_cover"],
-                "pres": trend, "pres_delta_hpa": delta, "air_d24": air_d24, "rain48": rain48,
+                "pres": trend, "pres_delta_hpa": delta, "air_d24": air_d24, "rain48": rain48, "air_hist": air_hist,
                 "series": {"t": times, "pres": H["surface_pressure"], "air": H["temperature_2m"], "rain": H["precipitation"],
                            "wind": H["wind_speed_10m"], "cloud": H["cloud_cover"],
                            "wdir": H.get("wind_direction_10m") or [None] * len(times),
@@ -1263,7 +1268,9 @@ def stage_at(pts, t):
         return None, None
     pv, nx = prev[-1], nxt[0]
     rng = abs(nx[1] - pv[1])
-    if rng < 0.3 or min(t - pv[0], nx[0] - t) < timedelta(minutes=30):
+    # Slack only within half an hour of a turn. A weak (neap) tide still moves water, and its
+    # small range already shows up in the tide swing, so it isn't called slack for hours.
+    if min(t - pv[0], nx[0] - t) < timedelta(minutes=30):
         return "Slack", rng
     return ("Incoming" if nx[2] == "H" else "Outgoing"), rng
 
@@ -1378,17 +1385,25 @@ def collect(spot, now, cache):
     wx = cache.setdefault(("wx", spot["id"]), weather(spot["lat"], spot["lon"]))
     est = []
     # No water-temperature gauge within reach (most north Louisiana lakes): estimate it from the air.
-    # Lake surface temperature follows the average air temperature of the last couple of days.
-    if not spot.get("marine") and "temp_f" not in got and wx and wx.get("series"):
-        air = [(t, v) for t, v in zip(wx["series"]["t"], wx["series"]["air"]) if v is not None and t <= now]
-        last48, last24 = [v for t, v in air[-48:]], [v for t, v in air[-24:]]
-        prev24 = [v for t, v in air[-48:-24]]
-        if len(last48) >= 36:
-            got["temp_f"] = (sum(last48) / len(last48), now)
+    # A lake's surface follows the air slowly, over days, so use an average of the last ten days that
+    # counts recent days most (a 4-day time constant). The 24 h change is how much that average moved.
+    if not spot.get("marine") and "temp_f" not in got and wx and (wx.get("air_hist") or wx.get("series")):
+        air = wx.get("air_hist") or [(t, v) for t, v in zip(wx["series"]["t"], wx["series"]["air"]) if v is not None and t <= now]
+        air = [(t, v) for t, v in air if t <= now]
+        def lake(at):
+            pts = [(max(0.0, (at - t).total_seconds() / 3600), v) for t, v in air if t <= at]
+            if len(pts) < 36:
+                return None
+            wts = [math.exp(-age / 96) for age, _ in pts]
+            return sum(w * v for w, (_, v) in zip(wts, pts)) / sum(wts)
+        est_now = lake(now)
+        if est_now is not None:
+            got["temp_f"] = (est_now, now)
             src["temp_f"] = {"source": "estimated from air temperature (no gauge nearby)", "age_min": 0}
             est.append("temp")
-            if len(last24) >= 18 and len(prev24) >= 18:
-                got["temp_d24"] = (0.3 * (sum(last24) / len(last24) - sum(prev24) / len(prev24)), now)
+            est_prev = lake(now - timedelta(hours=24))
+            if est_prev is not None:
+                got["temp_d24"] = (est_now - est_prev, now)
                 src["temp_d24"] = dict(src["temp_f"])
     if wx:
         age = (now - wx["time"]).total_seconds() / 60
