@@ -144,6 +144,24 @@ const at = d => Date.parse(d + "T18:00:00Z");
   if (sc(12, 4) !== sc(12, -6)) fail("the cubera full-moon window applies only June to September");
 }
 
+// ---- New readings: oxygen, surf, river levels by season ----
+{
+  const api = load(), d = at("2027-03-10");
+  const fresh = { zone: "inshore", sal: 0.1, wind: 8, clar: "Stained", cloud: 50, light: "Dawn", temp: 70, mon: 3, level: "Steady", pres: "Steady" };
+  if (!(api.scoreC("catfish", { ...fresh, doxy: 6 }, {}, d).total - api.scoreC("catfish", { ...fresh, doxy: 1 }, {}, d).total >= 15)) fail("water with almost no oxygen must sink a catfish score");
+  const beach = { zone: "inshore", sal: 30, temp: 75, wind: 8, clar: "Stained", tide: "Incoming", light: "Dawn", mon: 4 };
+  if (!(api.scoreC("pompano", { ...beach, wave: 1 }, {}, at("2027-04-15")).total > api.scoreC("pompano", { ...beach, wave: 5 }, {}, at("2027-04-15")).total + 10)) fail("heavy surf should hurt pompano");
+  const wb = m => api.scoreC("whitebass", { ...fresh, mon: m, temp: 62, level: "Rising" }, {}, at(`2027-${String(m).padStart(2, "0")}-15`)).total - api.scoreC("whitebass", { ...fresh, mon: m, temp: 62, level: "Falling" }, {}, at(`2027-${String(m).padStart(2, "0")}-15`)).total;
+  if (!(wb(3) > wb(8))) fail(`rising water matters most for the spring white bass run (March ${wb(3)}, August ${wb(8)})`);
+}
+
+// ---- Blue-water fish favor a Loop Current or eddy edge ----
+{
+  const api = load(), off = { zone: "offshore", temp: 82, wave: 2, wind: 8, cur: .8, vis: 60, light: "Dawn", mon: 6, bdepth: 4000 };
+  const edge = api.scoreC("yft", { ...off, ssh_edge: 1.2 }, {}, at("2027-06-15")).total, none = api.scoreC("yft", { ...off, ssh_edge: .3 }, {}, at("2027-06-15")).total;
+  if (!(edge - none >= 4)) fail(`yellowfin should score higher near a current edge (edge ${edge}, none ${none})`);
+}
+
 // ---- Personal tuning is per fish ----
 {
   // 6 good and 4 slow bass trips where warm water matched the good days

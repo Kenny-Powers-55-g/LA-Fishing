@@ -38,6 +38,23 @@ class Conversions(unittest.TestCase):
         pts = [(t0 - ingest.timedelta(hours=3), 1.2, "H"), (t0 + ingest.timedelta(hours=3), 0.1, "L")]
         self.assertEqual(ingest.stage_at(pts, t0)[0], "Outgoing")
 
+    def test_gauges_and_beaches(self):
+        ids = {s["id"] for s in ingest.SPOTS}
+        for sid in ingest.SPOT_GAUGES:
+            self.assertIn(sid, ids, f"gauge listed for unknown spot {sid}")
+        surf = [s for s in ingest.SPOTS if s.get("surf")]
+        self.assertGreaterEqual(len(surf), 5)
+        self.assertTrue(all(s["tide"] for s in surf), "beach spots need a tide station")
+
+    def test_lake_elevation_and_oxygen(self):
+        from datetime import datetime, timedelta, timezone
+        t = datetime(2027, 3, 1, 12, tzinfo=timezone.utc)
+        out = {}
+        ingest.usgs_points("62615", [(t - timedelta(hours=6), 167.0), (t, 167.4)], out)
+        ingest.usgs_points("00300", [(t, 3.2)], out)
+        self.assertAlmostEqual(out["level_d6"][0], 0.4, places=3)
+        self.assertEqual(out["do_mgl"][0], 3.2)
+
     def test_weak_tide_still_moves(self):
         # A 0.4 ft neap tide is Incoming mid-way, and Slack only near the turn
         from datetime import datetime, timedelta, timezone

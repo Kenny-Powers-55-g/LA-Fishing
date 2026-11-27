@@ -8,9 +8,14 @@ writes latest.json in the shape the scoring page expects.
 Sources
   NOAA CO-OPS   water temp, conductivity (-> salinity), wind, tide predictions
   USGS Water Data APIs (api.waterdata.usgs.gov)
-                water temp, specific conductance (-> salinity), turbidity, gage height
-  Open-Meteo    wind, cloud cover, surface pressure (-> 3 hr trend), marine model
-  NDBC, CoastWatch ERDDAP, NWS alerts
+                water temp, specific conductance (-> salinity), turbidity, gage height and lake
+                elevation (-> level trend), dissolved oxygen, diversion flows
+  Open-Meteo    wind, cloud cover, surface pressure (-> 3 hr trend), 10 days of air temperature
+                (-> lake water temperature where there's no gauge), marine model
+  NOAA CoastWatch ERDDAP
+                Geo-polar Blended satellite sea temperature and temperature breaks, blended altimetry
+                (-> Loop Current and eddy edges), VIIRS chlorophyll and water clarity
+  NDBC buoys, NWS alerts, NWS forecast grid (wind, gusts, waves; surf height at beach spots)
   NWS NWPS      Mississippi and Atchafalaya river stage, forecast crest, flood levels
 
 Usage (Python 3.9+, standard library only)
@@ -65,7 +70,7 @@ def save_station_cache(cache):
         if isinstance(k, tuple) and k and k[0] in ("sites", "buoys", "depth", "mzone", "cstn", "ngrid"):
             # JSON keys must be strings
             out["|".join(str(x) for x in k)] = v
-        elif k in ("buoys", "deadbuoys", "deadbuoys_t", "cstations", "launches_tried") and v:
+        elif k in ("buoys", "deadbuoys", "deadbuoys_t", "cstations", "launches_tried", "div_open") and v:
             out[k] = v
     try:
         with open(STATION_CACHE + ".tmp", "w") as f:
@@ -76,7 +81,7 @@ def save_station_cache(cache):
 
 def hydrate_station_cache(cache, disk):
     for k, v in (disk or {}).items():
-        if k in ("buoys", "deadbuoys", "deadbuoys_t", "cstations", "launches_tried"):
+        if k in ("buoys", "deadbuoys", "deadbuoys_t", "cstations", "launches_tried", "div_open"):
             cache.setdefault(k, v)
             continue
         if "|" in k:
@@ -110,6 +115,16 @@ SPOTS = [
      "water": [("coops", "8762928")], "tide": "8762928"},
     {"id": "fourchon", "name": "Port Fourchon / Belle Pass", "lat": 29.11, "lon": -90.20,
      "water": [("coops", "8762075"), ("coops", "8761724")], "tide": "8762075"},
+    # Gulf beaches, fished from the surf: wave height from the NWS forecast grid counts here
+    {"id": "gibeach", "name": "Grand Isle beach (surf)", "lat": 29.235, "lon": -90.00, "surf": True,
+     "note": "Gulf-side beach and the state park; wade the troughs.",
+     "water": [("coops", "8761724")], "tide": "8761724"},
+    {"id": "elmers", "name": "Elmer's Island (surf)", "lat": 29.18, "lon": -90.08, "surf": True,
+     "note": "Wildlife refuge beach west of Grand Isle; walk-in access.",
+     "water": [("coops", "8761724")], "tide": "8761724"},
+    {"id": "fourchonbeach", "name": "Fourchon Beach (surf)", "lat": 29.10, "lon": -90.21, "surf": True,
+     "note": "Beach west of Belle Pass; check access rules before you drive it.",
+     "water": [("coops", "8762075")], "tide": "8762075"},
     {"id": "houma", "river": "atch", "name": "Houma Bayous (Bayou Terrebonne)", "lat": 29.58, "lon": -90.72,
      "water": [], "tide": None},
     {"id": "palourde", "river": "atch", "name": "Lake Palourde", "lat": 29.70, "lon": -91.08,
@@ -238,6 +253,12 @@ SPOTS = [
      "water": [], "tide": None, "fresh": True},
     {"id": "cameron", "name": "Cameron Jetties", "lat": 29.765, "lon": -93.345,
      "water": [("coops", "8768094")], "tide": "8768094"},
+    {"id": "holly", "name": "Holly Beach (surf)", "lat": 29.77, "lon": -93.46, "surf": True,
+     "note": "Long, open beach west of Cameron, easy road access.",
+     "water": [("coops", "8768094")], "tide": "8768094"},
+    {"id": "rutherford", "name": "Rutherford Beach (surf)", "lat": 29.76, "lon": -93.12, "surf": True,
+     "note": "Quiet beach east of Cameron at the end of Rutherford Beach Rd.",
+     "water": [("coops", "8768094")], "tide": "8768094"},
     {"id": "lakecharles", "name": "Lake Charles / Prien Lake", "lat": 30.2, "lon": -93.26,
      "water": [("coops", "8767816")], "tide": "8767816"},   # not 8767961 (Bulk Terminal): reads ~6 F warmer than every gauge nearby
     {"id": "sabine", "name": "Sabine Lake", "lat": 29.85, "lon": -93.87,
@@ -302,6 +323,28 @@ SPOTS = [
     {"id": "off_mc_east", "name": "Mississippi Canyon deepwater (east)", "lat": 28.5, "lon": -88.3,
      "water": [], "tide": None, "marine": True},
 ]
+
+# USGS gauges on the water itself at freshwater and swamp spots, for water level (rising, steady,
+# falling) and, where one reports it, dissolved oxygen. Only gauges on the same lake or river are listed:
+# a gauge on a different creek or lake miles away says little about the spot.
+SPOT_GAUGES = {
+    "verret": ["07381454"],                   # Belle River at Hwy 70 near Pierre Part (Lake Verret outlet)
+    "palourde": ["07381600"],                 # Lower Atchafalaya River at Morgan City (level and oxygen)
+    "maurepas": ["073802302"],                # Pass Manchac (the swamp oxygen sensor near Hope Canal reads swamp
+                                              # water, routinely under 2 mg/L, not the open lake, so it isn't used)
+    "henderson": ["302020091435700"],         # Lake Pelba at I-10 near Henderson
+    "tchefuncte": ["07375230"],               # Tchefuncte River at Madisonville
+    "pearl": ["02492600"],                    # Pearl River at Pearl River
+    "springbayou": ["07383360"],              # Little River at Boggy Bayou Rd, east of Marksville
+    "toledo": ["312914093422701"],            # Toledo Bend Reservoir near Negreet (lake elevation)
+    "bistineau": ["07349250"],                # Lake Bistineau near Ringgold
+    "crosslake": ["07344480"],                # Cross Lake at Shreveport
+    "claiborne": ["07364840"],                # Lake Claiborne near Aycock
+    "darbonne": ["07366364"],                 # Bayou D'Arbonne Lake at the dam
+    "ouachita": ["07367005"],                 # Ouachita River at West Monroe
+}
+for _s in SPOTS:
+    _s.setdefault("gauges", SPOT_GAUGES.get(_s["id"], []))
 
 # ---------------------------------------------------------------- HTTP
 # Hosts that time out when hit by several workers at once get a small concurrency limit.
@@ -482,7 +525,8 @@ def coops_source(station):
 # ---------------------------------------------------------------- USGS
 USGS = "https://waterservices.usgs.gov/nwis/iv/"                     # legacy, retired Feb 22 2027
 WD = "https://api.waterdata.usgs.gov/ogcapi/v1/collections/%s/items"  # replacement
-USGS_CODES = "00010,00095,63680,00065"   # water temp C, conductance uS/cm@25C, turbidity FNU, gage ft
+USGS_CODES = "00010,00095,63680,00065,62614,62615,00300"   # water temp C, conductance uS/cm@25C, turbidity FNU,
+                                                           # gage ft, lake elevation ft (NGVD, NAVD), dissolved oxygen mg/L
 
 def wd_items(collection, params):
     """Features from the USGS Water Data API, or None if the request failed."""
@@ -572,10 +616,12 @@ def usgs_points(code, pts, out):
         out["cond_ms"] = (x / 1000.0, t, 25.0)
     elif code == "63680":
         out["turb_fnu"] = (x, t, None)
-    elif code == "00065":                        # gage height, ft
+    elif code in ("00065", "62614", "62615"):    # gage height or lake elevation, ft: only the 6 h change is used
         ref = nearest(pts, t - timedelta(hours=6), timedelta(hours=1))
         if ref is not None:
             out["level_d6"] = (x - ref, t, None)
+    elif code == "00300":                        # dissolved oxygen, mg/L
+        out["do_mgl"] = (x, t, None)
 
 def usgs_source(site):
     """Last 24 h from one USGS gauge: new API first, the legacy service as a fallback."""
@@ -868,16 +914,26 @@ def sat_chlorophyll(lat, lon, cache):
     cache[key] = out
     return out
 
+# Satellite sea temperature, tried in order: NOAA's Geo-polar Blended analysis (daily, ~3 mi cells) on the
+# CoastWatch server GitHub can reach, then MUR on the West Coast node (which refuses GitHub's runners and has
+# dropped the jplMURSST41 dataset) as a last resort. (server, dataset, stride, label)
+SST_SETS = [("https://coastwatch.noaa.gov/erddap", "noaacwBLENDEDsstDNDaily", 1, "NOAA Geo-polar Blended satellite SST (CoastWatch)"),
+            (None, "jplMURSST41", 3, "MUR satellite SST (NASA/JPL via CoastWatch)")]
+
 def sat_sst(lat, lon, cache):
-    """Satellite (MUR) sea temperature around a spot: temp at the spot, strongest temperature
-    break (deg F per mile between neighboring ~2 mi cells) and the warm-to-cool range in the box."""
+    """Satellite sea temperature around a spot: temp at the spot, strongest temperature break (deg F per
+    mile between neighboring cells) and the warm-to-cool range in the box."""
     key = ("sst", round(lat * 4) / 4, round(lon * 4) / 4)
     if key in cache:
         return cache[key]
-    d, out = 0.25, None
-    j = erddap_json("griddap/jplMURSST41.json"
-                    f"?analysed_sst[(last)][({lat-d:.2f}):3:({lat+d:.2f})][({lon-d:.2f}):3:({lon+d:.2f})]")
-    if j is None:                              # server didn't answer; get_json already logged it
+    d, out, j, label = 0.25, None, None, None
+    for base, ds, k, name in SST_SETS:
+        q = f"griddap/{ds}.json?analysed_sst[(last)][({lat-d:.2f}):{k}:({lat+d:.2f})][({lon-d:.2f}):{k}:({lon+d:.2f})]"
+        j = get_json(f"{base}/{q}", tries=1, timeout=20) if base else erddap_json(q)
+        if j is not None:
+            label = name
+            break
+    if j is None:                              # no server answered; get_json already logged it
         cache[key] = None
         return None
     try:
@@ -899,9 +955,42 @@ def sat_sst(lat, lon, cache):
             near = min(grid, key=lambda k: (k[0] - lat) ** 2 + (k[1] - lon) ** 2)
             vals = list(grid.values())
             out = {"sst_f": f_from_c(grid[near]), "break": best, "range": (max(vals) - min(vals)) * 1.8,
-                   "time": rows[0][0]}
+                   "time": rows[0][0], "src": label}
     except (TypeError, KeyError, IndexError, ValueError) as e:
         log.warning("satellite SST problem: %s", e)
+    cache[key] = out
+    return out
+
+def sat_ssh_edge(lat, lon, cache):
+    """Loop Current and eddy edges from satellite altimetry (NOAA CoastWatch blended sea level anomaly,
+    daily, 0.25 deg): the steepest change in sea height between neighboring cells within ~50 mi, in cm per
+    mile. Yellowfin, marlin, wahoo and mahi concentrate along these current edges."""
+    key = ("ssh", round(lat * 2) / 2, round(lon * 2) / 2)
+    if key in cache:
+        return cache[key]
+    d, out = 0.75, None
+    j = get_json("https://coastwatch.noaa.gov/erddap/griddap/noaacwBLENDEDsshDaily.json"
+                 f"?sla[(last)][({lat-d:.2f}):1:({lat+d:.2f})][({lon-d:.2f}):1:({lon+d:.2f})]", tries=1, timeout=20)
+    try:
+        rows = (j or {}).get("table", {}).get("rows") or []
+        grid = {(round(r[1], 3), round(r[2], 3)): r[3] for r in rows if r[3] is not None}
+        lats, lons = sorted({k[0] for k in grid}), sorted({k[1] for k in grid})
+        best = None
+        for (la, lo), v in grid.items():
+            i, k = lats.index(la), lons.index(lo)
+            for la2, lo2 in ((lats[i + 1], lo) if i + 1 < len(lats) else (None, None),
+                             (la, lons[k + 1]) if k + 1 < len(lons) else (None, None)):
+                v2 = grid.get((la2, lo2)) if la2 is not None else None
+                if v2 is None:
+                    continue
+                dist = miles(la, lo, la2, lo2)
+                if dist > 0:
+                    g = abs(v2 - v) * 100 / dist        # cm per mile
+                    best = g if best is None or g > best else best
+        if best is not None and len(grid) >= 9:
+            out = {"edge": round(best, 2), "time": rows[0][0]}
+    except (TypeError, KeyError, IndexError, ValueError) as e:
+        log.warning("sea height problem: %s", e)
     cache[key] = out
     return out
 
@@ -1332,6 +1421,12 @@ def build_forecast(cond, wx, pts, now, mar=None, bias=None, cev=None, sea=None):
         o["sea"] = sea
     return o
 
+def surf_waves(spot, fc, sea):
+    """Surf spots: the NWS wave forecast in the same hourly slots as the rest of the forecast."""
+    if fc and spot.get("surf") and sea and sea.get("wave") and "wave" not in fc:
+        fc["wave"] = list(sea["wave"][:len(fc["temp"])])
+    return fc
+
 # ---------------------------------------------------------------- collection
 def collect(spot, now, cache):
     got, src = {}, {}                      # metric -> (value, time, tref), metric -> source label
@@ -1346,8 +1441,15 @@ def collect(spot, now, cache):
         key = (kind, sid)
         if key not in cache:
             cache[key] = coops_source(sid) if kind == "coops" else usgs_source(sid)
-        for m in ("temp_f", "temp_d24", "cond_ms", "turb_fnu", "wind_mph", "level_d6"):
+        for m in ("temp_f", "temp_d24", "cond_ms", "turb_fnu", "wind_mph", "level_d6", "do_mgl"):
             take(m, cache[key], f"{kind}:{sid}")
+    # Gauges on the water at freshwater spots: only level and oxygen (their temperature and conductivity
+    # can come from a river channel rather than the lake, so the spot's other sources stay in charge)
+    for sid in spot.get("gauges", []):
+        if ("usgs", sid) not in cache:
+            cache[("usgs", sid)] = usgs_source(sid)
+        for m in ("level_d6", "do_mgl"):
+            take(m, cache[("usgs", sid)], f"usgs:{sid}")
 
     # Freshwater lakes and rivers ("fresh") skip this: the nearest conductivity gauge can be a coastal
     # one many miles away, which would report a salty lake.
@@ -1443,9 +1545,22 @@ def collect(spot, now, cache):
                 sdt = sdt if sdt.tzinfo else sdt.replace(tzinfo=UTC)
             except (TypeError, ValueError):
                 sdt = now
-            ssrc = {"source": "MUR satellite SST (NASA/JPL via CoastWatch)", "age_min": round(max(0, (now - sdt).total_seconds() / 60))}
+            ssrc = {"source": ss.get("src") or "satellite SST", "age_min": round(max(0, (now - sdt).total_seconds() / 60))}
             got["sbreak"], src["sbreak"] = (ss["break"], sdt, None), ssrc
             got["ssat"], src["ssat"] = (ss["sst_f"], sdt, None), ssrc
+        sh = sat_ssh_edge(spot["lat"], spot["lon"], cache)
+        if sh:
+            try:
+                hdt = parse_iso(sh["time"])
+            except (TypeError, ValueError):
+                hdt = now
+            got["ssh_edge"], src["ssh_edge"] = (sh["edge"], hdt, None), {
+                "source": "NOAA blended altimetry (CoastWatch)", "age_min": round(max(0, (now - hdt).total_seconds() / 60))}
+        if ss:
+            # A recent satellite reading beats the ocean model for the spot's own temperature (a buoy, which
+            # measures the water, still wins). The daily analysis is dated noon UTC the day before it's posted.
+            if (now - sdt) <= timedelta(hours=60) and str(src.get("temp_f", {}).get("source", "")).startswith("open-meteo-marine"):
+                got["temp_f"], src["temp_f"] = (ss["sst_f"], sdt, None), dict(ssrc)
 
     if spot.get("marine"):                    # real buoy/platform readings beat the model
         done = set()
@@ -1552,6 +1667,13 @@ def collect(spot, now, cache):
     if oxy:
         src["oxy"] = {"source": "NOAA Hypoxia Watch", "age_min": 0}
 
+    try:                                          # wind and waves from the NWS grid; optional
+        sea = nws_grid(spot, cache, now.replace(minute=0, second=0, microsecond=0) + timedelta(hours=1))
+    except Exception:
+        log.exception("NWS grid for %s failed", spot["id"])
+        sea = None
+    if spot.get("surf") and "wave" not in got and sea and sea.get("wave") and sea["wave"][0] is not None:
+        got["wave"], src["wave"] = (sea["wave"][0], now, None), {"source": "NWS forecast grid (surf zone)", "age_min": 0}
     cond = {"temp": round(got["temp_f"][0]) if "temp_f" in got else None,
             "wind": round(wind) if wind is not None else None,
             "wdir": wdir,
@@ -1566,6 +1688,7 @@ def collect(spot, now, cache):
             "rain": round(rain, 2) if rain is not None else None,
             "front": round(got["front"][0]) if "front" in got else None,
             "level": level,
+            "doxy": round(got["do_mgl"][0], 1) if "do_mgl" in got else None,
             "trange": round(trange, 1) if trange is not None else None,
             "wave": round(got["wave"][0], 1) if "wave" in got else None,
             "cur": round(got["cur"][0], 1) if "cur" in got else None,
@@ -1573,6 +1696,7 @@ def collect(spot, now, cache):
             "riv": riv,
             "sbreak": round(got["sbreak"][0], 2) if "sbreak" in got else None,
             "ssat": round(got["ssat"][0]) if "ssat" in got else None,
+            "ssh_edge": got["ssh_edge"][0] if "ssh_edge" in got else None,
             "tcur": round(abs(tcur["now"]), 1) if tcur else None,
             "tdir": tcur["dir"] if tcur else None,
             "oxy": oxy,
@@ -1580,12 +1704,14 @@ def collect(spot, now, cache):
     na = []
     if not spot["tide"]:
         na += ["tide", "trange"]
-    if not any(k == "usgs" for k, _ in spot["water"]):
+    if not any(k == "usgs" for k, _ in spot["water"]) and not spot.get("gauges"):
         na.append("level")
+    if "do_mgl" not in got:
+        na.append("doxy")
     if spot.get("marine"):
         na += ["tide", "trange", "level", "sal"]  # clar can come from satellite now
     else:
-        na += ["wave", "cur", "sbreak", "ssat"]
+        na += (["cur", "sbreak", "ssat", "ssh_edge"] if spot.get("surf") else ["wave", "cur", "sbreak", "ssat", "ssh_edge"])
     # Optional enrichment fields — don't tank completeness when missing
     na += ["chl", "wcolor", "wdir", "kd490"]
     if not spot["tide"] or spot.get("marine"):
@@ -1603,11 +1729,6 @@ def collect(spot, now, cache):
     applicable = len(cond) - len(na)
     depth_ft, depth_src = bottom_depth(spot, cache)
     mzone = marine_zone(spot, cache)
-    try:                                          # wind and waves from the NWS grid; optional
-        sea = nws_grid(spot, cache, now.replace(minute=0, second=0, microsecond=0) + timedelta(hours=1))
-    except Exception:
-        log.exception("NWS grid for %s failed", spot["id"])
-        sea = None
     return {"id": spot["id"], "name": spot["name"], "lat": spot["lat"], "lon": spot["lon"],
             "depth_ft": depth_ft, "depth_src": depth_src, "note": spot.get("note"), "river": spot.get("river"), "mzone": mzone,
             "updated": now.isoformat(),
@@ -1616,8 +1737,8 @@ def collect(spot, now, cache):
             "tides": tides,
             "current": {k: v for k, v in tcur.items() if k != "_ev"} if tcur else None,
             "fronts": find_fronts(wx["series"], now) if wx and wx.get("series") else [],
-            "forecast": build_forecast(cond, wx, pts, now, mar, sbias, tcur["_ev"] if tcur else None,
-                                       sea=sea) if wx and wx.get("series") else None,
+            "forecast": surf_waves(spot, build_forecast(cond, wx, pts, now, mar, sbias, tcur["_ev"] if tcur else None,
+                                       sea=sea) if wx and wx.get("series") else None, sea),
             "conditions": cond,
             "quality": {"missing": missing, "sources": src,
                         "estimated": (["clar"] if clar_kind in ("estimated", "satellite") else []) + est,
@@ -1764,16 +1885,17 @@ def breaks(grid, lats, lons, step, min_grad, keep_share=0.25):
 def ocean_features(now):
     lat0, lat1, lon0, lon1 = BOX
     out = {"generated": now.isoformat()}
-    # temperature breaks from MUR sea surface temperature (deg C -> F), about 2 mi cells
-    g = griddap_box("https://coastwatch.pfeg.noaa.gov/erddap", "jplMURSST41", "analysed_sst",
-                    lat0, lat1, lon0, lon1, stride=3, extra="")
+    # temperature breaks from NOAA's Geo-polar Blended satellite SST (deg C -> F), about 3.5 mi cells, on the
+    # CoastWatch server GitHub can reach (the MUR dataset this used is gone, and its server refuses GitHub)
+    g = griddap_box("https://coastwatch.noaa.gov/erddap", "noaacwBLENDEDsstDNDaily", "analysed_sst",
+                    lat0, lat1, lon0, lon1, stride=1, extra="")
     if g:
         t, la, lo, gr = g
         gr = [[None if v is None else v * 1.8 + 32 for v in row] for row in gr]
-        out["sst_breaks"] = {"time": t, "lines": breaks(gr, la, lo, 1.0, 0.12)}
+        out["sst_breaks"] = {"time": t, "lines": breaks(gr, la, lo, 1.0, 0.08)}
     # color lines: where chlorophyll crosses 0.3 and 1 mg/m3 (blue to green-blue to green water)
-    g = griddap_box("https://coastwatch.pfeg.noaa.gov/erddap", "nesdisVHNnoaa20chlaDaily", "chlor_a",
-                    lat0, lat1, lon0, lon1, stride=1, lat_desc=True)
+    g = griddap_box("https://coastwatch.noaa.gov/erddap", "noaacwN20VIIRSchlaDaily", "chlor_a",
+                    lat0, lat1, lon0, lon1, stride=1)
     if g:
         t, la, lo, gr = g
         lg = [[None if v is None or v <= 0 else math.log10(v) for v in row] for row in gr]
@@ -2479,7 +2601,7 @@ def _flow(feats):
             best = (v, t, str(p.get("monitoring_location_id") or ""))
     return best
 
-def diversions(now):
+def diversions(now, cache=None):
     """Latest discharge through each diversion from USGS (parameter 00060, cubic feet per second)."""
     out = {}
     for d in DIVERSIONS:
@@ -2499,6 +2621,12 @@ def diversions(now):
                               "Flowing" if q >= d["open_cfs"] else "Low flow" if q > 50 else "Closed")
         else:
             rec.update(cfs=None, status="Unknown")
+        if cache is not None:                    # remembered between runs in the station cache
+            seen = cache.setdefault("div_open", {})
+            if rec["status"] in ("Open", "Flowing") and d["id"] == "bonnet":
+                seen[d["id"]] = now.isoformat()
+            if seen.get(d["id"]):
+                rec["last_open"] = seen[d["id"]]
         out[d["id"]] = rec
     return out
 
@@ -2697,7 +2825,7 @@ def run_once():
     except Exception:
         log.exception("river gauges failed")
         cache["rivers"] = {}
-    for key, fn in (("deadzone", lambda: deadzone(now)), ("diversions", lambda: diversions(now)),
+    for key, fn in (("deadzone", lambda: deadzone(now)), ("diversions", lambda: diversions(now, cache)),
                     ("sargassum", lambda: sargassum(now))):
         try:
             cache[key] = fn()
@@ -2915,11 +3043,15 @@ def health(out_md="health.md"):
     check("Satellite water clarity (Kd490)", kd490)
     def mur():
         ss = sat_sst(28.5, -90.6, {})
-        return ss, f"{ss['sst_f']:.1f} F, break {ss['break']:.2f} F/mi, {ss['time'][:10]}" if ss else "no server answered (pfeg refuses GitHub with 403)"
+        return ss, f"{ss['sst_f']:.1f} F, break {ss['break']:.2f} F/mi, {ss['time'][:10]} ({ss.get('src')})" if ss else "no server answered"
     def chl():
         c = sat_chlorophyll(29.27, -89.95, {})
         return c, f"{c[0]} mg/m3, {str(c[1])[:10]}" if c else "no server answered"
-    check("Satellite sea temperature and breaks (MUR)", mur)
+    check("Satellite sea temperature and breaks", mur)
+    def ssh():
+        h = sat_ssh_edge(28.0, -89.0, {})
+        return h, f"edge {h['edge']} cm/mi, {h['time'][:10]}" if h else "no server answered"
+    check("Satellite sea height (Loop Current and eddy edges)", ssh)
     check("Satellite water color (chlorophyll)", chl)
     check("NDBC buoy 42001", buoy)
     check("Sea surface height (Loop Current)", ssh)
