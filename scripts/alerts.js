@@ -50,7 +50,7 @@ function bestWindow(api, spId, spot, f, now, days) {
     if (ts < now - H / 2) continue;
     if (ts > now + 48 * H) break;
     const c = api.fcConditions(spot, f, i, ts, null);
-    const r = c.light === "Night" ? null : api.scoreC(spId, c, spot.quality || {}, ts);
+    const r = c.light === "Night" && !api.SP[spId].night ? null : api.scoreC(spId, c, spot.quality || {}, ts);
     hrs.push({ ts, v: r && !r.gate ? r.total : null, c });
   }
   let best = null;

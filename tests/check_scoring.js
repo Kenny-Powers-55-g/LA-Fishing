@@ -20,7 +20,7 @@ function load(store = {}) {
   };
   ctx.window = ctx;
   vm.createContext(ctx);
-  vm.runInContext(code + "\n;globalThis.__api={SP,scoreC,closedNow,computeTune,tuneFor,SEASON,SEASONS_CHECKED,REGS,REGS_CHECKED,regFor,keepCheck};", ctx, { filename: "map.html" });
+  vm.runInContext(code + "\n;globalThis.__api={SP,scoreC,closedNow,computeTune,tuneFor,SEASON,SEASONS_CHECKED,REGS,REGS_CHECKED,regFor,keepCheck,seasonOf,FRESH_SP};", ctx, { filename: "map.html" });
   return ctx.__api;
 }
 const at = d => Date.parse(d + "T18:00:00Z");
@@ -31,11 +31,15 @@ const at = d => Date.parse(d + "T18:00:00Z");
   const cases = [["flounder", "2026-10-20", true], ["flounder", "2026-12-05", false],
     ["trigger", "2027-01-15", true], ["trigger", "2027-03-15", false], ["trigger", "2027-06-15", true], ["trigger", "2027-08-15", false],
     ["amberjack", "2026-10-13", false], ["amberjack", "2026-10-14", true], ["amberjack", "2027-08-31", true], ["amberjack", "2027-09-01", false],
-    ["snapper", "2026-11-23", true]];
+    ["snapper", "2026-11-23", true],
+    // standing closures once the dated rules run out, leap days, and Louisiana's calendar day
+    ["amberjack", "2028-03-01", true], ["amberjack", "2028-09-15", false], ["trigger", "2028-02-29", true], ["trigger", "2028-03-01", false]];
   for (const [k, d, want] of cases) if (!!api.closedNow(api.SP[k], at(d)) !== want) fail(`${k} on ${d} should be ${want ? "closed" : "open"}`);
   // A closed fish is never scored, however good the water
   const c = { zone: "offshore", temp: 76, wind: 4, wave: 1, clar: "Clear", mon: 11, area: "offshore" };
   if (!api.scoreC("amberjack", c, {}, at("2026-11-23")).gate) fail("amberjack must show as closed in November 2026");
+  // 10 pm on Oct 14 in Louisiana is Oct 15 in UTC: still open for flounder
+  if (api.closedNow(api.SP.flounder, Date.parse("2027-10-15T03:00:00Z"))) fail("closures must follow Louisiana's calendar day, not the viewer's");
   // Seasons set one year at a time must be checked again before they run out
   const age = (Date.now() - Date.parse(api.SEASONS_CHECKED)) / 864e5;
   if (age > 300) console.warn(`Warning: the closed-season list (SEASON_RULES in map.html) was last checked ${Math.round(age)} days ago. Check LDWF and NOAA Fisheries.`);
@@ -49,6 +53,45 @@ const at = d => Date.parse(d + "T18:00:00Z");
   const c = { zone: "offshore", temp: 76, wind: 4, wave: 1, clar: "Clear", vis: 20, area: "offshore" };
   const july = api.scoreC("cobia", { ...c, mon: 4 }, {}, at("2027-04-15")).total, nov = api.scoreC("cobia", { ...c, mon: 11 }, {}, at("2026-11-23")).total;
   if (!(nov < 60 && july - nov >= 20)) fail(`cobia should score well below "Good" in November, when most have left (April ${july}, November ${nov})`);
+}
+
+// ---- Ordinary Louisiana water never grades a fish's temperature at zero while it's in season ----
+{
+  const api = load();
+  const T = { coast: [54, 57, 64, 72, 79, 85, 87, 88, 84, 76, 66, 58], fresh: [50, 53, 60, 68, 76, 83, 87, 87, 82, 73, 62, 53],
+    shelf: [66, 65, 68, 73, 79, 84, 86, 87, 85, 80, 74, 69], deep: [72, 71, 72, 75, 80, 84, 86, 87, 86, 82, 78, 74] };
+  const DEEP = new Set(["yft", "blackfin", "wahoo", "mahi", "marlin", "swordfish"]);
+  for (const [k, p] of Object.entries(api.SP)) {
+    const F = p.factors.find(f => f.k === "temp"), sea = api.seasonOf(k);
+    const h = api.FRESH_SP.has(k) ? "fresh" : p.zone === "offshore" ? (DEEP.has(k) ? "deep" : "shelf") : "coast";
+    for (let m = 0; m < 12; m++) if (F && sea && sea[m] >= 0.7 && F.f(T[h][m]) < 0.15)
+      fail(`${k}: water at ${T[h][m]}°F (${h}, month ${m + 1}) grades ${F.f(T[h][m]).toFixed(2)} for temperature, in a month it's in season`);
+  }
+}
+
+// ---- Where a fish can be scored ----
+{
+  const api = load(), d = at("2027-05-15");
+  const inshore = { zone: "inshore", temp: 78, wind: 6, clar: "Stained", vis: 4, cloud: 30, tide: "Incoming", sal: 25, mon: 5, light: "Daytime" };
+  const off = { zone: "offshore", temp: 78, wind: 6, wave: 1.5, cur: 0.5, vis: 30, mon: 5, light: "Daytime", oxy: "OK" };
+  if (api.scoreC("cobia", { ...inshore, spot: "chandeleur" }, {}, d).gate) fail("cobia must be scored at the Chandeleur Islands");
+  if (!api.scoreC("cobia", { ...inshore, spot: "pont" }, {}, d).gate) fail("cobia must not be scored in Lake Pontchartrain");
+  if (api.scoreC("spanish", { ...off, spot: "shipshoal" }, {}, d).gate) fail("Spanish mackerel must be scored at Ship Shoal");
+  if (!api.scoreC("drum", { ...off, spot: "off40" }, {}, d).gate) fail("black drum must not be scored 40 miles out");
+  if (!api.scoreC("swordfish", { ...off, bdepth: 11 }, {}, d).gate) fail("swordfish must not be scored over 11 ft of water");
+  if (api.scoreC("swordfish", { ...off, bdepth: 2500 }, {}, d).gate) fail("swordfish must be scored over 2,500 ft of water");
+  if (!api.scoreC("spotbass", { ...inshore, sal: 0.1, tide: null, spot: "caddo" }, {}, d).gate) fail("spotted bass aren't a Caddo Lake fish");
+  if (api.scoreC("spotbass", { ...inshore, sal: 0.1, tide: null, spot: "toledo" }, {}, d).gate) fail("spotted bass live in Toledo Bend");
+  if (api.scoreC("redfish", { ...inshore, sal: 0.3, trange: 2.5 }, {}, d).gate) fail("redfish live in the fresh, tidal Atchafalaya delta");
+  if (!api.scoreC("redfish", { ...inshore, sal: 0.1, trange: null }, {}, d).gate) fail("redfish aren't a freshwater-lake fish");
+  if (api.scoreC("tarpon", { ...inshore, temp: 86, sal: 5, mon: 8 }, {}, at("2027-08-15")).gate) fail("tarpon are caught in low-salinity water at the delta");
+  if (api.scoreC("catfish", { ...inshore, sal: 6, tide: null }, {}, d).gate) fail("blue catfish live in Pontchartrain at 6 ppt");
+  const day = api.scoreC("trigger", { ...off, mon: 10 }, {}, at("2027-10-15")).total, night = api.scoreC("trigger", { ...off, mon: 10, light: "Night" }, {}, at("2027-10-15")).total;
+  if (!(day - night >= 10)) fail(`triggerfish feed by day (day ${day}, night ${night})`);
+  const r = api.scoreC("cobia", { ...off, temp: 60, mon: 4 }, {}, at("2027-04-15"));
+  if (!/too cold/.test(r.reason || "") && /too warm/.test(r.reason || "")) fail(`60°F is too cold for cobia, not too warm ("${r.reason}")`);
+  const cf = api.scoreC("catfish", { ...inshore, sal: 0.1, tide: null }, {}, d);
+  if (/salinity/i.test(cf.reason)) fail(`fresh water shouldn't be a freshwater fish's headline reason ("${cf.reason}")`);
 }
 
 // ---- Personal tuning is per fish ----
@@ -91,6 +134,17 @@ const at = d => Date.parse(d + "T18:00:00Z");
   for (const [k, n, want] of cases) if (keep(k, n) !== want) fail(`${k} at ${n} in should be ${want ? "a keeper" : "released"}`);
   if (keep("bass", 11, { id: "verret" }) !== false) fail("bass under 12 in must be released at Lake Verret (from Aug. 1, 2026)");
   if (!api.regFor("bass", { id: "caddo" }).local) fail("Caddo Lake has its own bass rule");
+  // Protected slots: fish inside must go back, fish above are keepers (counted against the over-slot allowance)
+  for (const [n, spot, want] of [[16, "caddo", false], [14, "caddo", false], [18, "caddo", false], [12, "caddo", true], [20, "caddo", true], [17, "povertypoint", false], [21, "povertypoint", true]])
+    if (keep("bass", n, { id: spot }) !== want) fail(`bass at ${n} in at ${spot} should be ${want ? "a keeper" : "released (protected slot)"}`);
+  // Spotted bass follow the lake rules too
+  if (keep("spotbass", 11, { id: "atch" }) !== false) fail("spotted bass under 12 in must be released in the Atchafalaya Basin (from Aug. 1, 2026)");
+  if (keep("spotbass", 16, { id: "povertypoint" }) !== false) fail("spotted bass in Poverty Point's slot should be released");
+  if (keep("spotbass", 11, { id: "toledo" }) !== true) fail("spotted bass have no size limit at Toledo Bend");
+  // A lake's own note replaces the statewide one
+  for (const l of ["caddo", "toledo"]) if (/12 in/.test(api.regFor("catfish", { id: l }).note)) fail(`the statewide catfish minimums must not show at ${l}`);
+  for (const [k, R] of Object.entries(api.REGS)) for (const [l, x] of Object.entries(R.spots || {}))
+    if ((x.min || x.max || x.slot) && !(x.len || R.len)) fail(`REGS.${k}.spots.${l}: say how it's measured`);
   const age = (Date.now() - Date.parse(api.REGS_CHECKED)) / 864e5;
   if (age > 300) console.warn(`Warning: the size and bag limits (REGS in map.html) were last checked ${Math.round(age)} days ago. Check LDWF's current regulations.`);
 }
