@@ -121,6 +121,29 @@ const at = d => Date.parse(d + "T18:00:00Z");
   if (/^(const|let|var)\s+L\s*=/m.test(fs.readFileSync(path.join(__dirname, "..", "map.html"), "utf8"))) fail("map.html declares L, which hides the map library");
 }
 
+// ---- Per-fish seasons that depend on the spot or the front ----
+{
+  const api = load(), jan = at("2027-01-15");
+  const off = { zone: "offshore", temp: 70, wave: 2, wind: 8, cur: .5, vis: 20, sbreak: .5, light: "Dawn", mon: 1, bdepth: 206 };
+  const lump = api.scoreC("kingmack", { ...off, spot: "midlump" }, {}, jan).total, shelf = api.scoreC("kingmack", { ...off, spot: "off40" }, {}, jan).total;
+  if (!(lump - shelf >= 10)) fail(`king mackerel winter at Midnight Lump (lump ${lump}, other shelf ${shelf})`);
+  const rig = api.scoreC("pompano", { ...off, temp: 64, spot: "shipshoal" }, {}, jan).total;
+  const beach = api.scoreC("pompano", { zone: "inshore", temp: 58, sal: 28, wind: 8, clar: "Stained", tide: "Incoming", light: "Dawn", mon: 1 }, {}, jan).total;
+  if (!(rig - beach >= 20)) fail(`pompano winter on the nearshore rigs, not the beach (rigs ${rig}, beach ${beach})`);
+  const fl = { zone: "inshore", temp: 62, sal: 18, wind: 8, clar: "Stained", tide: "Outgoing", trange: 1, light: "Dawn", mon: 12, dtemp: -2, front: -10 };
+  const run = api.scoreC("flounder", { ...fl, fphase: { ph: "post1", s: .45 }, frun: { s: 1, txt: "" } }, {}, at("2027-12-03")).total;
+  const calm = api.scoreC("flounder", { ...fl, fphase: { ph: "none", s: .75 }, frun: { s: .7, txt: "" } }, {}, at("2027-12-03")).total;
+  if (!(run > calm)) fail(`a December front should move flounder through the passes (after front ${run}, settled ${calm})`);
+}
+
+// ---- Cubera gather around the full moon in summer ----
+{
+  const api = load(), off = { zone: "offshore", temp: 86, wave: 2, wind: 8, cur: .5, vis: 20, light: "Dusk", bdepth: 300, oxy: "OK" };
+  const sc = (m, d) => api.scoreC("cubera", { ...off, mon: m, moon: { s: .6, illum: .9, dff: d } }, {}, at(`2027-${String(m).padStart(2, "0")}-15`)).total;
+  if (!(sc(7, 4) - sc(7, -6) >= 5)) fail(`cubera should score higher in the week after a July full moon (in ${sc(7, 4)}, out ${sc(7, -6)})`);
+  if (sc(12, 4) !== sc(12, -6)) fail("the cubera full-moon window applies only June to September");
+}
+
 // ---- Personal tuning is per fish ----
 {
   // 6 good and 4 slow bass trips where warm water matched the good days
