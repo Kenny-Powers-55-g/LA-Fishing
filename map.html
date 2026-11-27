@@ -5,7 +5,7 @@
      Outside scripts are allowed by their exact file (Leaflet and the Supabase library), not whole sites, and
      only this site's own Supabase project may be contacted. Changing supabaseUrl in config.js? Change both
      of its addresses in connect-src too (node tests/check_page.js checks they match). -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-ap5MSQrXWR0reWT9leoroLT0xlM5zuuNBvia3r/cTEw=' 'sha256-lCdzazFDmS9eDlrHAeS4WoUKP6KLGQ3f6qERVlBpk9I=' https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.118.0/dist/umd/supabase.js https://challenges.cloudflare.com/turnstile/; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https://*.noaa.gov https://gibs.earthdata.nasa.gov https://tile.openstreetmap.org https://cdnjs.cloudflare.com; connect-src 'self' https://kenny-powers-55-g.github.io https://*.noaa.gov https://gibs.earthdata.nasa.gov https://tile.openstreetmap.org https://api.open-meteo.com https://qpbqepzdxkadmulkmfbj.supabase.co wss://qpbqepzdxkadmulkmfbj.supabase.co https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://fonts.googleapis.com https://fonts.gstatic.com; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-src https://challenges.cloudflare.com; upgrade-insecure-requests">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-ap5MSQrXWR0reWT9leoroLT0xlM5zuuNBvia3r/cTEw=' 'sha256-dGc7nMxLMSMRyh1OMUJy5J7Mq1TQQwcVEn5QwguGcNY=' https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.118.0/dist/umd/supabase.js https://challenges.cloudflare.com/turnstile/; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https://*.noaa.gov https://gibs.earthdata.nasa.gov https://tile.openstreetmap.org https://cdnjs.cloudflare.com; connect-src 'self' https://kenny-powers-55-g.github.io https://*.noaa.gov https://gibs.earthdata.nasa.gov https://tile.openstreetmap.org https://api.open-meteo.com https://qpbqepzdxkadmulkmfbj.supabase.co wss://qpbqepzdxkadmulkmfbj.supabase.co https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://fonts.googleapis.com https://fonts.gstatic.com; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-src https://challenges.cloudflare.com; upgrade-insecure-requests">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -1387,13 +1387,15 @@ const MON=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","De
 const seas=(w,m)=>({k:"mon",l:"Time of year",w,f:v=>m[v-1]??0,t:v=>MON[v-1]});
 const monthOf=ts=>+new Intl.DateTimeFormat("en-US",{timeZone:"America/Chicago",month:"numeric"}).format(ts);
 // Preferred depth band [too_shallow, good_low, good_high, too_deep] in feet
-const depth=(w,band)=>({k:"depth",l:"Depth fit",w,f:v=>trap(v,band),t:v=>v+" ft (pref "+band[1]+"–"+band[2]+")"});
+const depth=(w,band)=>({k:"depth",l:"Your depth",w,f:v=>trap(v,band),t:v=>v+" ft (pref "+band[1]+"–"+band[2]+")"});
+// How deep the water is at an offshore spot (from the chart or depth model), for fish that need a depth of water
+const bdepth=(w,band)=>({k:"bdepth",l:"Water depth here",w,f:v=>trap(v,band),t:v=>v.toLocaleString()+" ft of water"});
 // Closed seasons. `closed` is the same dates every year: one window [[m,d],[m,d]] or a list of windows.
 // `dated` (from SEASON_RULES, after the fish list) holds closures that are set one season at a time.
 const CT_DAY=new Intl.DateTimeFormat("en-CA",{timeZone:"America/Chicago"});
 function closedNow(p,ts=Date.now()){
  if(p.dated){const day=CT_DAY.format(ts);for(const r of p.dated)if(day>=r.from&&day<=r.to)return`Closed season (${r.txt}). Release only. Verify with ${r.src}`}
- if(!p.closed)return null;const d=new Date(ts),n=(d.getMonth()+1)*100+d.getDate();
+ if(!p.closed)return null;const[,mo,da]=CT_DAY.format(ts).split("-").map(Number),n=mo*100+da;
  const wins=Array.isArray(p.closed[0][0])?p.closed:[p.closed];
  const inside=wins.some(([[a,b],[c,e]])=>{const from=a*100+b,to=c*100+e;return from<=to?n>=from&&n<=to:n>=from||n<=to});   // also handles Dec-Feb style closures
  return inside?`Closed season (${p.closedTxt}). Release only. Verify with ${p.closedSrc||"LDWF"}`:null}
@@ -1408,19 +1410,26 @@ const visO=(w,good)=>({k:"vis",l:"Water visibility",w,f:v=>trap(v,[good*0.3,good
 const SEV=/Gale|Storm|Hurricane|Tropical|Tornado|Hazardous Seas|Special Marine/i;
 const offGate=c=>c.alerts&&SEV.test(c.alerts)?"Severe marine warning in effect: "+c.alerts.split("|").filter(x=>SEV.test(x)).join(", "):c.wave!=null&&c.wave>=8?`Seas too rough (${c.wave} ft waves)`:c.wind!=null&&c.wind>=30?`Wind too strong (${c.wind} mph)`:null;
 const LIM="Season, size and bag limits change every year and differ in state and federal waters. Confirm with LDWF and NOAA Fisheries before you go.";
+// Spots where an offshore fish is also caught from inshore waters (barrier islands, passes, beaches),
+// and offshore spots shallow enough for inshore fish (Ship Shoal and the nearshore rigs)
+const COAST=["chandeleur","barat","fourchon","timbalier","pelto","cameron","swpass","calc","cocodrie","blackbay","marshisland"];
+const NEAR=["shipshoal","off_westdelta","off_mainpass","off_eugene","off_vermilion","off_cameron"];
+// Freshwater spots where spotted bass and striped or hybrid bass are actually found
+const SPOT_BASS=["pearl","tchefuncte","ouachita","toledo","vernon","kincaid","caney","springbayou"];
+const STRIPER=["toledo","claiborne","bruin","falseriver","tchefuncte","pearl","maurepas"];
 const SP={
- redfish:{name:"Redfish",gate:c=>c.sal!=null&&c.sal<1?"Freshwater: redfish are not expected here":null,factors:[
-  {k:"temp",l:"Water temp",w:3,f:v=>trap(v,[52,68,80,92]),t:v=>v+"°F"},
+ redfish:{name:"Redfish",gate:c=>c.sal!=null&&c.sal<1&&c.trange==null?"Freshwater: redfish are not expected here":null,factors:[
+  {k:"temp",l:"Water temp",w:2.5,f:v=>trap(v,[42,58,84,95]),t:v=>v+"°F"},
   {k:"tide",l:"Tide movement",w:3,f:E({Incoming:1,Outgoing:1,Slack:.15}),t:v=>v},
   {k:"wind",l:"Wind",w:2,f:v=>trap(v,[-1,0,9,20]),t:v=>v+" mph"},
   {k:"clar",l:"Water clarity",w:1.5,f:E({Clear:1,Stained:.6,Muddy:.2}),t:v=>v},
-  {k:"sal",l:"Salinity",w:1,f:v=>trap(v,[0,6,28,40]),t:v=>v+" ppt"},
+  {k:"sal",l:"Salinity",w:0.5,f:v=>.4+.6*trap(v,[-1,2,35,50]),t:v=>v+" ppt"},
   {k:"pres",l:"Pressure trend",w:1,f:E({Falling:1,Steady:.7,Rising:.35}),t:v=>v},
   {k:"trange",l:"Tide swing",w:1.5,f:v=>trap(v,[0.3,1.0,2.8,4]),t:v=>v+" ft"},
   dtemp(1),front(1),rain(1,3.5),light(1),moon(0.7),depth(1.5,[0,2,12,25])]},
  trout:{name:"Speckled Trout",gate:c=>c.sal!=null&&c.sal<2?"Too fresh for speckled trout":null,factors:[
-  {k:"temp",l:"Water temp",w:3,f:v=>trap(v,[54,70,78,88]),t:v=>v+"°F"},
-  {k:"sal",l:"Salinity",w:3,f:v=>trap(v,[2,12,28,36]),t:v=>v+" ppt"},
+  {k:"temp",l:"Water temp",w:3,f:v=>trap(v,[42,60,82,93]),t:v=>v+"°F"},
+  {k:"sal",l:"Salinity",w:2.5,f:v=>trap(v,[2,8,32,42]),t:v=>v+" ppt"},
   {k:"tide",l:"Tide movement",w:2.5,f:E({Incoming:1,Outgoing:.9,Slack:.12}),t:v=>v},
   {k:"wind",l:"Wind",w:2,f:v=>trap(v,[-1,2,8,18]),t:v=>v+" mph"},
   {k:"clar",l:"Water clarity",w:2,f:E({Clear:1,Stained:.55,Muddy:.1}),t:v=>v},
@@ -1428,188 +1437,187 @@ const SP={
   {k:"trange",l:"Tide swing",w:1.5,f:v=>trap(v,[0.3,1.0,2.8,4]),t:v=>v+" ft"},
   dtemp(1),front(1.5),rain(2,2.5),light(1),moon(0.8),depth(1.5,[1,4,15,30])]},
  bass:{name:"Largemouth Bass",gate:c=>c.sal!=null&&c.sal>10?"Too salty for largemouth bass":null,factors:[
-  {k:"temp",l:"Water temp",w:4,f:v=>trap(v,[52,68,78,88]),t:v=>v+"°F"},
+  {k:"temp",l:"Water temp",w:4,f:v=>trap(v,[42,62,84,96]),t:v=>v+"°F"},
   {k:"pres",l:"Pressure trend",w:2,f:E({Falling:1,Steady:.7,Rising:.3}),t:v=>v},
-  {k:"sal",l:"Salinity",w:2,f:v=>trap(v,[-1,0,1.5,8]),t:v=>v+" ppt"},
-  {k:"cloud",l:"Cloud cover",w:1.5,f:v=>trap(v,[-1,25,85,101]),t:v=>v+"%"},
+  {k:"sal",l:"Salinity",w:1.5,f:v=>trap(v,[-1,0,4,10]),t:v=>v+" ppt"},
+  {k:"cloud",l:"Cloud cover",w:1,f:v=>.6+.4*trap(v,[-1,40,101,102]),t:v=>v+"%"},
   {k:"clar",l:"Water clarity",w:1,f:E({Clear:.7,Stained:1,Muddy:.45}),t:v=>v},
   {k:"wind",l:"Wind",w:1,f:v=>trap(v,[-1,2,9,20]),t:v=>v+" mph"},
   {k:"level",l:"Water level trend",w:2,f:E({Steady:1,Falling:.75,Rising:.45}),t:v=>v},
   dtemp(2),front(2),rain(1.5,4),light(1),moon(0.6),depth(1.2,[1,3,12,25])]},
- crab:{name:"Blue Crab",gate:c=>c.sal!=null&&c.sal<1?"Too fresh for blue crab":null,factors:[
-  {k:"temp",l:"Water temp",w:3,f:v=>trap(v,[58,72,84,94]),t:v=>v+"°F"},
-  {k:"sal",l:"Salinity",w:3,f:v=>trap(v,[2,10,24,34]),t:v=>v+" ppt"},
+ crab:{name:"Blue Crab",gate:c=>c.sal!=null&&c.sal<1&&c.trange==null?"Too fresh for blue crab":null,factors:[
+  {k:"temp",l:"Water temp",w:2.5,f:v=>trap(v,[48,64,88,95]),t:v=>v+"°F"},
+  {k:"sal",l:"Salinity",w:1.5,f:v=>trap(v,[-1,1,20,34]),t:v=>v+" ppt"},
   {k:"tide",l:"Tide movement",w:1.5,f:E({Incoming:1,Outgoing:1,Slack:.5}),t:v=>v},
   {k:"wind",l:"Wind",w:1,f:v=>trap(v,[-1,0,9,20]),t:v=>v+" mph"},
   {k:"trange",l:"Tide swing",w:1,f:v=>trap(v,[0.3,0.8,2.5,4]),t:v=>v+" ft"},
   dtemp(1),rain(1,3.5),moon(0.5),depth(1,[0,2,15,40])]},
- flounder:{name:"Flounder",closed:[[10,15],[11,30]],closedTxt:"Oct 15 – Nov 30",gate:c=>c.sal!=null&&c.sal<2?"Too fresh for flounder":null,factors:[
-  {k:"temp",l:"Water temp",w:3,f:v=>trap(v,[54,66,78,88]),t:v=>v+"°F"},
+ flounder:{name:"Flounder",closed:[[10,15],[11,30]],closedTxt:"Oct 15 – Nov 30",gate:c=>c.sal!=null&&c.sal<0.5?"Too fresh for flounder":null,factors:[
+  {k:"temp",l:"Water temp",w:3,f:v=>trap(v,[50,62,80,94]),t:v=>v+"°F"},
   {k:"tide",l:"Tide movement",w:3,f:E({Incoming:.85,Outgoing:1,Slack:.15}),t:v=>v},
-  {k:"sal",l:"Salinity",w:2,f:v=>trap(v,[3,10,28,36]),t:v=>v+" ppt"},
+  {k:"sal",l:"Salinity",w:1.5,f:v=>trap(v,[0,4,26,38]),t:v=>v+" ppt"},
   {k:"clar",l:"Water clarity",w:2,f:E({Clear:1,Stained:.6,Muddy:.15}),t:v=>v},
   {k:"wind",l:"Wind",w:1,f:v=>trap(v,[-1,0,8,18]),t:v=>v+" mph"},
   {k:"trange",l:"Tide swing",w:1.5,f:v=>trap(v,[0.3,1.0,2.8,4]),t:v=>v+" ft"},
   light(1),moon(0.7),depth(2,[0,2,12,30])]},
- sheepshead:{name:"Sheepshead",gate:c=>c.sal!=null&&c.sal<3?"Too fresh for sheepshead":null,factors:[
-  {k:"temp",l:"Water temp",w:3,f:v=>trap(v,[48,58,70,84]),t:v=>v+"°F"},
+ sheepshead:{name:"Sheepshead",gate:c=>c.sal!=null&&c.sal<1?"Too fresh for sheepshead":null,near:NEAR,factors:[
+  {k:"temp",l:"Water temp",w:3,f:v=>trap(v,[45,54,76,95]),t:v=>v+"°F"},
   {k:"tide",l:"Tide movement",w:2,f:E({Incoming:1,Outgoing:1,Slack:.3}),t:v=>v},
-  {k:"sal",l:"Salinity",w:2,f:v=>trap(v,[4,10,28,36]),t:v=>v+" ppt"},
+  {k:"sal",l:"Salinity",w:1.5,f:v=>trap(v,[1,5,32,42]),t:v=>v+" ppt"},
   {k:"clar",l:"Water clarity",w:1,f:E({Clear:1,Stained:.7,Muddy:.35}),t:v=>v},
   {k:"wind",l:"Wind",w:2,f:v=>trap(v,[-1,0,10,22]),t:v=>v+" mph"},dtemp(1),front(1),depth(1.2,[2, 5, 20, 40])]},
- drum:{name:"Black Drum",gate:c=>c.sal!=null&&c.sal<1?"Too fresh for black drum":null,factors:[
-  {k:"temp",l:"Water temp",w:3,f:v=>trap(v,[50,62,78,90]),t:v=>v+"°F"},
+ drum:{name:"Black Drum",gate:c=>c.sal!=null&&c.sal<1?"Too fresh for black drum":null,near:NEAR,factors:[
+  {k:"temp",l:"Water temp",w:3,f:v=>trap(v,[42,54,80,94]),t:v=>v+"°F"},
   {k:"tide",l:"Tide movement",w:2,f:E({Incoming:1,Outgoing:1,Slack:.3}),t:v=>v},
-  {k:"sal",l:"Salinity",w:1,f:v=>trap(v,[1,6,28,38]),t:v=>v+" ppt"},
+  {k:"sal",l:"Salinity",w:1,f:v=>trap(v,[0.5,5,30,45]),t:v=>v+" ppt"},
   {k:"wind",l:"Wind",w:1,f:v=>trap(v,[-1,0,10,24]),t:v=>v+" mph"},
   {k:"clar",l:"Water clarity",w:1,f:E({Clear:.8,Stained:1,Muddy:.55}),t:v=>v},trange,rain(1,5),depth(1.2,[2, 4, 18, 35])]},
  crappie:{name:"Crappie",gate:c=>c.sal!=null&&c.sal>3?"Too salty for crappie":null,factors:[
-  {k:"temp",l:"Water temp",w:4,f:v=>trap(v,[48,62,72,84]),t:v=>v+"°F"},
+  {k:"temp",l:"Water temp",w:4,f:v=>trap(v,[40,54,76,94]),t:v=>v+"°F"},
   {k:"pres",l:"Pressure trend",w:2,f:E({Falling:.85,Steady:.85,Rising:.55}),t:v=>v},
   {k:"wind",l:"Wind",w:2,f:v=>trap(v,[-1,0,7,18]),t:v=>v+" mph"},
   {k:"clar",l:"Water clarity",w:1,f:E({Clear:.8,Stained:1,Muddy:.35}),t:v=>v},
   {k:"level",l:"Water level trend",w:1,f:E({Steady:.85,Falling:.65,Rising:.55}),t:v=>v},front(2),dtemp(1),depth(1.2,[3, 6, 15, 30])]},
- catfish:{name:"Catfish",gate:c=>c.sal!=null&&c.sal>5?"Too salty for catfish":null,factors:[
-  {k:"temp",l:"Water temp",w:3,f:v=>trap(v,[50,70,86,96]),t:v=>v+"°F"},
+ catfish:{night:true,name:"Catfish",gate:c=>c.sal!=null&&c.sal>14?"Too salty for catfish":null,factors:[{k:"sal",l:"Salinity",w:1,f:v=>trap(v,[-1,0,4,12]),t:v=>v+" ppt"},
+  {k:"temp",l:"Water temp",w:3,f:v=>trap(v,[38,56,86,97]),t:v=>v+"°F"},
   {k:"level",l:"Water level trend",w:2,f:E({Rising:1,Steady:.75,Falling:.5}),t:v=>v},
   {k:"clar",l:"Water clarity",w:1,f:E({Clear:.6,Stained:1,Muddy:1}),t:v=>v},
   {k:"wind",l:"Wind",w:1,f:v=>trap(v,[-1,0,10,24]),t:v=>v+" mph"},dtemp(1),rain(1,6),light(1,NIGHT),depth(1.2,[3, 8, 25, 50])]},
  bream:{name:"Bream (Bluegill)",tip:"Bream bed in shallow, firm-bottom pockets around the full moon from April to August. Crickets, worms or small jigs under a light cork.",gate:c=>c.sal!=null&&c.sal>4?"Too salty for bream":null,factors:[
-  {k:"temp",l:"Water temp",w:4,f:v=>trap(v,[58,72,84,92]),t:v=>v+"°F"},
+  {k:"temp",l:"Water temp",w:4,f:v=>trap(v,[50,68,86,96]),t:v=>v+"°F"},
   {k:"wind",l:"Wind",w:1.5,f:v=>trap(v,[-1,0,7,16]),t:v=>v+" mph"},
   {k:"clar",l:"Water clarity",w:1,f:E({Clear:1,Stained:.9,Muddy:.4}),t:v=>v},
   {k:"level",l:"Water level trend",w:1,f:E({Steady:1,Falling:.7,Rising:.6}),t:v=>v},
   {k:"pres",l:"Pressure trend",w:1,f:E({Falling:.9,Steady:1,Rising:.6}),t:v=>v},
   moon(1.5),light(1),front(1.5),dtemp(1),depth(1,[1,2,8,20]),seas(1.5,[.2,.3,.6,.9,1,1,1,.9,.7,.5,.3,.2])]},
- bullred:{name:"Bull Redfish",tip:"Big spawning reds school at the passes, beachfronts and rigs near shore from late summer into fall. Heavy tackle, cracked crab or cut mullet on the bottom on a strong outgoing tide. Release the big ones carefully; check LDWF for the size limit.",gate:c=>c.sal!=null&&c.sal<12?"Bull reds school in salty water at the passes and beaches":null,factors:[
-  {k:"temp",l:"Water temp",w:2,f:v=>trap(v,[60,70,80,88]),t:v=>v+"°F"},
+ bullred:{name:"Bull Redfish",tip:"Big spawning reds school at the passes, beachfronts and rigs near shore from late summer into fall. Heavy tackle, cracked crab or cut mullet on the bottom on a strong outgoing tide. Release the big ones carefully; check LDWF for the size limit.",gate:c=>c.sal!=null&&c.sal<4?"Bull reds school in salty water at the passes and beaches":null,factors:[
+  {k:"temp",l:"Water temp",w:2,f:v=>trap(v,[46,60,84,93]),t:v=>v+"°F"},
   {k:"tide",l:"Tide movement",w:3,f:E({Outgoing:1,Incoming:.85,Slack:.12}),t:v=>v},
   {k:"trange",l:"Tide swing",w:2,f:v=>trap(v,[0.3,1.1,3,4.5]),t:v=>v+" ft"},
   {k:"wind",l:"Wind",w:2,f:v=>trap(v,[-1,0,14,24]),t:v=>v+" mph"},
-  {k:"sal",l:"Salinity",w:1.5,f:v=>trap(v,[12,20,36,42]),t:v=>v+" ppt"},
+  {k:"sal",l:"Salinity",w:1,f:v=>.35+.65*trap(v,[4,15,36,45]),t:v=>v+" ppt"},
   {k:"pres",l:"Pressure trend",w:1,f:E({Falling:1,Steady:.85,Rising:.6}),t:v=>v},
   moon(0.7),light(0.5),depth(1.5,[4,10,40,70]),seas(2,[.4,.35,.4,.45,.5,.55,.65,.85,1,1,.9,.6])]},
- spanish:{name:"Spanish Mackerel",tip:"Spanish run the beaches, passes and nearshore rigs in clean, salty water when it's above about 70°F. Small shiny spoons or Got-Cha plugs, fast retrieve, a light wire or heavy fluoro leader.",gate:c=>c.sal!=null&&c.sal<15?"Spanish mackerel need clean, salty water":null,factors:[
-  {k:"temp",l:"Water temp",w:3,f:v=>trap(v,[68,75,84,90]),t:v=>v+"°F"},
+ spanish:{name:"Spanish Mackerel",tip:"Spanish run the beaches, passes and nearshore rigs in clean, salty water when it's above about 70°F. Small shiny spoons or Got-Cha plugs, fast retrieve, a light wire or heavy fluoro leader.",gate:c=>c.sal!=null&&c.sal<15?"Spanish mackerel need clean, salty water":null,near:NEAR,factors:[
+  {k:"temp",l:"Water temp",w:3,f:v=>trap(v,[65,71,88,94]),t:v=>v+"°F"},
   {k:"clar",l:"Water clarity",w:2.5,f:E({Clear:1,Stained:.45,Muddy:.05}),t:v=>v},
-  {k:"sal",l:"Salinity",w:2,f:v=>trap(v,[15,24,36,40]),t:v=>v+" ppt"},
+  {k:"sal",l:"Salinity",w:2,f:v=>trap(v,[14,20,38,42]),t:v=>v+" ppt"},
   {k:"tide",l:"Tide movement",w:1.5,f:E({Incoming:1,Outgoing:.9,Slack:.4}),t:v=>v},
   {k:"wind",l:"Wind",w:2,f:v=>trap(v,[-1,0,12,20]),t:v=>v+" mph"},
   light(1),depth(1,[3,6,30,60]),seas(1.5,[0,0,.1,.6,1,1,1,1,1,.7,.2,0])]},
- pompano:{name:"Pompano",tip:"Pompano work the surf troughs and sandy beachfronts in clear, salty water, best in spring and fall runs. Small jigs (pompano jigs) bounced on the bottom or sand fleas and shrimp on a surf rig.",gate:c=>c.sal!=null&&c.sal<15?"Pompano need clear, salty water":null,factors:[
-  {k:"temp",l:"Water temp",w:3,f:v=>trap(v,[65,72,80,88]),t:v=>v+"°F"},
+ pompano:{name:"Pompano",tip:"Pompano work the surf troughs and sandy beachfronts in clear, salty water, best in spring and fall runs. Small jigs (pompano jigs) bounced on the bottom or sand fleas and shrimp on a surf rig.",gate:c=>c.sal!=null&&c.sal<15?"Pompano need clear, salty water":null,near:NEAR,factors:[
+  {k:"temp",l:"Water temp",w:3,f:v=>trap(v,[60,68,87,95]),t:v=>v+"°F"},
   {k:"clar",l:"Water clarity",w:2.5,f:E({Clear:1,Stained:.6,Muddy:.15}),t:v=>v},
   {k:"wind",l:"Wind",w:2,f:v=>trap(v,[-1,0,10,18]),t:v=>v+" mph"},
   {k:"tide",l:"Tide movement",w:1.5,f:E({Incoming:1,Outgoing:.8,Slack:.4}),t:v=>v},
-  {k:"sal",l:"Salinity",w:1,f:v=>trap(v,[15,25,36,40]),t:v=>v+" ppt"},
+  {k:"sal",l:"Salinity",w:1.5,f:v=>trap(v,[15,24,38,45]),t:v=>v+" ppt"},
   light(0.7),depth(1,[1,3,12,25]),seas(1.5,[.1,.2,.7,1,1,.7,.6,.6,.8,1,.8,.3])]},
  yft:{name:"Yellowfin Tuna",zone:"offshore",gate:offGate,factors:[sbreak(2),visO(1.5,30),
-  {k:"temp",l:"Sea temp",w:3,f:v=>trap(v,[70,76,84,88]),t:v=>v+"°F"},wave(2),windO(1),cur(1),presO(1),dtemp(1),light(1),depth(2,[60,80,250,500])]},
+  {k:"temp",l:"Sea temp",w:3,f:v=>trap(v,[66,72,86,92]),t:v=>v+"°F"},wave(2),windO(1),cur(1),presO(1),dtemp(1),light(1)]},
  mahi:{name:"Mahi-Mahi",zone:"offshore",gate:offGate,factors:[sbreak(2),visO(1.5,25),
-  {k:"temp",l:"Sea temp",w:3,f:v=>trap(v,[72,78,84,90]),t:v=>v+"°F"},wave(2),windO(1),presO(1),dtemp(1),light(1),depth(1.5,[20,40,150,300])]},
+  {k:"temp",l:"Sea temp",w:3,f:v=>trap(v,[68,74,84,91]),t:v=>v+"°F"},wave(2),windO(1),presO(1),dtemp(1),light(1),depth(1.5,[20,40,150,300])]},
  wahoo:{name:"Wahoo",zone:"offshore",gate:offGate,factors:[sbreak(2),visO(1.5,30),
-  {k:"temp",l:"Sea temp",w:3,f:v=>trap(v,[70,75,82,88]),t:v=>v+"°F"},wave(2),windO(1),cur(1),light(1),depth(1.5,[40,60,200,400])]},
+  {k:"temp",l:"Sea temp",w:3,f:v=>trap(v,[65,70,84,90]),t:v=>v+"°F"},wave(2),windO(1),cur(1),light(1),depth(1.5,[40,60,200,400])]},
  snapper:{name:"Red Snapper",zone:"offshore",note:LIM,gate:offGate,factors:[
-  {k:"temp",l:"Sea temp",w:2,f:v=>trap(v,[60,68,80,88]),t:v=>v+"°F"},wave(3),windO(2),cur(2,2.5),presO(1),depth(2,[40,60,200,350])]},
- amberjack:{name:"Amberjack",zone:"offshore",note:LIM,gate:offGate,factors:[
-  {k:"temp",l:"Sea temp",w:2,f:v=>trap(v,[64,70,80,88]),t:v=>v+"°F"},wave(3),windO(2),cur(2,2.5),light(1),depth(2,[50,80,250,400])]},
+  {k:"temp",l:"Sea temp",w:0.7,f:v=>trap(v,[54,64,90,95]),t:v=>v+"°F"},wave(3),windO(2),cur(2,2.5),presO(1),depth(2,[40,60,200,350])]},
+ amberjack:{name:"Amberjack",zone:"offshore",closed:[[1,1],[8,31]],closedTxt:"Jan 1 – Aug 31; the season opens Sept 1 and closes when the catch target is reached",closedSrc:"NOAA Fisheries and LDWF",note:LIM,gate:offGate,factors:[
+  {k:"temp",l:"Sea temp",w:1,f:v=>trap(v,[58,64,86,92]),t:v=>v+"°F"},wave(3),windO(2),cur(2,2.5),light(1),depth(2,[50,80,250,400])]},
  kingmack:{name:"King Mackerel",zone:"offshore",gate:offGate,factors:[sbreak(1),visO(1,15),
-  {k:"temp",l:"Sea temp",w:3,f:v=>trap(v,[68,74,84,90]),t:v=>v+"°F"},wave(2),windO(1),light(1),front(1),depth(1.5,[15,30,100,200])]},
- cobia:{name:"Cobia",zone:"offshore",gate:offGate,factors:[visO(1,10),
-  {k:"temp",l:"Sea temp",w:3,f:v=>trap(v,[68,74,82,88]),t:v=>v+"°F"},
+  {k:"temp",l:"Sea temp",w:3,f:v=>trap(v,[64,70,86,92]),t:v=>v+"°F"},wave(2),windO(1),light(1),front(1),depth(1.5,[15,30,100,200])]},
+ cobia:{name:"Cobia",zone:"offshore",gate:offGate,coast:COAST,factors:[visO(1.5,6),{k:"cloud",l:"Cloud cover",w:1,f:v=>.4+.6*trap(v,[-1,0,40,100]),t:v=>v+"%"},
+  {k:"temp",l:"Sea temp",w:3,f:v=>trap(v,[64,70,84,92]),t:v=>v+"°F"},
   wave(2),windO(1.5),cur(1,2.5),presO(1),light(1),front(1),depth(1.5,[15,30,120,250])]},
- tripletail:{name:"Tripletail",zone:"offshore",gate:offGate,factors:[visO(1,8),
-  {k:"temp",l:"Sea temp",w:3,f:v=>trap(v,[70,76,84,90]),t:v=>v+"°F"},
+ tripletail:{name:"Tripletail",zone:"offshore",gate:offGate,coast:COAST,factors:[visO(1.5,4),{k:"cloud",l:"Cloud cover",w:1,f:v=>.4+.6*trap(v,[-1,0,40,100]),t:v=>v+"%"},
+  {k:"temp",l:"Sea temp",w:3,f:v=>trap(v,[68,74,88,93]),t:v=>v+"°F"},
   wave(2.5),windO(1.5),cur(1),light(1),depth(1.5,[5,15,60,120])]},
  mangrove:{name:"Mangrove Snapper",zone:"offshore",note:LIM,gate:offGate,factors:[
-  {k:"temp",l:"Sea temp",w:2,f:v=>trap(v,[66,72,84,90]),t:v=>v+"°F"},
+  {k:"temp",l:"Sea temp",w:1.2,f:v=>trap(v,[58,68,92,96]),t:v=>v+"°F"},
   wave(3),windO(2),cur(1.5,2.5),presO(1),light(1),depth(2,[15,30,100,200])]},
  cubera:{name:"Cubera Snapper",zone:"offshore",note:LIM,gate:offGate,factors:[
-  {k:"temp",l:"Sea temp",w:2,f:v=>trap(v,[66,72,82,88]),t:v=>v+"°F"},
+  {k:"temp",l:"Sea temp",w:1.2,f:v=>trap(v,[62,72,92,96]),t:v=>v+"°F"},
   wave(3),windO(2),cur(2,2.5),presO(1),depth(2,[40,60,180,300])]},
  blackfin:{name:"Blackfin Tuna",zone:"offshore",tip:"Blackfin hang around rigs in 150 to 600 ft, especially at first light and when shrimp boats are culling. Chum and freeline, or jig vertically around the legs.",gate:offGate,factors:[sbreak(1.5),visO(1.5,25),
-  {k:"temp",l:"Sea temp",w:3,f:v=>trap(v,[68,74,82,88]),t:v=>v+"°F"},wave(2),windO(1),cur(1),presO(1),light(1.5),moon(0.5),depth(2,[80,150,600,1500])]},
- grouper:{name:"Grouper",zone:"offshore",note:LIM+" Gag grouper is open only for a short window each year (September 1 to October 1 in 2026), so outside it keep only red grouper and other open kinds. Gag, red and other groupers each have their own federal seasons and limits.",tip:"Grouper sit tight to hard bottom, reefs and rig bases. Heavy tackle and lock the drag so they can't reach the rocks; live bait or big cut bait on the bottom.",gate:offGate,factors:[
-  {k:"temp",l:"Sea temp",w:2,f:v=>trap(v,[60,66,78,86]),t:v=>v+"°F"},wave(3),windO(2),cur(2,2),presO(1),light(0.5),depth(2,[50,80,300,450])]},
+  {k:"temp",l:"Sea temp",w:3,f:v=>trap(v,[63,70,85,91]),t:v=>v+"°F"},wave(2),windO(1),cur(1),presO(1),light(1.5),moon(0.5),depth(2,[80,150,600,1500])]},
+ grouper:{name:"Grouper",zone:"offshore",note:LIM+" Gag grouper is open only for a short window each year (September 1–30 in 2026), so outside it keep only red grouper and other open kinds. Gag, red and other groupers each have their own federal seasons and limits.",tip:"Grouper sit tight to hard bottom, reefs and rig bases. Heavy tackle and lock the drag so they can't reach the rocks; live bait or big cut bait on the bottom.",gate:offGate,factors:[
+  {k:"temp",l:"Sea temp",w:0.5,f:v=>trap(v,[54,60,88,94]),t:v=>v+"°F"},wave(3),windO(2),cur(2,2),presO(1),light(0.5),depth(2,[50,80,300,450])]},
  // ---- Added fish. Like the ones above, the ranges are starting estimates, not researched values.
- tarpon:{name:"Tarpon",tip:"Tarpon show along the passes and beaches in the heat of summer, rolling on calm mornings. Big live baits or Coon Pop style lures drifted through the schools. Handle them in the water and release them quickly.",gate:c=>c.sal!=null&&c.sal<8?"Tarpon stay in saltier water near the passes":c.temp!=null&&c.temp<68?`Too cold for tarpon (${c.temp}°F): they show up when the water passes about 70°F`:null,factors:[
-  {k:"temp",l:"Water temp",w:3,f:v=>trap(v,[74,80,88,92]),t:v=>v+"°F"},
+ tarpon:{name:"Tarpon",tip:"Tarpon show along the passes and beaches in the heat of summer, rolling on calm mornings. Big live baits or Coon Pop style lures drifted through the schools. Handle them in the water and release them quickly.",gate:c=>c.sal!=null&&c.sal<1?"Tarpon stay in saltier water near the passes":c.temp!=null&&c.temp<68?`Too cold for tarpon (${c.temp}°F): they show up when the water passes about 70°F`:null,factors:[
+  {k:"temp",l:"Water temp",w:3,f:v=>trap(v,[72,78,89,94]),t:v=>v+"°F"},
   {k:"tide",l:"Tide movement",w:2,f:E({Incoming:1,Outgoing:1,Slack:.4}),t:v=>v},
   {k:"wind",l:"Wind",w:2.5,f:v=>trap(v,[-1,0,9,18]),t:v=>v+" mph"},
   {k:"clar",l:"Water clarity",w:1.5,f:E({Clear:1,Stained:.7,Muddy:.2}),t:v=>v},
-  {k:"sal",l:"Salinity",w:1.5,f:v=>trap(v,[8,20,36,40]),t:v=>v+" ppt"},
+  {k:"sal",l:"Salinity",w:0.5,f:v=>trap(v,[0,3,36,45]),t:v=>v+" ppt"},
   light(1),moon(0.8),depth(1,[5,10,40,80]),seas(2,[0,0,0,.1,.4,.8,1,1,.9,.5,.1,0])]},
- jack:{name:"Jack Crevalle",tip:"Jacks crash bait at the passes, jetties and beachfronts in warm water. Watch for birds and showering mullet; a big topwater or spoon thrown into the commotion gets hit. Bring heavy tackle.",gate:c=>c.sal!=null&&c.sal<8?"Jack crevalle stay in saltier water":null,factors:[
-  {k:"temp",l:"Water temp",w:3,f:v=>trap(v,[66,76,86,92]),t:v=>v+"°F"},
+ jack:{name:"Jack Crevalle",tip:"Jacks crash bait at the passes, jetties and beachfronts in warm water. Watch for birds and showering mullet; a big topwater or spoon thrown into the commotion gets hit. Bring heavy tackle.",gate:c=>c.sal!=null&&c.sal<2?"Jack crevalle stay in saltier water":null,factors:[
+  {k:"temp",l:"Water temp",w:3,f:v=>trap(v,[60,72,88,94]),t:v=>v+"°F"},
   {k:"tide",l:"Tide movement",w:2.5,f:E({Incoming:1,Outgoing:1,Slack:.3}),t:v=>v},
   {k:"wind",l:"Wind",w:1.5,f:v=>trap(v,[-1,0,14,24]),t:v=>v+" mph"},
-  {k:"sal",l:"Salinity",w:1.5,f:v=>trap(v,[8,18,36,40]),t:v=>v+" ppt"},
+  {k:"sal",l:"Salinity",w:1,f:v=>trap(v,[2,8,36,42]),t:v=>v+" ppt"},
   {k:"clar",l:"Water clarity",w:1,f:E({Clear:1,Stained:.8,Muddy:.4}),t:v=>v},
   trange,light(1),depth(1,[3,6,30,60]),seas(1.5,[.1,.1,.3,.6,.9,1,1,1,1,.8,.4,.2])]},
- whitetrout:{name:"White Trout (Sand Trout)",tip:"White trout stack in deeper channels, passes and around lit docks, best in the cooler months. Small jigs or dead shrimp bounced on the bottom; they bite well at night under lights.",gate:c=>c.sal!=null&&c.sal<5?"Too fresh for white trout":null,factors:[
-  {k:"temp",l:"Water temp",w:3,f:v=>trap(v,[50,60,72,84]),t:v=>v+"°F"},
+ whitetrout:{night:true,name:"White Trout (Sand Trout)",tip:"White trout stack in deeper channels, passes and around lit docks, best in the cooler months. Small jigs or dead shrimp bounced on the bottom; they bite well at night under lights.",gate:c=>c.sal!=null&&c.sal<2?"Too fresh for white trout":null,factors:[
+  {k:"temp",l:"Water temp",w:3,f:v=>trap(v,[44,56,78,90]),t:v=>v+"°F"},
   {k:"tide",l:"Tide movement",w:2.5,f:E({Incoming:1,Outgoing:1,Slack:.2}),t:v=>v},
-  {k:"sal",l:"Salinity",w:1.5,f:v=>trap(v,[5,12,34,40]),t:v=>v+" ppt"},
+  {k:"sal",l:"Salinity",w:1.5,f:v=>trap(v,[2,7,32,40]),t:v=>v+" ppt"},
   {k:"wind",l:"Wind",w:1.5,f:v=>trap(v,[-1,0,10,20]),t:v=>v+" mph"},
   {k:"clar",l:"Water clarity",w:1,f:E({Clear:1,Stained:.75,Muddy:.35}),t:v=>v},
   trange,light(1,NIGHT),depth(1.2,[6,10,35,60]),seas(1.5,[1,1,.9,.7,.5,.5,.5,.5,.6,.8,1,1])]},
  whitebass:{name:"White Bass",tip:"White bass run up rivers and creeks in late winter and spring, then school over open-water points and sandbars. Small jigs, spoons and inline spinners; find one and you have found a school.",gate:c=>c.sal!=null&&c.sal>3?"Too salty for white bass":null,factors:[
-  {k:"temp",l:"Water temp",w:4,f:v=>trap(v,[46,58,68,80]),t:v=>v+"°F"},
+  {k:"temp",l:"Water temp",w:3.5,f:v=>trap(v,[44,54,72,88]),t:v=>v+"°F"},
   {k:"level",l:"Water level trend",w:2,f:E({Rising:1,Steady:.75,Falling:.5}),t:v=>v},
   {k:"clar",l:"Water clarity",w:1.5,f:E({Clear:.9,Stained:1,Muddy:.4}),t:v=>v},
   {k:"wind",l:"Wind",w:1.5,f:v=>trap(v,[-1,2,10,20]),t:v=>v+" mph"},
   {k:"pres",l:"Pressure trend",w:1,f:E({Falling:1,Steady:.7,Rising:.4}),t:v=>v},
   front(1.5),dtemp(1),light(1),depth(1,[3,6,20,35]),seas(1.5,[.6,.9,1,1,.7,.5,.5,.5,.6,.7,.6,.5])]},
- striper:{name:"Striped / Hybrid Bass",tip:"Stripers and hybrids chase shad in open water, most active at dawn, dusk and on overcast days when the water is cool. Watch for surfacing schools and gulls; live shad, spoons and swimbaits.",gate:c=>c.sal!=null&&c.sal>10?"Too salty here for stripers":null,factors:[
-  {k:"temp",l:"Water temp",w:4,f:v=>trap(v,[46,56,66,76]),t:v=>v+"°F"},
-  {k:"cloud",l:"Cloud cover",w:1.5,f:v=>trap(v,[-1,30,100,101]),t:v=>v+"%"},
+ striper:{name:"Striped / Hybrid Bass",tip:"Stripers and hybrids chase shad in open water, most active at dawn, dusk and on overcast days when the water is cool. Watch for surfacing schools and gulls; live shad, spoons and swimbaits.",gate:c=>c.spot&&!STRIPER.includes(c.spot)?"Few or no striped or hybrid bass here":c.sal!=null&&c.sal>10?"Too salty here for stripers":null,factors:[
+  {k:"temp",l:"Water temp",w:3.5,f:v=>trap(v,[45,56,72,92]),t:v=>v+"°F"},
+  {k:"cloud",l:"Cloud cover",w:1,f:v=>.55+.45*trap(v,[-1,30,100,101]),t:v=>v+"%"},
   {k:"wind",l:"Wind",w:1.5,f:v=>trap(v,[-1,3,14,24]),t:v=>v+" mph"},
   {k:"pres",l:"Pressure trend",w:1.5,f:E({Falling:1,Steady:.8,Rising:.5}),t:v=>v},
   {k:"clar",l:"Water clarity",w:1,f:E({Clear:1,Stained:.9,Muddy:.4}),t:v=>v},
   front(1.5),dtemp(1),light(2),moon(0.6),depth(1.2,[8,15,40,70])]},
- spotbass:{name:"Spotted Bass",tip:"Spotted bass like clearer water, current and hard bottom: points, bluff banks and river bends. Smaller baits than for largemouth; finesse worms, small crankbaits and jigs.",gate:c=>c.sal!=null&&c.sal>5?"Too salty for spotted bass":null,factors:[
-  {k:"temp",l:"Water temp",w:4,f:v=>trap(v,[50,64,76,86]),t:v=>v+"°F"},
+ spotbass:{name:"Spotted Bass",tip:"Spotted bass like clearer water, current and hard bottom: points, bluff banks and river bends. Smaller baits than for largemouth; finesse worms, small crankbaits and jigs.",gate:c=>c.spot&&!SPOT_BASS.includes(c.spot)?"Spotted bass are uncommon here; they live in clearer rivers, creeks and hill-country lakes":c.sal!=null&&c.sal>5?"Too salty for spotted bass":null,factors:[
+  {k:"temp",l:"Water temp",w:4,f:v=>trap(v,[44,60,82,94]),t:v=>v+"°F"},
   {k:"clar",l:"Water clarity",w:2,f:E({Clear:1,Stained:.8,Muddy:.3}),t:v=>v},
   {k:"pres",l:"Pressure trend",w:2,f:E({Falling:1,Steady:.8,Rising:.45}),t:v=>v},
   {k:"level",l:"Water level trend",w:1.5,f:E({Steady:1,Falling:.8,Rising:.5}),t:v=>v},
   {k:"wind",l:"Wind",w:1,f:v=>trap(v,[-1,2,12,24]),t:v=>v+" mph"},
-  {k:"cloud",l:"Cloud cover",w:1,f:v=>trap(v,[-1,25,85,101]),t:v=>v+"%"},
+  {k:"cloud",l:"Cloud cover",w:0.8,f:v=>.6+.4*trap(v,[-1,40,101,102]),t:v=>v+"%"},
   dtemp(1.5),front(2),rain(1,3),light(1),depth(1.2,[3,6,20,35])]},
- chinquapin:{name:"Chinquapin (Redear)",tip:"Chinquapin bed a little deeper than bluegill, on shell and firm bottom, peaking around the full moons of April and May. Worms fished right on the bottom.",gate:c=>c.sal!=null&&c.sal>4?"Too salty for chinquapin":null,factors:[
-  {k:"temp",l:"Water temp",w:4,f:v=>trap(v,[60,70,80,88]),t:v=>v+"°F"},
+ chinquapin:{name:"Chinquapin (Redear)",tip:"Chinquapin bed a little deeper than bluegill, on shell and firm bottom, peaking around the full moons of April and May. Worms fished right on the bottom.",gate:c=>c.sal!=null&&c.sal>6?"Too salty for chinquapin":null,factors:[
+  {k:"temp",l:"Water temp",w:4,f:v=>trap(v,[52,64,82,93]),t:v=>v+"°F"},
   {k:"wind",l:"Wind",w:1.5,f:v=>trap(v,[-1,0,10,20]),t:v=>v+" mph"},
   {k:"clar",l:"Water clarity",w:1,f:E({Clear:1,Stained:.9,Muddy:.4}),t:v=>v},
   {k:"level",l:"Water level trend",w:1,f:E({Steady:1,Falling:.7,Rising:.6}),t:v=>v},
   {k:"pres",l:"Pressure trend",w:1,f:E({Falling:.9,Steady:1,Rising:.6}),t:v=>v},
   moon(2),light(1),front(1.5),dtemp(1),depth(1,[2,4,10,20]),seas(1.5,[.1,.2,.6,1,1,.8,.6,.5,.5,.4,.2,.1])]},
- choupique:{name:"Choupique (Bowfin)",tip:"Choupique hold in weedy, shallow backwater and bite best in warm, low-light conditions. Cut bait, live bait or a spinnerbait slow-rolled along the grass; use strong line.",gate:c=>c.sal!=null&&c.sal>4?"Too salty for choupique":null,factors:[
-  {k:"temp",l:"Water temp",w:3,f:v=>trap(v,[58,72,86,94]),t:v=>v+"°F"},
+ choupique:{name:"Choupique (Bowfin)",tip:"Choupique hold in weedy, shallow backwater and bite best in warm, low-light conditions. Cut bait, live bait or a spinnerbait slow-rolled along the grass; use strong line.",gate:c=>c.sal!=null&&c.sal>6?"Too salty for choupique":null,factors:[
+  {k:"temp",l:"Water temp",w:2.5,f:v=>trap(v,[42,56,82,94]),t:v=>v+"°F"},
   {k:"level",l:"Water level trend",w:1.5,f:E({Rising:1,Steady:.9,Falling:.6}),t:v=>v},
   {k:"wind",l:"Wind",w:1,f:v=>trap(v,[-1,0,12,24]),t:v=>v+" mph"},
   {k:"clar",l:"Water clarity",w:.5,f:E({Clear:.8,Stained:1,Muddy:.9}),t:v=>v},
   dtemp(1),front(1.5),light(1.5),depth(1,[1,2,8,15])]},
  gar:{name:"Garfish",tip:"Gar bask near the surface on hot, calm, sunny days in slow water. Cut mullet or shad under a float, or a rope lure; give them time to run before you set the hook.",gate:c=>c.sal!=null&&c.sal>18?"Too salty for garfish here":null,factors:[
-  {k:"temp",l:"Water temp",w:4,f:v=>trap(v,[65,78,90,96]),t:v=>v+"°F"},
+  {k:"temp",l:"Water temp",w:3.5,f:v=>trap(v,[58,72,92,98]),t:v=>v+"°F"},
   {k:"wind",l:"Wind",w:2,f:v=>trap(v,[-1,0,8,18]),t:v=>v+" mph"},
-  {k:"cloud",l:"Cloud cover",w:1,f:v=>trap(v,[-1,0,50,101]),t:v=>v+"%"},
+  {k:"cloud",l:"Cloud cover",w:1,f:v=>.55+.45*trap(v,[-1,0,50,101]),t:v=>v+"%"},
   {k:"level",l:"Water level trend",w:1,f:E({Steady:1,Rising:.8,Falling:.7}),t:v=>v},
   dtemp(1),front(1.5),light(1,E({Daytime:1,Dawn:.7,Dusk:.8,Night:.5})),depth(1,[2,4,15,30]),seas(1.5,[.1,.1,.3,.6,.9,1,1,1,.9,.6,.3,.1])]},
  gaspergou:{name:"Gaspergou (Freshwater Drum)",tip:"Gaspergou feed on the bottom in rivers and big lakes, often where there is current. Crawfish tails, worms or cut bait on a simple bottom rig.",gate:c=>c.sal!=null&&c.sal>8?"Too salty for gaspergou":null,factors:[
-  {k:"temp",l:"Water temp",w:3,f:v=>trap(v,[50,66,80,90]),t:v=>v+"°F"},
+  {k:"temp",l:"Water temp",w:3,f:v=>trap(v,[48,62,84,94]),t:v=>v+"°F"},
   {k:"level",l:"Water level trend",w:2,f:E({Rising:1,Steady:.75,Falling:.55}),t:v=>v},
   {k:"clar",l:"Water clarity",w:1,f:E({Clear:.7,Stained:1,Muddy:.9}),t:v=>v},
   {k:"wind",l:"Wind",w:1,f:v=>trap(v,[-1,0,15,26]),t:v=>v+" mph"},
   dtemp(1),rain(1,5),light(.8),depth(1.2,[4,8,25,45])]},
  vermilion:{name:"Vermilion Snapper (Beeliner)",zone:"offshore",note:LIM,tip:"Beeliners school over hard bottom and around deeper rigs, usually higher in the water column than red snapper. Small hooks and small cut bait on a multi-hook rig.",gate:offGate,factors:[
-  {k:"temp",l:"Sea temp",w:2,f:v=>trap(v,[62,68,80,88]),t:v=>v+"°F"},wave(3),windO(2),cur(2,2.5),presO(1),depth(2,[80,120,300,450])]},
- trigger:{name:"Gray Triggerfish",zone:"offshore",closed:[[[1,1],[2,28]],[[6,1],[7,31]]],closedTxt:"Jan 1 – Feb 28 and Jun 1 – Jul 31",closedSrc:"LDWF and NOAA Fisheries",note:LIM,tip:"Triggerfish hang around rigs, reefs and wrecks and are expert bait thieves. Small, strong hooks with squid or cut bait, fished just above the structure.",gate:offGate,factors:[
-  {k:"temp",l:"Sea temp",w:2,f:v=>trap(v,[64,70,80,88]),t:v=>v+"°F"},wave(3),windO(2),cur(2,2),presO(1),light(.5),depth(2,[40,60,180,300])]},
- marlin:{name:"Blue Marlin",zone:"offshore",note:LIM+" Billfish have federal permit and reporting rules.",tip:"Blue marlin work the deep blue-water edges, rips and the big floating platforms in summer. Trolled lures or live tuna along temperature and color breaks.",gate:c=>offGate(c)||(c.temp!=null&&c.temp<70?`Too cold for blue marlin (${c.temp}°F)`:null),factors:[sbreak(2),visO(2,40),
-  {k:"temp",l:"Sea temp",w:3,f:v=>trap(v,[76,80,86,90]),t:v=>v+"°F"},wave(2),windO(1),cur(1.5),presO(1),moon(1),
-  depth(2,[400,1000,8000,12000]),seas(2,[0,0,.1,.3,.7,1,1,1,.9,.5,.1,0])]},
- swordfish:{name:"Swordfish",zone:"offshore",note:LIM+" Swordfish need a federal HMS permit.",tip:"Swordfish are caught deep-dropping in daylight over 1,200 to 1,800 feet, or drifting baits at night near the surface. Calm seas and a manageable current matter most.",gate:offGate,factors:[
-  {k:"temp",l:"Sea temp",w:1.5,f:v=>trap(v,[68,74,82,88]),t:v=>v+"°F"},wave(3.5),windO(2.5),cur(2.5,2.5),presO(1),moon(1.2),
-  depth(3,[700,1100,1900,2600])]}
+  {k:"temp",l:"Sea temp",w:0.4,f:v=>trap(v,[52,60,92,96]),t:v=>v+"°F"},wave(3),windO(2),cur(2,2.5),presO(1),depth(2,[80,120,300,450])]},
+ trigger:{name:"Gray Triggerfish",zone:"offshore",closed:[[[1,1],[2,29]],[[6,1],[7,31]]],closedTxt:"Jan 1 – end of Feb and Jun 1 – Jul 31",closedSrc:"LDWF and NOAA Fisheries",note:LIM,tip:"Triggerfish hang around rigs, reefs and wrecks and are expert bait thieves. Small, strong hooks with squid or cut bait, fished just above the structure.",gate:offGate,factors:[
+  {k:"temp",l:"Sea temp",w:1.5,f:v=>trap(v,[56,64,86,92]),t:v=>v+"°F"},wave(3),windO(2),cur(2,2),presO(1),light(1,E({Daytime:1,Dawn:.8,Dusk:.7,Night:.15})),depth(2,[40,60,180,300])]},
+ marlin:{name:"Blue Marlin",zone:"offshore",note:LIM+" Billfish have federal permit and reporting rules.",tip:"Blue marlin work the deep blue-water edges, rips and the big floating platforms in summer. Trolled lures or live tuna along temperature and color breaks.",gate:c=>offGate(c)||(c.temp!=null&&c.temp<72?`Too cold for blue marlin (${c.temp}°F)`:null),factors:[sbreak(2),visO(2,40),
+  {k:"temp",l:"Sea temp",w:3,f:v=>trap(v,[74,79,88,92]),t:v=>v+"°F"},wave(2),windO(1),cur(1.5),presO(1),moon(1),
+  seas(2,[0,0,.1,.3,.7,1,1,1,.9,.5,.1,0])]},
+ swordfish:{night:true,name:"Swordfish",zone:"offshore",note:LIM+" Swordfish need a federal HMS permit.",tip:"Swordfish are caught deep-dropping in daylight over 1,200 to 1,800 feet, or drifting baits at night near the surface. Calm seas and a manageable current matter most.",gate:offGate,factors:[
+  {k:"temp",l:"Sea temp",w:0.5,f:v=>trap(v,[55,62,90,95]),t:v=>v+"°F"},wave(3.5),windO(2.5),cur(2.5,2.5),presO(1),moon(1.2)]}
 };
 // Seasons that are set one year at a time. The app can't learn about these by itself, so check LDWF and NOAA
 // Fisheries each season and update this list (dates are inclusive, Central time). When a fish's last rule has
@@ -1639,21 +1647,31 @@ for(const[k,w]of[["mahi",1.5],["tripletail",1.5],["wahoo",.7],["cobia",.5]])SP[k
 // Cold-front timing for every inshore fish; shrimp runs for the fish that chase shrimp
 for(const[k,p]of Object.entries(SP))if((p.zone||"inshore")==="inshore")p.factors.push(fphase(k==="crab"?.6:k==="catfish"?.8:1.2));
 for(const[k,w]of[["trout",1.5],["redfish",1],["flounder",1],["bullred",.7],["drum",.5]])SP[k].factors.push(shrimp(w));
-for(const k of["snapper","grouper","mangrove","cubera","amberjack"])SP[k].factors.push({k:"oxy",l:"Bottom oxygen",w:2,f:E({OK:1,Low:.15}),t:v=>v==="Low"?"Low (dead zone)":"OK"});
+for(const[k,w,band]of[["yft",1,[100,300,20000,30000]],["blackfin",1,[25,60,3000,12000]],["wahoo",1,[60,150,8000,12000]],["mahi",1,[60,150,30000,40000]],
+ ["marlin",2,[300,800,30000,40000]],["swordfish",2.5,[600,1100,6000,12000]],["kingmack",1,[8,20,300,800]],["grouper",1.5,[40,70,400,1000]],["trigger",2,[40,60,180,300]],
+ ["snapper",1.5,[20,45,260,400]],["mangrove",1.5,[10,30,180,350]],["cubera",1.2,[30,50,320,500]],["vermilion",1.5,[50,90,300,450]],["amberjack",1.5,[40,70,350,600]]])SP[k].factors.push(bdepth(w,band));
+// Deep-water fish can't be found over shallow water (and reef fish not over the abyss)
+for(const[k,lo,hi,txt]of[["marlin",200,null,"Too shallow for blue marlin"],["swordfish",400,null,"Too shallow for swordfish"],["grouper",null,1200,"Too deep for the groupers you can target"],["trigger",null,400,"Too deep for triggerfish"]]){
+ const g=SP[k].gate;SP[k].gate=c=>g(c)||(c.bdepth!=null&&(lo!=null&&c.bdepth<lo||hi!=null&&c.bdepth>hi)?`${txt} (${c.bdepth.toLocaleString()} ft of water)`:null)}
+for(const k of["snapper","grouper","mangrove","cubera","amberjack","trigger"])SP[k].factors.push({k:"oxy",l:"Bottom oxygen",w:2,f:E({OK:1,Low:.15}),t:v=>v==="Low"?"Low (dead zone)":"OK"});
 // Season guide (12 monthly weights, January first). Species with a time-of-year factor use its
 // weights; the rest are a rough guide from general Louisiana fishing patterns, not a survey.
 const SEASON={redfish:[.6,.6,.7,.8,.8,.8,.8,.8,.9,1,1,.8],trout:[.6,.6,.7,.9,1,1,.9,.8,.8,.9,1,.8],
  bass:[.5,.6,.9,1,1,.8,.7,.7,.8,.9,.8,.6],crab:[.2,.2,.4,.6,.8,1,1,1,.9,.7,.4,.2],flounder:[.3,.3,.5,.6,.7,.7,.7,.7,.9,1,1,.5],
  sheepshead:[1,1,1,.8,.6,.5,.5,.5,.6,.7,.8,1],drum:[1,1,1,.8,.6,.5,.5,.5,.6,.7,.8,.9],crappie:[.8,.9,1,.8,.6,.5,.5,.5,.6,.8,.9,.9],
- catfish:[.5,.5,.7,.9,1,1,1,1,.9,.8,.6,.5],yft:[.6,.6,.7,.8,.9,1,1,.9,.8,.8,.8,.7],mahi:[.1,.1,.2,.5,.9,1,1,.9,.7,.4,.2,.1],
+ catfish:[.5,.5,.7,.9,1,1,1,1,.9,.8,.6,.5],yft:[.6,.6,.7,.8,.9,1,1,.9,.8,.8,.8,.7],mahi:[.03,.03,.2,.6,.95,1,1,.85,.7,.45,.12,.03],
  wahoo:[.8,.7,.6,.6,.6,.5,.5,.5,.6,.8,1,.9],snapper:[.5,.5,.6,.7,.9,1,1,.9,.8,.7,.6,.5],amberjack:[.6,.6,.7,.8,.8,.8,.8,.8,.8,.8,.7,.6],
  kingmack:[.1,.1,.2,.5,.8,1,1,1,.9,.6,.3,.1],cobia:[0,0,.4,1,1,.8,.7,.6,.5,.4,.1,0],tripletail:[0,0,.1,.4,.8,1,1,1,.9,.5,.1,0],
  mangrove:[.3,.3,.4,.6,.8,1,1,1,.9,.7,.5,.3],cubera:[.3,.3,.4,.5,.7,1,1,1,.8,.6,.4,.3],blackfin:[.8,.8,.8,.8,.7,.6,.6,.6,.7,.8,.9,.9],
- grouper:[.7,.7,.7,.7,.7,.7,.7,.7,.7,.8,.8,.7]};
+ grouper:[.7,.7,.7,.7,.7,.7,.7,.7,.7,.8,.8,.7],
+ striper:[.85,.9,.95,.85,.7,.55,.45,.45,.6,.8,.95,.9],spotbass:[.7,.85,1,1,.85,.65,.6,.6,.7,.85,.85,.75],
+ choupique:[.6,.75,.95,1,.9,.75,.7,.7,.75,.8,.75,.6],gaspergou:[.35,.4,.6,.85,1,1,.9,.85,.85,.75,.55,.4],
+ vermilion:[.8,.8,.85,.9,1,1,1,1,1,.95,.9,.8],trigger:[.4,.4,.7,.9,1,.9,.8,.8,.9,.9,.7,.5],swordfish:[.9,.9,.9,.95,1,1,1,1,1,1,.95,.9]};
 // Fish without a time-of-year factor of their own score with the guide above too. Fish that leave Louisiana
 // waters for part of the year (cobia, tripletail, king mackerel, mahi, wahoo) weigh it heavily, so a warm
 // November day doesn't rate them Excellent after they've gone; fish that stay all year weigh it lightly.
-const SEASON_W={cobia:2.5,tripletail:2.5,kingmack:2.5,mahi:2.5,wahoo:2,yft:1.5};
+// Mahi weigh it most: they leave in winter even when the blue water stays warm
+const SEASON_W={cobia:2.5,tripletail:2.5,kingmack:2.5,mahi:6,wahoo:2,yft:1.5,choupique:.8,vermilion:.5,trigger:1.5,swordfish:.5};
 for(const[k,m]of Object.entries(SEASON))if(SP[k]&&!SP[k].factors.some(F=>F.k==="mon"))SP[k].factors.push(seas(SEASON_W[k]||1,m));
 const seasonOf=k=>{const f=SP[k].factors.find(F=>F.k==="mon");return f?MON.map((_,i)=>f.f(i+1)):SEASON[k]||null};
 const SRC={weed:"weed",tcur:"tcur",oxy:"oxy",riv:"riv",wl_anom:"wl_anom",vis:"vis",sbreak:"sbreak",wave:"wave",cur:"cur",temp:"temp_f",wind:"wind_mph",pres:"pres",tide:"tide",trange:"tide",sal:"sal",cloud:"cloud",dtemp:"temp_d24",rain:"rain",front:"front",level:"level_d6"};
@@ -1982,16 +2000,18 @@ let COND_CACHE=new WeakMap();
 function condFor(spot,ts=Date.now(),depth=userDepth()){
  const key=Math.floor(ts/6e4)+"|"+(depth??"");let m=COND_CACHE.get(spot);
  if(m&&m.key===key&&m.src===spot.conditions)return m.c;
- const c={...spot.conditions,zone:spot.zone,area:areaOfC(spot),alerts:(spot.alerts||[]).map(a=>a.event).join("|"),light:lightNow(spot,ts),moon:moonInfo(spot,ts),mon:monthOf(ts)};
+ const c={...spot.conditions,zone:spot.zone,spot:spot.base||spot.id,area:areaOfC(spot),alerts:(spot.alerts||[]).map(a=>a.event).join("|"),light:lightNow(spot,ts),moon:moonInfo(spot,ts),mon:monthOf(ts)};
  if(depth!=null)c.depth=depth;
+ if(spot.zone==="offshore"&&spot.depth_ft!=null)c.bdepth=spot.depth_ft;
  addCtx(c,spot,ts);COND_CACHE.set(spot,{key,src:spot.conditions,c});return c;
 }
 function score(spId,spot,ts=Date.now(),depth=userDepth()){return scoreC(spId,condFor(spot,ts,depth),spot.quality||{},ts)}
 // Conditions for forecast hour i (shared by the outlook and the best-window finder)
 const FC_KEYS=["temp","wind","cloud","pres","tide","trange","front","dtemp","rain","clar","wave","cur","tcur"];
 function fcConditions(spot,f,i,ts,depth){
- const c={...spot.conditions,zone:spot.zone,area:areaOfC(spot),light:lightNow(spot,ts),moon:moonInfo(spot,ts),mon:monthOf(ts)};
+ const c={...spot.conditions,zone:spot.zone,spot:spot.base||spot.id,area:areaOfC(spot),light:lightNow(spot,ts),moon:moonInfo(spot,ts),mon:monthOf(ts)};
  if(depth!=null)c.depth=depth;
+ if(spot.zone==="offshore"&&spot.depth_ft!=null)c.bdepth=spot.depth_ft;
  for(const k of FC_KEYS)c[k]=f[k]?f[k][i]:null;
  return addCtx(c,spot,ts);
 }
@@ -1999,7 +2019,9 @@ function fcConditions(spot,f,i,ts,depth){
 // "Slack tide", "Water 58°F, too cold". `good` is the reading's grade (0..1) for this fish.
 function reasonText(R){
  const g=R.v>=.7,b=R.v<=.4,x=R.raw,t=R.txt;
- const low=d=>typeof x==="number"&&R.f(x+d)>R.f(x);          // would a higher value grade better?
+ // Would a higher value grade better? Look a little, then further, either way: below a range's bottom the
+ // grade is flat at 0 nearby, so a single small step can't tell "too cold" from "too warm".
+ const low=d=>{if(typeof x!=="number")return false;const v=R.f(x);for(const k of[1,2.5,5,10,20]){const up=R.f(x+d*k)>v,dn=R.f(x-d*k)>v;if(up!==dn)return up}return false};
  switch(R.k){
   case"temp":return g?`Water ${t}, in the best range`:b?`Water ${t}, too ${low(2)?"cold":"warm"}`:`Water ${t}`;
   case"tide":return x==="Slack"?"Slack tide":g?`Moving tide (${String(x).toLowerCase()})`:`${x} tide`;
@@ -2014,6 +2036,7 @@ function reasonText(R){
   case"rain":return b?`Heavy rain lately (${t})`:"Little rain lately";
   case"light":return g?`Good light (${String(x).toLowerCase()})`:`${x}`;
   case"cloud":return`Cloud cover ${t}`;
+  case"bdepth":return g?`Good depth of water (${t})`:`Wrong depth of water (${t})`;
   case"depth":return g?`Depth fits (${t.split(" (")[0]})`:`Depth is off (${t.split(" (")[0]})`;
   case"tcur":return g?`Good tidal current (${t})`:b?`${low(.2)?"Weak":"Very strong"} tidal current (${t})`:`Tidal current ${t}`;
   case"cur":return g?`Good current (${t})`:b?`${low(.2)?"Little":"Strong"} current (${t})`:`Current ${t}`;
@@ -2028,9 +2051,14 @@ function reasonText(R){
   default:return`${R.l}: ${t}`;
  }
 }
+// Inshore fish at offshore spots (and the other way round) aren't scored, except at the spots listed for that fish
+function zoneGate(p,c){const z=c.zone||"inshore",home=p.zone||"inshore";if(z===home)return null;
+ const extra=home==="offshore"?p.coast:p.near;
+ if(extra&&c.spot&&extra.includes(c.spot))return z==="offshore"?offGate(c):null;
+ return home==="offshore"?"Offshore species: choose an offshore spot":"Inshore species: choose an inshore spot"}
 function scoreC(spId,c,q,ts=Date.now()){
  const p=SP[spId];
- const gate=closedNow(p,ts)||((p.zone||"inshore")!==(c.zone||"inshore")?(p.zone==="offshore"?"Offshore species: choose an offshore spot":"Inshore species: choose an inshore spot"):p.gate(c)); if(gate)return{gate};
+ const gate=closedNow(p,ts)||zoneGate(p,c)||p.gate(c); if(gate)return{gate};
  const na=q.not_applicable||[];
  // moon is always available when we inject it
  const usable=p.factors.filter(F=>!na.includes(F.k));
@@ -2045,7 +2073,8 @@ function scoreC(spId,c,q,ts=Date.now()){
  const rows=have.map(F=>{const v=F.f(c[F.k]),w=wOf(F);sw+=w;s+=w*v;lg+=w*Math.log(Math.max(v,.02));return{...F,w:Math.round(w*10)/10,v,raw:c[F.k],txt:F.t(c[F.k])}});
  const tw=usable.reduce((a,F)=>a+wOf(F),0);
  // one-sentence reason from the strongest positive or negative factor
- const sorted=[...rows].sort((a,b)=>Math.abs(b.v-0.5)*b.w-Math.abs(a.v-0.5)*a.w);
+ // (fresh water reading "good salinity" for a freshwater fish says nothing, so it never leads)
+ const sorted=rows.filter(R=>!(R.k==="sal"&&R.v>=.9&&R.raw<1)).sort((a,b)=>Math.abs(b.v-0.5)*b.w-Math.abs(a.v-0.5)*a.w);
  const top=sorted[0];
  const reason=top?reasonText(top):"";
  return{total:Math.round(100*Math.exp(lg/sw)),rows,coverage:sw/tw,used:have.length,all:usable.length,
@@ -2070,7 +2099,7 @@ function outlook(){
  if(hr.every(x=>x.gate)){el.innerHTML=`<h3>7-day outlook</h3><div class="note">${esc(hr[0].gate)}</div>`;return}
  const fmt=ts=>new Date(ts).toLocaleTimeString([],{hour:"numeric"}),days={};
  for(let i=0;i<hr.length-2;i++){const w=hr.slice(i,i+3);
-  if(w.some(x=>x.night||x.v==null))continue;
+  if(w.some(x=>x.night&&!SP[sp].night||x.v==null))continue;
   const v=Math.round(w.reduce((a,x)=>a+x.v,0)/3),k=new Date(w[0].ts).toDateString();
   if(!days[k]||v>days[k].v)days[k]={v,from:w[0].ts,to:w[2].ts+36e5}}
  const list=Object.values(days);
@@ -2290,7 +2319,7 @@ function bestWindowFor(spot,spId,hours=36){
  const f=FC&&FC.spots&&FC.spots[spot.id];if(!f)return null;
  const t0=Date.parse(f.start),now=Date.now(),ud=userDepth(),hs=[];
  for(let i=0;i<f.temp.length;i++){const ts=t0+i*36e5;if(ts<now-18e5)continue;if(ts>now+hours*36e5)break;
-  const c1=fcConditions(spot,f,i,ts,ud),rr=c1.light==="Night"?null:scoreC(spId,c1,spot.quality||{},ts);hs.push({ts,v:rr&&!rr.gate?rr.total:null})}
+  const c1=fcConditions(spot,f,i,ts,ud),rr=c1.light==="Night"&&!SP[spId].night?null:scoreC(spId,c1,spot.quality||{},ts);hs.push({ts,v:rr&&!rr.gate?rr.total:null})}
  let best=null;for(let i=0;i+2<hs.length;i++){const w=hs.slice(i,i+3);if(w.some(x=>x.v==null)||w[2].ts-w[0].ts!==72e5)continue;
   const v=Math.round((w[0].v+w[1].v+w[2].v)/3);if(!best||v>best.v)best={v,from:w[0].ts}}
  return best;
@@ -2489,67 +2518,83 @@ function removeMySpot(id){
 // "spots" holds lake-specific rules, keyed by spot id. Fish LDWF doesn't list say so instead of guessing.
 const REGS_CHECKED="2026-11-24";
 const REG_SRC={salt:"https://www.wlf.louisiana.gov/page/recreational-saltwater-finfish",fresh:"https://www.wlf.louisiana.gov/assets/Resources/Publications/Regulations/26LAFW.pdf"};
-const ATCH_LOW={min:12,bag:"5 a day",note:"Lower Atchafalaya Basin, Grassy Lake, Lake Palourde, Lake Verret and connected waters, from Aug. 1, 2026."};
-const ATCH_CRAP={min:8,bag:"25 a day",note:"Lower Atchafalaya Basin, Grassy Lake, Lake Palourde, Lake Verret and connected waters, from Aug. 1, 2026."};
+const ATCH_LOW={min:12,len:"total length",bag:"5 a day (largemouth and spotted bass together)",note:"Lower Atchafalaya Basin, Grassy Lake, Lake Palourde, Lake Verret and connected waters, from Aug. 1, 2026. Applies to anyone using a boat launch in the area, wherever the fish were caught."};
+const ATCH_CRAP={min:8,len:"total length",bag:"25 a day",note:"Lower Atchafalaya Basin, Grassy Lake, Lake Palourde, Lake Verret and connected waters, from Aug. 1, 2026. Applies to anyone using a boat launch in the area, wherever the fish were caught."};
 const REGS={
  redfish:{min:18,max:27,over:0,len:"total length",bag:"4 a day",note:"None over 27 in. Redfish can't be kept in federal waters, and captain and crew on a charter trip can't keep any."},
  bullred:{min:18,max:27,over:0,len:"total length",bag:"4 a day",note:"Redfish over 27 in (bull reds) must be released. None can be kept in federal waters."},
- trout:{min:13,max:20,over:2,len:"total length",bag:"15 a day",note:"No more than 2 over 20 in. Captain and crew on a charter trip can't keep any."},
- flounder:{bag:"10 a day",note:"No size limit. None may be kept Oct. 15 – Nov. 30."},
+ trout:{min:13,max:20,over:2,len:"total length",bag:"15 a day",note:"No more than 2 over 20 in. Captain and crew on a charter trip can't keep any. This rule ends Jan. 1, 2028 unless the Wildlife and Fisheries Commission renews it."},
+ flounder:{bag:"10 a day",note:"No size limit. None may be kept Oct. 15 – Nov. 30, including flounder caught by accident."},
  sheepshead:{bag:"No limit",note:"No size or bag limit."},
- drum:{min:16,max:27,over:1,len:"total length",bag:"5 a day",note:"No more than 1 over 27 in."},
+ drum:{min:16,max:27,over:1,len:"total length",bag:"5 a day",note:"No more than 1 over 27 in, and it counts toward the 5."},
  spanish:{min:12,len:"fork length",bag:"15 a day"},
  kingmack:{min:24,len:"fork length",bag:"3 a day"},
  cobia:{min:36,len:"fork length",bag:"1 a day",note:"No more than 2 per boat."},
  tripletail:{min:18,len:"total length",bag:"5 a day"},
- snapper:{min:16,len:"total length",bag:"4 a day while open",note:"Louisiana sets the season each year and closes it when the state's share is caught. LDWF posts the catch so far every week.",
+ snapper:{min:16,len:"total length",bag:"4 a day while open",note:"Louisiana sets the season each year and closes it when the state's share is caught. LDWF posts the catch so far every week. Charter and head boats with a federal permit have their own federal season set by NOAA, so they can be open when the state season is closed (and the other way round). You need Louisiana's free Recreational Offshore Landing Permit, and in federal waters circle hooks with natural bait.",
   links:[["LA Creel: catch so far","https://www.wlf.louisiana.gov/page/lacreel"],["LDWF red snapper page","https://www.wlf.louisiana.gov/page/red-snapper"]]},
- amberjack:{min:34,len:"fork length",bag:"1 a day",note:"Greater amberjack. State season Sept. 1 – Oct. 14."},
+ amberjack:{min:34,len:"fork length",bag:"1 a day",note:"Greater amberjack. Open Sept. 1 – Oct. 13 in 2026, then closed until Sept. 1, 2027 (state and federal). The season opens Sept. 1 each year and closes when the catch target is reached."},
  trigger:{min:15,len:"fork length",bag:"1 a day",note:"Closed Jan. 1 – end of Feb. and June 1 – July 31. Counts toward the 20-fish reef fish limit."},
  vermilion:{min:10,len:"total length",bag:"10 a day",note:"Counts toward the 20-fish reef fish limit."},
  mangrove:{min:12,len:"total length",bag:"10 a day",note:"Counts toward the 10-snapper limit (gray, cubera, mutton, yellowtail and others)."},
  cubera:{min:12,len:"total length",bag:"10 a day",note:"Counts toward the 10-snapper limit (gray, cubera, mutton, yellowtail and others)."},
- grouper:{bag:"4 a day, all groupers together",note:"Minimum total length: red and yellowfin 20 in, gag and black 24 in, scamp 16 in. No more than 2 red and 2 gag. Gag has a short season set each year, and several groupers close Feb. 1 – Mar. 31 past 20 fathoms (120 ft)."},
- yft:{min:27,len:"curved fork length",bag:"3 a day"},
+ grouper:{bag:"4 a day, all groupers together",note:"Minimum total length: red and yellowfin 20 in, gag and black 24 in, scamp 16 in; yellowedge, snowy and warsaw none. No more than 2 red and 2 gag; warsaw and speckled hind 1 per boat. Gag has a short season set each year (Sept. 1–30 in 2026). Red, black, scamp, yellowfin and yellowmouth grouper close Feb. 1 – Mar. 31 beyond 20 fathoms (120 ft)."},
+ yft:{min:27,len:"curved fork length",bag:"3 a day",note:"No more than 3 per person on board, however long the trip. In federal waters you need a federal HMS Angling (or Charter/Headboat) permit."},
  wahoo:{bag:"5 a day",note:"No size limit."},
- marlin:{min:99,len:"lower jaw fork length",bag:"No bag limit",note:"Report every marlin you keep to NOAA Fisheries within 24 hours."},
- swordfish:{min:47,len:"lower jaw fork length",bag:"1 per person, up to 4 per boat",note:"Report every swordfish you keep to NOAA Fisheries within 24 hours."},
+ marlin:{min:99,len:"lower jaw fork length",bag:"No bag limit",note:"You need a federal HMS Angling (or Charter/Headboat) permit. Report every marlin you keep to NOAA Fisheries within 24 hours."},
+ swordfish:{min:47,len:"lower jaw fork length",bag:"1 per person, up to 4 per boat",note:"You need a federal HMS Angling (or Charter/Headboat) permit. Report every swordfish you keep to NOAA Fisheries within 24 hours."},
  bass:{bag:"10 a day",note:"No size limit statewide.",spots:{atch:ATCH_LOW,verret:ATCH_LOW,palourde:ATCH_LOW,henderson:ATCH_LOW,
-  falseriver:{min:14,bag:"5 a day"},toledo:{min:14,bag:"8 a day with spotted bass"},caddo:{bag:"8 a day, no more than 4 over 18 in",note:"Largemouth 14–18 in must be released."},
-  povertypoint:{bag:"8 a day, no more than 1 over 19 in",note:"Largemouth 15–19 in must be released."}}},
- spotbass:{bag:"10 a day with largemouth",note:"No size limit statewide."},
+  falseriver:{min:14,len:"total length",bag:"5 a day"},toledo:{min:14,len:"total length",bag:"8 a day with spotted bass",note:"The 14 in minimum is for largemouth; spotted bass have no size limit here."},
+  caddo:{bag:"8 a day, no more than 4 over 18 in",slot:[14,18],over:4,len:"total length",note:"Largemouth 14–18 in must be released."},
+  povertypoint:{bag:"8 a day, no more than 1 over 19 in",slot:[15,19],over:1,len:"total length",note:"Largemouth 15–19 in must be released."}}},
+ spotbass:{bag:"10 a day with largemouth",note:"No size limit statewide.",spots:{atch:ATCH_LOW,verret:ATCH_LOW,palourde:ATCH_LOW,henderson:ATCH_LOW,
+  falseriver:{min:14,len:"total length",bag:"5 a day (largemouth and spotted bass together)"},
+  povertypoint:{bag:"8 a day with largemouth, no more than 1 over 19 in",slot:[15,19],over:1,len:"total length",note:"The 15–19 in protected slot is written for largemouth; release spotted bass in it too unless LDWF tells you otherwise."},
+  toledo:{bag:"8 a day with largemouth",note:"No size limit for spotted bass."},caddo:{bag:"8 a day with largemouth",note:"No size limit for spotted bass."}}},
  crappie:{bag:"50 a day (100 in possession)",note:"No size limit statewide.",spots:{atch:ATCH_CRAP,verret:ATCH_CRAP,palourde:ATCH_CRAP,henderson:ATCH_CRAP,
   caddo:{bag:"25 a day"},povertypoint:{bag:"25 a day"},toledo:{bag:"25 a day"},darbonne:{bag:"50 a day, no more than 7 over 12 in"}}},
- catfish:{bag:"100 a day, blue, channel and flathead together",note:"Minimum length: blue 12 in, channel 11 in, flathead 14 in; up to 25 undersized may be kept in total.",
-  spots:{caddo:{bag:"Blue and channel 50 a day together, no more than 5 over 30 in; flathead 10 a day",note:"Flathead minimum 18 in."},toledo:{bag:"Blue and channel 50 a day together, no more than 5 over 30 in; flathead 10 a day",note:"Flathead minimum 18 in."}}},
+ catfish:{bag:"100 a day, blue, channel and flathead together",note:"Statewide minimum length: blue 12 in, channel 11 in, flathead 14 in; up to 25 undersized may be kept in total.",
+  spots:{caddo:{bag:"Blue and channel 50 a day together, no more than 5 over 30 in; flathead 10 a day",note:"Blue and channel: no minimum length. Flathead minimum 18 in."},toledo:{bag:"Blue and channel 50 a day together, no more than 5 over 30 in; flathead 10 a day",note:"Blue and channel: no minimum length. Flathead minimum 18 in."}}},
  bream:{bag:"No limit",note:"No size or bag limit statewide."},
+ blackfin:{bag:"No limit",note:"No Louisiana or federal size or bag limit: blackfin isn't one of the tunas NOAA's HMS program manages. Florida's limit applies only in Florida waters."},
+ mahi:{bag:"No limit",note:"No size or bag limit in Louisiana or Gulf federal waters. Atlantic and Florida rules differ."},
+ tarpon:{bag:"No limit",note:"No Louisiana size or bag limit. LDWF lists tarpon as a species of concern: release them and keep big fish in the water."},
+ jack:{bag:"No limit",note:"No Louisiana size or bag limit."},
+ pompano:{bag:"No limit",note:"No Louisiana recreational size or bag limit."},
+ whitetrout:{bag:"No limit",note:"No size or bag limit for white (sand or silver) trout. Don't mix up small speckled trout (13 in minimum) with white trout: specks have spots on the back and tail."},
+ gar:{bag:"No limit",note:"No size or bag limit in Louisiana, and bowfishing is legal for gar."},
  chinquapin:{bag:"No limit",note:"No size or bag limit statewide."},
  whitebass:{bag:"50 a day",spots:{caddo:{bag:"25 a day"},toledo:{bag:"25 a day"}}},
  striper:{bag:"5 a day",note:"No more than 2 over 30 in."},
  choupique:{min:16,len:"total length",bag:"No limit"},
  gaspergou:{min:12,len:"total length",bag:"25 a day"}};
 // One fish at one spot: the statewide rule with any lake-specific rule laid over it
-function regFor(k,spot){const R=REGS[k];if(!R)return null;const x=spot&&R.spots&&R.spots[spot.base||spot.id];return x?{...R,...x,note:[x.note,R.note&&!/statewide/.test(R.note)?R.note:""].filter(Boolean).join(" "),local:true}:R}
-const regSize=R=>R.min&&R.max?`${R.min}–${R.max} in`:R.min?`${R.min} in minimum`:"No size limit";
+function regFor(k,spot){const R=REGS[k];if(!R)return null;const x=spot&&R.spots&&R.spots[spot.base||spot.id];return x?{...R,...x,note:[x.note,R.note&&!/statewide/i.test(R.note)?R.note:""].filter(Boolean).join(" "),local:true}:R}
+const regSize=R=>R.slot?`${R.slot[0]}–${R.slot[1]} in protected slot (release)`:R.min&&R.max?`${R.min}–${R.max} in`:R.min?`${R.min} in minimum`:"No size limit";
 // Keep or release, for a fish of a given length (inches)
 function keepCheck(k,inches,spot){const R=regFor(k,spot);if(!R||!(inches>0))return null;
  if(R.min&&inches<R.min)return{ok:false,txt:`Under the ${R.min} in minimum: release it.`};
+ if(R.slot&&inches>=R.slot[0]&&inches<=R.slot[1])return{ok:false,txt:`Inside the ${R.slot[0]}–${R.slot[1]} in protected slot: release it.`};
+ if(R.slot&&inches>R.slot[1])return{ok:true,txt:`Over the slot: a keeper, but only ${R.over} of your daily limit may be over ${R.slot[1]} in.`};
  if(R.max&&inches>R.max)return{ok:R.over>0,txt:R.over>0?`Over ${R.max} in: only ${R.over} of your daily limit may be over.`:`Over the ${R.max} in maximum: release it.`};
- return{ok:true,txt:R.min||R.max?`Keeper size (${regSize(R)}, ${R.len||"length"}).`:"No size limit."}}
+ return{ok:true,txt:R.min||R.max||R.slot?`Keeper size (${regSize(R)}, ${R.len||"length"}).`:"No size limit."}}
 // ---- Where the rules are ----
 const RULES={salt:["Louisiana saltwater seasons and limits","https://wlf.louisiana.gov/fishing/saltwater-seasons-limits"],
  fresh:["Louisiana freshwater creel and size limits","https://wlf.louisiana.gov/fishing/freshwater-creel-size-limits"]};
 const FRESH_SP=new Set(["bass","crappie","catfish","bream","whitebass","striper","spotbass","chinquapin","choupique","gar","gaspergou"]);
+// Yearly notices that aren't a full closure (the fish stays legal somewhere), by Louisiana calendar day
+const NOTICES={grouper:[{from:"02-01",to:"03-31",txt:"Feb. 1 – Mar. 31: red, black, scamp, yellowfin and yellowmouth grouper are closed beyond 20 fathoms (120 ft). Yellowedge, snowy, warsaw and speckled hind stay open."}]};
+const noticeFor=(k,ts=Date.now())=>{const md=CT_DAY.format(ts).slice(5);return(NOTICES[k]||[]).filter(r=>md>=r.from&&md<=r.to).map(r=>r.txt)};
 function regsHTML(spId,spot){
  const p=SP[spId],R=regFor(spId,spot),fresh=FRESH_SP.has(spId),cl=closedNow(p),chk=new Date(REGS_CHECKED+"T12:00:00").toLocaleDateString([],{month:"short",day:"numeric",year:"numeric"});
  const src=`<a href="${fresh?REG_SRC.fresh:REG_SRC.salt}" target="_blank" rel="noopener">LDWF ${fresh?"2026 regulations":"saltwater limits"}</a>`;
- if(spId==="crab")return`<div class="regs"><b>Rules</b><p class="note">Recreational crabbing has its own rules (trap numbers, marking and more), separate from the fish limits. Check ${src}, checked ${chk}.</p></div>`;
+ if(spId==="crab")return`<div class="regs"><b>Rules</b><p class="note">12 dozen (144) per person a day and in possession. No recreational size limit. Egg-bearing (sponge) females must go back right away. Up to 10 traps per licensed person, each tagged with your license number and floated. No baiting, checking or pulling traps from ½ hour after sunset to ½ hour before sunrise. A fishing license is required, even for nets and lines.</p><p class="note">Most Februaries LDWF closes a few areas to crab traps for about two weeks to clear out lost traps; nets and lines stay legal. Check before you set traps then.</p><p class="note">Check ${src}, checked ${chk}.</p></div>`;
  if(!R)return`<div class="regs"><b>Size and bag limits</b><p class="note">${esc(p.name)} isn't in LDWF's 2026 table, so Louisiana sets no size or bag limit for it.${p.zone==="offshore"||spId==="crab"?" Federal rules can apply past state waters; check NOAA Fisheries.":""} Checked ${chk}: ${src}.</p></div>`;
  return`<div class="regs"><b>Size and bag limits</b>${R.local?` <span class="note">at ${esc(spot.name)}</span>`:""}<ul class="reglist">
-  <li><span>Size</span><b>${esc(regSize(R))}${R.len&&R.min?` <span class="note">${esc(R.len)}</span>`:""}</b></li>
+  <li><span>Size</span><b>${esc(regSize(R))}${R.len&&(R.min||R.slot)?` <span class="note">${esc(R.len)}</span>`:""}</b></li>
   <li><span>Keep</span><b>${esc(R.bag)}</b></li>
   <li><span>Season</span><b class="${cl?"closed":""}">${cl?"Closed now":"Open now in state waters"}</b></li></ul>
-  ${R.note?`<p class="note">${esc(R.note)}</p>`:""}${cl?`<p class="note">${esc(cl)}.</p>`:""}
+  ${R.note?`<p class="note">${esc(R.note)}</p>`:""}${cl?`<p class="note">${esc(cl)}.</p>`:""}${noticeFor(spId).map(t=>`<p class="note"><b>${esc(t)}</b></p>`).join("")}
   ${(R.links||[]).length?`<p class="note">${R.links.map(([t,u])=>`<a href="${u}" target="_blank" rel="noopener">${esc(t)}</a>`).join(" · ")}</p>`:""}
   <p class="note">From ${src}, checked ${chk}. Rules change: confirm before you keep fish.</p></div>`}
 function rulesPanel(spId,spot){
@@ -2557,7 +2602,7 @@ function rulesPanel(spId,spot){
  let h=regsHTML(spId,spot)+`<div class="note rules">More: <a href="${r[1]}" target="_blank" rel="noopener">${r[0]} (LDWF)</a>.`;
  if(spot.zone!=="offshore"&&!FRESH_SP.has(spId))h+=` Oyster harvest areas open and close through the year: <a href="https://ldh.la.gov/bureau-of-sanitarian-services/molluscan-shellfish-program" target="_blank" rel="noopener">LDH shellfish maps</a>.`;
  if(p.zone==="offshore")h+=` Many offshore species also need Louisiana's free Recreational Offshore Landing Permit, and federal rules apply past state waters.`;
- if((spId==="bass"||spId==="crappie")&&["atch","verret","palourde"].includes(spot.base||spot.id))
+ if((spId==="bass"||spId==="spotbass"||spId==="crappie")&&["atch","verret","palourde","henderson"].includes(spot.base||spot.id))
   h+=` <a href="https://www.wlf.louisiana.gov/news/new-fishing-regs-in-atchafalaya-basin-on-aug-1" target="_blank" rel="noopener">Map of the Atchafalaya Basin area with the Aug. 1, 2026 rules</a>.`;
  return h+`</div>`;
 }
@@ -3155,7 +3200,7 @@ function render(){
    const ts=t0+i*36e5;
    if(ts<now-18e5)continue;
    if(ts>now+36*36e5)break;
-   const c1=fcConditions(spot,f,i,ts,ud),rr=c1.light==="Night"?null:scoreC(sp,c1,q,ts);
+   const c1=fcConditions(spot,f,i,ts,ud),rr=c1.light==="Night"&&!SP[sp].night?null:scoreC(sp,c1,q,ts);
    hs.push({ts,v:rr&&!rr.gate?rr.total:null});
   }
   let best=null;
@@ -3346,7 +3391,7 @@ function alertHits(){
   const f=FC&&FC.spots&&FC.spots[spot.id];if(!f||!f.temp)continue;
   const t0=Date.parse(f.start),q=spot.quality||{},hs=[];
   for(let i=0;i<f.temp.length;i++){const ts=t0+i*36e5;if(ts<now)continue;if(ts>now+48*36e5)break;
-   const c1=fcConditions(spot,f,i,ts,null),rr=c1.light==="Night"?null:scoreC(rule.sp,c1,q,ts);hs.push({ts,v:rr&&!rr.gate?rr.total:null})}
+   const c1=fcConditions(spot,f,i,ts,null),rr=c1.light==="Night"&&!SP[rule.sp].night?null:scoreC(rule.sp,c1,q,ts);hs.push({ts,v:rr&&!rr.gate?rr.total:null})}
   for(let i=0;i+2<hs.length;i++){const w=hs.slice(i,i+3);if(w.some(x=>x.v==null)||w[2].ts-w[0].ts!==72e5||!dayOk(rule,w[0].ts))continue;
    const avg=Math.round((w[0].v+w[1].v+w[2].v)/3);
    if(avg>=rule.min){hits.push({rule,spot,kind:"soon",sp:rule.sp,v:avg,txt:`${SP[rule.sp].name} at ${spot.name}: about ${avg}, ${wd(w[0].ts)} ${fmt(w[0].ts)}–${fmt(w[0].ts+108e5)}`});break}}
