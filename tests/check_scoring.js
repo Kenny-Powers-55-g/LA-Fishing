@@ -136,6 +136,14 @@ const at = d => Date.parse(d + "T18:00:00Z");
   if (!(run > calm)) fail(`a December front should move flounder through the passes (after front ${run}, settled ${calm})`);
 }
 
+// ---- Cubera gather around the full moon in summer ----
+{
+  const api = load(), off = { zone: "offshore", temp: 86, wave: 2, wind: 8, cur: .5, vis: 20, light: "Dusk", bdepth: 300, oxy: "OK" };
+  const sc = (m, d) => api.scoreC("cubera", { ...off, mon: m, moon: { s: .6, illum: .9, dff: d } }, {}, at(`2027-${String(m).padStart(2, "0")}-15`)).total;
+  if (!(sc(7, 4) - sc(7, -6) >= 5)) fail(`cubera should score higher in the week after a July full moon (in ${sc(7, 4)}, out ${sc(7, -6)})`);
+  if (sc(12, 4) !== sc(12, -6)) fail("the cubera full-moon window applies only June to September");
+}
+
 // ---- Personal tuning is per fish ----
 {
   // 6 good and 4 slow bass trips where warm water matched the good days

@@ -5,7 +5,7 @@
      Outside scripts are allowed by their exact file (Leaflet and the Supabase library), not whole sites, and
      only this site's own Supabase project may be contacted. Changing supabaseUrl in config.js? Change both
      of its addresses in connect-src too (node tests/check_page.js checks they match). -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-ap5MSQrXWR0reWT9leoroLT0xlM5zuuNBvia3r/cTEw=' 'sha256-er8NxuQLM68s+j4fMTNbjYJY/xpPDPvJ2S4GnlmM+gM=' https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.118.0/dist/umd/supabase.js https://challenges.cloudflare.com/turnstile/; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https://*.noaa.gov https://gibs.earthdata.nasa.gov https://tile.openstreetmap.org https://cdnjs.cloudflare.com; connect-src 'self' https://kenny-powers-55-g.github.io https://*.noaa.gov https://gibs.earthdata.nasa.gov https://tile.openstreetmap.org https://api.open-meteo.com https://qpbqepzdxkadmulkmfbj.supabase.co wss://qpbqepzdxkadmulkmfbj.supabase.co https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://fonts.googleapis.com https://fonts.gstatic.com; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-src https://challenges.cloudflare.com; upgrade-insecure-requests">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-ap5MSQrXWR0reWT9leoroLT0xlM5zuuNBvia3r/cTEw=' 'sha256-epawJsQ1v9msCKYblUzMIcdnB5zYrZDbB2P/9ok0KUg=' https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.118.0/dist/umd/supabase.js https://challenges.cloudflare.com/turnstile/; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https://*.noaa.gov https://gibs.earthdata.nasa.gov https://tile.openstreetmap.org https://cdnjs.cloudflare.com; connect-src 'self' https://kenny-powers-55-g.github.io https://*.noaa.gov https://gibs.earthdata.nasa.gov https://tile.openstreetmap.org https://api.open-meteo.com https://qpbqepzdxkadmulkmfbj.supabase.co wss://qpbqepzdxkadmulkmfbj.supabase.co https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://fonts.googleapis.com https://fonts.gstatic.com; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-src https://challenges.cloudflare.com; upgrade-insecure-requests">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -1533,7 +1533,7 @@ const SP={
  mangrove:{name:"Mangrove Snapper",zone:"offshore",note:LIM,gate:offGate,factors:[
   {k:"temp",l:"Sea temp",w:1.2,f:v=>trap(v,[58,68,92,96]),t:v=>v+"°F"},
   wave(3),windO(2),cur(1.5,2.5),presO(1),light(1),depth(2,[15,30,100,200])]},
- cubera:{name:"Cubera Snapper",zone:"offshore",note:LIM,gate:offGate,factors:[
+ cubera:{name:"Cubera Snapper",zone:"offshore",note:LIM,tip:"Big cubera gather on deep and Delta rigs in summer, most of all in the week or so after the full moon. Live bait (big mullet, blue runners, lobster) on heavy tackle near the legs, often at dusk.",gate:offGate,factors:[
   {k:"temp",l:"Sea temp",w:1.2,f:v=>trap(v,[62,72,92,96]),t:v=>v+"°F"},
   wave(3),windO(2),cur(2,2.5),presO(1),depth(2,[40,60,180,300])]},
  blackfin:{name:"Blackfin Tuna",zone:"offshore",tip:"Blackfin hang around rigs in 150 to 600 ft, especially at first light and when shrimp boats are culling. Chum and freeline, or jig vertically around the legs.",gate:offGate,factors:[sbreak(1.5),visO(1.5,25),
@@ -1790,7 +1790,11 @@ const SP_TUNE={
  gar:{mon:seas(1.5,[.15,.15,.35,.65,.9,1,1,1,.9,.7,.4,.2])},
  snapper:{cur:[1,TW([-.6,.1,1.2,2.5])],oxy:[1.5],mon:seas(1,[.65,.65,.7,.8,.9,1,1,.95,.9,.85,.75,.65])},
  mangrove:{cur:[1,TW([-.4,.2,1.3,2.5])],oxy:[1.2],mon:seas(1,[.35,.35,.45,.6,.8,.95,1,1,.95,.85,.55,.4])},
- cubera:{cur:[1],mon:seas(2,[.1,.1,.15,.3,.55,.9,1,1,.75,.4,.2,.1])},
+ // Cubera gather to spawn on deep and Delta rigs around the full moon in summer, from about 2 days before to
+ // 12 days after it (Heyman et al., Belize; Louisiana guide reports put the peak 3-8 days after)
+ cubera:{cur:[1],mon:seas(2,[.1,.1,.15,.3,.55,.9,1,1,.75,.4,.2,.1]),"+":[{k:"moon",l:"Full-moon spawning window",w:1.5,months:[6,7,8,9],
+  f:v=>v.dff>=-2&&v.dff<=8?1:v.dff>8&&v.dff<=12?.8:.4,
+  t:v=>{const d=Math.round(v.dff);return d===0?"full moon tonight":d<0?`${-d} day${d===-1?"":"s"} before the full moon`:`${d} day${d===1?"":"s"} after the full moon`}}]},
  vermilion:{cur:[1.2,TW([-.6,.1,1.2,2.2])]},
  amberjack:{wave:[3,TW([-1,0,2.5,6])],wind:[1,TW([-1,0,10,22])],cur:[1.5,TW([-.5,.1,1.5,2.5])],light:[.5],mon:seas(1,[.6,.6,.8,.9,.9,.8,.7,.7,.8,.9,.8,.6])},
  trigger:{pres:[0],cur:[1,TW([-.5,0,1,2])]},
@@ -1939,7 +1943,7 @@ function moonInfo(spot,ts=Date.now()){
  const phaseS=1-Math.min(1,ph/0.12);
  const w=solunarWindows(spot,ts).find(x=>ts>=x.from&&ts<=x.to);
  const s=0.45+0.35*phaseS+(w?(w.major?0.2:0.1):0);
- return{s:Math.min(1,s),illum:(1-Math.cos(2*Math.PI*p))/2,night:lightNow(spot,ts)==="Night",txt:moonLabel(p)+(w?(w.major?", major solunar period":", minor solunar period"):"")};
+ return{s:Math.min(1,s),illum:(1-Math.cos(2*Math.PI*p))/2,dff:(p-.5)*29.530588853,night:lightNow(spot,ts)==="Night",txt:moonLabel(p)+(w?(w.major?", major solunar period":", minor solunar period"):"")};
 }
 function windCompass(deg){
  if(deg==null||isNaN(deg))return null;
@@ -2187,8 +2191,9 @@ function reasonText(R){
   case"mon":return g?`In season (${t})`:b?`Out of season (${t})`:`Early or late in the season (${t})`;
   case"oxy":return x==="Low"?"Low bottom oxygen (dead zone)":"Bottom oxygen OK";
   case"weed":return g?`Weedline ${t}`:"No weedline nearby";
-  case"moon":case"fphase":case"shrimp":return t;
+  case"fphase":case"shrimp":return t;
   case"divert":return b?`Fresh river water (${t})`:t;
+  case"moon":return R.l==="Full-moon spawning window"?(g?`Full-moon spawning window (${t})`:`Outside the full-moon window (${t})`):t;
   case"wl_anom":return g?`Good water level (${t} vs the tide table)`:x<0?`Water blown out (${t} vs the tide table)`:`High water (${t} vs the tide table)`;
   default:return`${R.l}: ${t}`;
  }
