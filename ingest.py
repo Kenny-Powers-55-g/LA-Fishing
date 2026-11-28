@@ -3046,9 +3046,6 @@ def health(out_md="health.md"):
     def buoy():   # 42001, south of Southwest Pass. 42040 no longer reports weather (NDBC lists it met="n").
         b = buoy_obs("42001") or {}
         return b, ", ".join(sorted(b)) or "no data"
-    def ssh():
-        r = griddap_box("https://gcoos5.geos.tamu.edu/erddap", f"SSH_GoA_{now.year}", "adt", 28.0, 29.0, -90.0, -89.0, extra="")
-        return r, f"newest {r[0]}" if r else "no answer"
     def layer(urls, bbox):
         def fn():
             for u in urls:
@@ -3082,7 +3079,6 @@ def health(out_md="health.md"):
     check("Satellite sea height (Loop Current and eddy edges)", ssh)
     check("Satellite water color (chlorophyll)", chl)
     check("NDBC buoy 42001", buoy)
-    check("Sea surface height (Loop Current)", ssh)
     def rigs():
         pts = boem_platforms((-94.5, 26.4, -87.5, 30.6))
         if pts:
