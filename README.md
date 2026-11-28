@@ -118,6 +118,54 @@ If someone reaches it, the app tells them to download a backup and delete old tr
 Supabase's built-in email sender only allows a few sign-in emails per hour. Once more people use the site, add your own
 email service under **Authentication → Emails → SMTP Settings** (Resend, SendGrid, Amazon SES and others have free tiers).
 
+## Phone notifications
+
+People can get their alerts (under **My alerts** in the app) as real phone notifications, even with OceanCast
+closed: "Redfish at Venice / Delta Marsh: 87 now", "Speckled Trout at Barataria Bay: about 81, Sat 7 AM", or a Small
+Craft Advisory at a starred spot. No account is needed. It works in Chrome, Edge, Firefox and Samsung Internet on
+Android and computers, Safari on a Mac, and on iPhone (iOS 16.4 or later) once OceanCast is on the Home Screen.
+The iPhone *app* doesn't get them yet (that needs Apple's own push service); inside the app, alerts still show while it's open.
+
+To turn it on (once; until then the app works exactly as before):
+
+1. In Supabase, open **SQL Editor → New query**, paste everything from `supabase/setup.sql`, and press **Run**
+   (safe to re-run; it adds the `oc_push_devices` table and its functions).
+2. Make the notification keys, once, on any computer with [Node.js](https://nodejs.org): `node scripts/webpush.js keys`.
+   It prints two keys. Keep them: making new ones later stops every phone's notifications until it next opens OceanCast.
+3. Paste the **public** key into `pushKey` in `config.js` and commit.
+4. In GitHub, **Settings → Secrets and variables → Actions → New repository secret**:
+   - `VAPID_PRIVATE_KEY`: the **private** key from step 2.
+   - `SUPABASE_SECRET_KEY`: in Supabase, **Project Settings → API Keys → Secret keys**, create a key and copy it
+     (`sb_secret_…`). An older `service_role` key works too. Only GitHub ever holds this key, never `config.js`.
+5. After the next update, open **My alerts** on a phone: it offers **Turn on**. Within the hour that phone gets a
+   "Notifications are on" message, which proves the whole path works. The run log line starting `push:` says how many
+   devices were checked and sent to.
+
+How it works:
+
+- Turning notifications on asks the browser for a push address (from Google, Apple, Mozilla or Microsoft) and saves it in
+  `oc_push_devices` with a copy of that device's alert rules and the settings that change their answers (starred spots,
+  boat size, depth, personal and community tuning). It's saved through `oc_push_save()` with the public key, never
+  with the person's sign-in, so it isn't tied to an account, and no name, email or network address is stored.
+  A random key that stays on the device is the only way to change or delete the copy. The copy updates a few seconds
+  after the person changes an alert, a star or a setting, and whenever the app opens.
+- Every hour, right after the deploy, `scripts/push.js` loads each device's copy into the page's own code and asks
+  `alertHits()` in `map.html` what matches, the same function that fills the My alerts card. So a notification and
+  the app always agree. It then sends anything new, encrypted so only that browser can read it (`scripts/webpush.js`).
+- **No repeats:** at most one notification per alert, spot and day (an area alert: one a day for the whole area). A
+  warning is sent again only if it's extended. A device gets at most one push per hour; several matches are listed together.
+- **Safety first:** fishing matches only count daylight windows the person's boat can go out in. A "right now" match
+  is skipped while it's a no-go for their boat, and offshore fishing alerts stop while a tropical storm threatens the coast.
+- **Quiet hours:** nothing between 9 PM and 6 AM Louisiana time except hurricane, tropical storm and storm surge
+  warnings. Anything held back goes out after 6 AM if it still holds.
+- **Cleanup:** a device is removed when someone turns notifications off, when the push service says the address is
+  gone, after 10 refused sends in a row, or after 180 days with neither an app visit nor a delivered notification.
+- **Limits:** 10 new devices a day from one network address, 3,000 a day from everyone, and 25,000 devices in total
+  (`max_devices` in `oc_push_save()`; each row is about 2 KB, so raise it if the database has room). Only the push
+  services' own addresses are ever accepted or posted to.
+- Tests: `node tests/check_push.js` (encryption checked against RFC 8291's worked example, plus whole runs against a
+  made-up push service). The site owner's own ntfy alerts in `alerts.json` keep working separately.
+
 ## Rules, boat launches and search pages
 
 - **Size and bag limits** (`REGS` in `map.html`) are copied from LDWF's own saltwater table and 2026 regulations PDF,
@@ -140,8 +188,8 @@ email service under **Authentication → Emails → SMTP Settings** (Resend, Sen
 - It stops (and leaves the live site as it is) if it can't fetch the live history, trends or alert state,
   if far fewer spots than usual came in, if the forecast is missing for most spots, if readings are out of
   physical range, or if the history would shrink by half.
-- Side steps (search pages, trends, community tuning, alerts) never block the update, but a failure in any
-  of them turns the run red, so GitHub emails you.
+- Side steps (search pages, trends, community tuning, alerts, phone notifications) never block the update, but a
+  failure in any of them turns the run red, so GitHub emails you.
 - A data source that fails six calls in a row is skipped for the rest of that run, and after 20 minutes no
   new spots are started, so one slow service can't stop every deploy. A spot whose weather fetch fails keeps
   its last forecast for up to 6 hours, so its hour-by-hour view doesn't go blank.

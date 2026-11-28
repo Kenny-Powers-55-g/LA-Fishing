@@ -76,6 +76,7 @@ jobs:
           node tests/check_community.js
           node tests/check_scoring.js
           node tests/check_pages.js
+          node tests/check_push.js
 
       - name: Get history and the weekly map layers from the live site
         # Retries each file. "Not there yet" (404) is fine, but if history, trends or alert state can't
@@ -195,6 +196,22 @@ jobs:
           [ -n "$HEALTHCHECK_URL" ] || { echo "No HEALTHCHECK_URL secret; skipping"; exit 0; }
           curl -fsS -m 10 --retry 3 "$HEALTHCHECK_URL" > /dev/null && echo "pinged"
 
+      - name: Send phone notifications to everyone who turned them on
+        id: push
+        # After the deploy, so a tapped notification opens a site that already shows the same numbers.
+        # Needs the SUPABASE_SECRET_KEY and VAPID_PRIVATE_KEY repository secrets and pushKey in config.js
+        # (README, "Phone notifications"); without them it only says what's missing. Never blocks the update.
+        if: steps.deployment.outcome == 'success' || steps.deployment_retry.outcome == 'success'
+        continue-on-error: true
+        timeout-minutes: 10
+        env:
+          TZ: America/Chicago
+          SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
+          VAPID_PRIVATE_KEY: ${{ secrets.VAPID_PRIVATE_KEY }}
+        run: |
+          owner="${GITHUB_REPOSITORY%%/*}"; repo="${GITHUB_REPOSITORY#*/}"
+          SITE_URL="https://$(echo "$owner" | tr 'A-Z' 'a-z').github.io/$repo" node scripts/push.js
+
       - name: Mark the run failed if a side step failed
         # Those steps don't stop the deploy (the scores still publish), but a red run gets GitHub's email,
         # so a broken search-page or snapshot script doesn't go unnoticed.
@@ -205,6 +222,7 @@ jobs:
           [ "${{ steps.snapshot.outcome }}" = "failure" ] && bad="$bad snapshot"
           [ "${{ steps.pages.outcome }}" = "failure" ] && bad="$bad search-pages"
           [ "${{ steps.alerts.outcome }}" = "failure" ] && bad="$bad alerts"
+          [ "${{ steps.push.outcome }}" = "failure" ] && bad="$bad phone-notifications"
           if [ -n "$bad" ]; then echo "::error::These steps failed (the site still updated):$bad"; exit 1; fi
 
       - name: Keep the schedules switched on

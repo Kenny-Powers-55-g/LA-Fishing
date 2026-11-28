@@ -1,7 +1,7 @@
 // Caches the app so it opens offline. Data files and the page are network-first with the
 // saved copy as backup; on a weak connection the saved copy is used after a few seconds.
 // The map library is cached the first time it loads.
-const V = "la-fishing-v50";
+const V = "la-fishing-v51";
 const CDN_CACHE = "la-fishing-cdn-v2";          // kept across app versions
 const TILE_CACHE = "la-fishing-tiles";          // map areas saved for offline (kept too)
 const TILE_RE = /^https:\/\/(gis\.charttools\.noaa\.gov|gis\.ngdc\.noaa\.gov)\/.*(\/tile\/|exportImage)/;
@@ -84,4 +84,31 @@ self.addEventListener("fetch", e => {
   // App shell
   e.respondWith(networkFirst(req, req,
     req.mode === "navigate" ? () => caches.match(u.pathname.endsWith("/map.html") ? "map.html" : "index.html") : null));
+});
+
+// Phone notifications (sent by scripts/push.js): show each one, and open the spot it's about when tapped.
+// Every push must show a notification (browsers stop delivering to sites whose pushes show nothing).
+self.addEventListener("push", e => {
+  let m = {};
+  try { m = e.data ? e.data.json() : {}; } catch (x) {}
+  const str = (v, n) => (typeof v === "string" ? v.slice(0, n) : "");
+  const home = new URL("map.html", self.registration.scope).href;
+  let url = home;
+  try { const u = new URL(str(m.url, 300) || "map.html", self.registration.scope); if (u.origin === location.origin) url = u.href; } catch (x) {}
+  const tag = str(m.tag, 64);
+  e.waitUntil(self.registration.showNotification(str(m.title, 120) || "OceanCast", {
+    body: str(m.body, 500), icon: "icon-192.png", data: { url },
+    ...(tag ? { tag, renotify: true } : {}),
+  }));
+});
+
+self.addEventListener("notificationclick", e => {
+  e.notification.close();
+  const url = (e.notification.data && e.notification.data.url) || new URL("map.html", self.registration.scope).href;
+  e.waitUntil(self.clients.matchAll({ type: "window", includeUncontrolled: true }).then(list => {
+    // An open OceanCast window: bring it forward and go to the spot; otherwise open a new one
+    const w = list.find(c => new URL(c.url).pathname.endsWith("/map.html")) || list[0];
+    if (w) return w.focus().then(f => (f && f.navigate ? f.navigate(url) : f)).catch(() => self.clients.openWindow(url));
+    return self.clients.openWindow(url);
+  }));
 });

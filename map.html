@@ -5,7 +5,7 @@
      Outside scripts are allowed by their exact file (Leaflet and the Supabase library), not whole sites, and
      only this site's own Supabase project may be contacted. Changing supabaseUrl in config.js? Change both
      of its addresses in connect-src too (node tests/check_page.js checks they match). -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-ap5MSQrXWR0reWT9leoroLT0xlM5zuuNBvia3r/cTEw=' 'sha256-GWvHin6PYTFSzzZsxx9u4T1X2EaMY63FlzjBsnVyZDE=' https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.118.0/dist/umd/supabase.js https://challenges.cloudflare.com/turnstile/; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; font-src 'self'; img-src 'self' data: blob: https://*.noaa.gov https://gibs.earthdata.nasa.gov https://tile.openstreetmap.org https://cdnjs.cloudflare.com; connect-src 'self' https://kenny-powers-55-g.github.io https://*.noaa.gov https://gibs.earthdata.nasa.gov https://tile.openstreetmap.org https://api.open-meteo.com https://qpbqepzdxkadmulkmfbj.supabase.co wss://qpbqepzdxkadmulkmfbj.supabase.co https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-src https://challenges.cloudflare.com; upgrade-insecure-requests">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-ap5MSQrXWR0reWT9leoroLT0xlM5zuuNBvia3r/cTEw=' 'sha256-26voqFtq7Dq9UdHRWf2t/ZY5iGFToC/LTsgisaMyTG4=' https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.118.0/dist/umd/supabase.js https://challenges.cloudflare.com/turnstile/; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; font-src 'self'; img-src 'self' data: blob: https://*.noaa.gov https://gibs.earthdata.nasa.gov https://tile.openstreetmap.org https://cdnjs.cloudflare.com; connect-src 'self' https://kenny-powers-55-g.github.io https://*.noaa.gov https://gibs.earthdata.nasa.gov https://tile.openstreetmap.org https://api.open-meteo.com https://qpbqepzdxkadmulkmfbj.supabase.co wss://qpbqepzdxkadmulkmfbj.supabase.co https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-src https://challenges.cloudflare.com; upgrade-insecure-requests">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -920,6 +920,10 @@ select option,select optgroup{background-color:var(--card);color:var(--tx)}
 #alform [hidden]{display:none}
 #alform .primary{min-height:48px;border-radius:12px;font-size:var(--fs-body);font-weight:600;background:var(--ac);color:var(--onac)}
 #alertbody .msg{font-size:var(--fs-caption);color:var(--mu)}#alertbody .msg.err{color:var(--r)}
+.al-push{display:flex;gap:12px;align-items:center;justify-content:space-between;background:var(--s2);border-radius:12px;padding:12px 14px}
+.al-push.on{background:var(--good-bg)}.al-push b{display:block;font-size:var(--fs-body-s);font-weight:600}.al-push .note{display:block;margin:3px 0 0}.al-push .t{flex:none}
+#pushmsg{margin:6px 0 4px}#pushmsg:empty{display:none}
+.al-bell{font-size:var(--fs-body-s);vertical-align:1px}.al-pushoffer{margin-top:8px}
 @media(max-width:600px){#alertdlg{width:100vw;max-width:100vw;margin:auto 0 0;border-radius:14px 14px 0 0;padding-bottom:calc(18px + env(safe-area-inset-bottom,0px))}}
 /* first-visit setup, best bets, sign-up */
 #setupdlg{border:1px solid var(--bd);border-radius:12px;padding:0;background:var(--card);color:var(--tx);width:min(560px,94vw);max-height:88vh;overflow:auto;box-shadow:0 18px 50px rgba(4,16,26,.25)}
@@ -3674,7 +3678,7 @@ const boatChip=(lv,small)=>lv==null||boat()==="none"?"":`<span class="ww-b l${lv
 // (iPhones only allow notifications and keep a site's data reliably for Home Screen apps).
 function offerHTML(fish,area){let st=null,a2=null;try{st=localStorage.getItem("oc-alertoffer");a2=+localStorage.getItem("oc-a2hs-until")||0}catch(e){}
  const A=AREAS.find(x=>x.k===area);
- if(st==="show"&&A&&!getAlerts().length)return`<p><b>Want a heads-up when ${esc(SP[fish].name.toLowerCase())} turn on near ${esc(A.n)}?</b> It shows at the top of Today when a spot there reaches 75 or better.</p>
+ if(st==="show"&&A&&!getAlerts().length)return`<p><b>Want a heads-up when ${esc(SP[fish].name.toLowerCase())} turn on near ${esc(A.n)}?</b> ${pushAvail()==="off"?"OceanCast sends a notification":"It shows at the top of Today"} when a spot there reaches 75 or better.</p>
   <div class="bb-offer-b"><button type="button" class="t on" data-offer="yes">Turn on alert</button><button type="button" class="t" data-offer="no">No thanks</button></div>`;
  const ios=/iP(hone|ad|od)/.test(navigator.userAgent),standalone=navigator.standalone||matchMedia("(display-mode: standalone)").matches;
  let days=0;try{days=(JSON.parse(localStorage.getItem("oc-days")||"[]")||[]).length}catch(e){}
@@ -3687,7 +3691,9 @@ document.addEventListener("click",e=>{const o=e.target.closest("[data-offer]"),l
  if(l){try{localStorage.setItem("oc-a2hs-until",String(Date.now()+30*864e5))}catch(x){}renderBestBets();return}
  try{localStorage.setItem("oc-alertoffer","done")}catch(x){}
  if(o.dataset.offer==="yes"){const area=getArea(),fish=setupFish();if(area){const a=getAlerts();a.push({id:Math.random().toString(36).slice(2,10),type:"score",sp:fish,where:"area:"+area,min:75,days:"any",quiet:true});saveAlerts(a.map(cleanAlert).filter(Boolean));if(typeof renderAlerts==="function")renderAlerts()}
-  const el=$("bboffer");if(el){el.innerHTML=`<p><b>Alert on:</b> ${esc(SP[fish].name)} near ${esc((AREAS.find(x=>x.k===area)||{}).n||"")}, 75+. Change it under My alerts.</p>`;setTimeout(()=>renderBestBets(),6000)}return}
+  const done=extra=>{const el=$("bboffer");if(el){el.innerHTML=`<p><b>Alert on:</b> ${esc(SP[fish].name)} near ${esc((AREAS.find(x=>x.k===area)||{}).n||"")}, 75+.${extra} Change it under My alerts.</p>`;setTimeout(()=>renderBestBets(),6000)}};
+  if(pushAvail()==="off")pushEnable().then(()=>{done(" You'll get a notification when it matches.");renderAlerts()},e=>done(" "+pushErr(e)));
+  else done("");return}
  renderBestBets()});
 // Count the days someone visits (for the Home Screen tip)
 try{const d=new Date().toDateString(),a=JSON.parse(localStorage.getItem("oc-days")||"[]")||[];if(!a.includes(d)){a.push(d);localStorage.setItem("oc-days",JSON.stringify(a.slice(-5)))}}catch(e){}
@@ -4015,14 +4021,14 @@ const alertTxt=rule=>rule.type==="warn"?`Weather warnings for ${whereTxt(rule)}`
 let AL_CACHE={k:"",hits:[]};
 function alertHits(){
  const rules=getAlerts();if(!DATA||!rules.length)return[];
- const k=[DATA.generated,FC?(FC.generated||1):0,JSON.stringify(rules),getFavs().join(),getMy().length,Math.floor(Date.now()/9e5)].join("|");
+ const k=[DATA.generated,FC?(FC.generated||1):0,JSON.stringify(rules),getFavs().join(),getMy().length,boat(),userDepth(),TUNE_ON,COMM_ON,Math.floor(Date.now()/9e5)].join("|");
  if(AL_CACHE.k===k)return AL_CACHE.hits;
  const hits=[],now=Date.now(),dayOk=(rule,ts)=>rule.days!=="weekend"||WEEKEND.includes(new Date(ts).getDay());
  const fmt=ts=>new Date(ts).toLocaleTimeString([],{hour:"numeric"}),wd=ts=>new Date(ts).toDateString()===new Date(now).toDateString()?"today":new Date(ts).toLocaleDateString([],{weekday:"short"});
  for(const rule of rules)for(const spot of alertSpots(rule)){
-  if(rule.type==="warn"){if(spot.alerts&&spot.alerts.length)hits.push({rule,spot,kind:"warn",sp:sp,txt:`${spot.alerts.map(a=>a.event).join(", ")} at ${spot.name}`});continue}
+  if(rule.type==="warn"){if(spot.alerts&&spot.alerts.length)hits.push({rule,spot,kind:"warn",sp:sp,ts:now,txt:`${spot.alerts.map(a=>a.event).join(", ")} at ${spot.name}`});continue}
   const r=score(rule.sp,spot);
-  if(!r.gate&&r.total>=rule.min&&dayOk(rule,now)){hits.push({rule,spot,kind:"now",sp:rule.sp,v:r.total,txt:`${SP[rule.sp].name} at ${spot.name} is ${r.total} right now`});continue}
+  if(!r.gate&&r.total>=rule.min&&dayOk(rule,now)){hits.push({rule,spot,kind:"now",sp:rule.sp,v:r.total,ts:now,txt:`${SP[rule.sp].name} at ${spot.name} is ${r.total} right now`});continue}
   const f=FC&&FC.spots&&FC.spots[spot.id];if(!f||!f.temp)continue;
   // Weekend alerts look ahead through the coming Sunday; others two days. Only daylight windows that are
   // safe for the person's boat count.
@@ -4030,7 +4036,7 @@ function alertHits(){
   const hs=fcHours(spot,rule.sp,f,now,rule.days==="weekend"?Math.max(sun.getTime(),now+48*36e5):now+48*36e5);
   for(let i=0;i+2<hs.length;i++){const w=hs.slice(i,i+3);if(w.some(x=>x.v==null||x.lv!=null&&x.lv<2)||w[2].ts-w[0].ts!==72e5||!dayOk(rule,w[0].ts))continue;
    const avg=Math.round((w[0].v+w[1].v+w[2].v)/3);
-   if(avg>=rule.min){hits.push({rule,spot,kind:"soon",sp:rule.sp,v:avg,txt:`${SP[rule.sp].name} at ${spot.name}: about ${avg}, ${wd(w[0].ts)} ${fmt(w[0].ts)}–${fmt(w[0].ts+108e5)}`});break}}
+   if(avg>=rule.min){hits.push({rule,spot,kind:"soon",sp:rule.sp,v:avg,ts:w[0].ts,txt:`${SP[rule.sp].name} at ${spot.name}: about ${avg}, ${wd(w[0].ts)} ${fmt(w[0].ts)}–${fmt(w[0].ts+108e5)}`});break}}
  }
  hits.sort((a,b)=>({warn:0,now:1,soon:2}[a.kind]-{warn:0,now:1,soon:2}[b.kind])||(b.v||0)-(a.v||0));
  // An area alert shows its single best match, not one line per spot in the area
@@ -4043,14 +4049,16 @@ function renderAlerts(){
   el.innerHTML=`<div class="slim-row"><span><b>Alerts:</b> none yet</span><button type="button" class="linkbtn" data-alerts title="Get told when a spot you care about turns on">Create your first alert</button></div>`;return}
  el.classList.remove("slim");
  const hits=alertHits();el.hidden=false;el.classList.toggle("has",hits.length>0);
- el.innerHTML=`<div class="al-h"><h3>My alerts${hits.length?` <span class="al-n">${hits.length}</span>`:""}</h3><button type="button" class="t" data-alerts>Manage</button></div>`+
+ const pa=pushAvail();
+ el.innerHTML=`<div class="al-h"><h3>My alerts${hits.length?` <span class="al-n">${hits.length}</span>`:""}${pa==="on"?` <span class="al-bell" role="img" aria-label="Phone notifications on" title="Phone notifications on">🔔</span>`:""}</h3><button type="button" class="t" data-alerts>Manage</button></div>`+
   (hits.length?hits.slice(0,6).map(h=>`<button type="button" class="al-row al-${h.kind}" data-al-sp="${esc(h.sp)}" data-al-spot="${esc(h.spot.id)}"><span class="al-ic" aria-hidden="true">${h.kind==="warn"?"⚠️":h.kind==="now"?"🎣":"🕒"}</span><span>${esc(h.txt)}</span></button>`).join("")+(hits.length>6?`<div class="note">and ${hits.length-6} more</div>`:"")
-   :`<p class="note" style="margin:0">Watching ${rules.length} alert${rules.length>1?"s":""}. Nothing matches right now or in the days each alert looks at.</p>`);
+   :`<p class="note" style="margin:0">Watching ${rules.length} alert${rules.length>1?"s":""}. Nothing matches right now or in the days each alert looks at.</p>`)+
+  (pa==="off"?`<button type="button" class="linkbtn al-pushoffer" data-alerts>🔔 Get these as phone notifications</button>`:"");
  el.onclick=e=>{const r=e.target.closest("[data-al-spot]");if(r){if(SP[r.dataset.alSp])sp=r.dataset.alSp;sel=r.dataset.alSpot;showPanel("fish");pick()}};
 }
 function openAlerts(pre){
  const d=$("alertdlg"),draw=()=>{const rules=getAlerts(),P=pre||{},mine=alertSpots({where:"mine"}).length;
-  $("alertbody").innerHTML=`${rules.length?rules.map(r=>`<div class="al-rule"><span>${esc(alertTxt(r))}</span><button type="button" class="t" data-al-del="${esc(r.id)}">Remove</button></div>`).join(""):`<p class="note">No alerts yet. Create your first one below.</p>`}
+  $("alertbody").innerHTML=`${pushHTML()}${rules.length?rules.map(r=>`<div class="al-rule"><span>${esc(alertTxt(r))}</span><button type="button" class="t" data-al-del="${esc(r.id)}">Remove</button></div>`).join(""):`<p class="note">No alerts yet. Create your first one below.</p>`}
    <h4>New alert</h4>
    <div class="seg" id="altype"><button type="button" data-v="score" class="on" aria-pressed="true">Fishing score</button><button type="button" data-v="warn" aria-pressed="false">Weather warnings</button></div>
    <form id="alform">
@@ -4060,11 +4068,14 @@ function openAlerts(pre){
     <div class="al-score"><span class="mf-l">Days</span><div class="seg" id="aldays"><button type="button" data-v="any" class="on">Any day</button><button type="button" data-v="weekend">Fri to Sun</button></div></div>
     <button class="t primary" type="submit">Add alert</button><div class="msg" id="almsg"></div>
    </form>
-   <p class="note">Alerts are checked whenever OceanCast is open and appear in "My alerts" at the top, covering now and the next two days (daylight hours). Phone notifications will come with the iPhone app.${ACCT.user?"":" Sign in to keep your alerts on every device."}</p>`;
+   <p class="note">Alerts also appear in "My alerts" at the top of Today whenever OceanCast is open, covering now and the next two days (daylight hours, when your boat can go out).${ACCT.user?"":" Sign in to keep your alerts on every device."}</p>`;
   const seg=id=>{const g=$(id);g.onclick=e=>{const b=e.target.closest("button");if(!b)return;g.querySelectorAll("button").forEach(x=>{x.classList.toggle("on",x===b);x.setAttribute("aria-pressed",x===b)});
    if(id==="altype")$("alertbody").querySelectorAll(".al-score").forEach(x=>x.hidden=b.dataset.v==="warn")};return()=>g.querySelector(".on").dataset.v};
   const type=seg("altype"),min=seg("almin"),days=seg("aldays");
   $("alertbody").querySelectorAll("[data-al-del]").forEach(b=>b.onclick=()=>{saveAlerts(getAlerts().filter(r=>r.id!==b.dataset.alDel));draw();renderAlerts()});
+  $("alertbody").querySelectorAll("[data-push]").forEach(b=>b.onclick=async()=>{const on=b.dataset.push==="on",m=$("pushmsg");b.disabled=true;if(m){m.className="msg";m.textContent=on?"Turning on…":"Turning off…"}
+   try{if(on)await pushEnable();else await pushDisable();draw();renderAlerts()}
+   catch(e){b.disabled=false;const m2=$("pushmsg");if(m2){m2.className="msg err";m2.textContent=pushErr(e)}}});
   $("alform").onsubmit=e=>{e.preventDefault();const a=getAlerts(),m=$("almsg");
    if(a.length>=AL_MAX){m.className="msg err";m.textContent=`You can have up to ${AL_MAX} alerts. Remove one first.`;return}
    const rule=cleanAlert({id:Date.now().toString(36),type:type(),sp:$("alsp").value,where:$("alwhere").value,min:+min(),days:days()});
@@ -4080,6 +4091,81 @@ document.addEventListener("click",e=>{
  if(e.target.closest("[data-addfriend]")){const x=$("frin");if(x){x.scrollIntoView({behavior:"smooth",block:"center"});setTimeout(()=>x.focus({preventScroll:true}),300)}return}
 });
 document.addEventListener("click",e=>{const b=e.target.closest("[data-alerts]");if(b){e.preventDefault();openAlerts(b.dataset.alerts?{sp:b.dataset.alSp0,where:b.dataset.alerts}:null)}});
+// ---- Phone notifications (web push): the same alerts, delivered while OceanCast is closed ----
+// Turning them on asks the browser for a push address, then saves it with a copy of this device's alert rules
+// and the settings that change their answers (starred spots, boat, depth, tuning) through oc_push_save(), with
+// the site's public key and never the person's sign-in. Every hour scripts/push.js checks each copy with this
+// page's own alertHits() and sends what's new. A random key that stays on this device is the only way to change
+// or delete the copy. Off unless config.js has pushKey and a Supabase project.
+const PUSH_KEY="oc-push";
+function pushWatches(k){return["oc-alerts","la-fish-favs","boat","la-fish-depth","la-fish-tune","oc-commtune","la-fish-catches-v1","oc-myfish"].includes(k)}
+function pushCfg(){const c=acctCfg(),k=String(((window.OC_CONFIG||{}).pushKey)||"").trim();return c&&/^[A-Za-z0-9_-]{87}$/.test(k)?{...c,pushKey:k}:null}
+function pushState(){try{const s=JSON.parse(localStorage.getItem(PUSH_KEY)||"null");return s&&/^[0-9a-f-]{36}$/.test(s.id)&&/^[A-Za-z0-9_-]{43}$/.test(s.key)?s:null}catch(e){return null}}
+function setPushState(s){try{if(s)localStorage.setItem(PUSH_KEY,JSON.stringify(s));else localStorage.removeItem(PUSH_KEY)}catch(e){}}
+const isIOS=()=>/iP(hone|ad|od)/.test(navigator.userAgent)||(navigator.platform==="MacIntel"&&navigator.maxTouchPoints>1);
+const isStandalone=()=>!!(navigator.standalone||matchMedia("(display-mode: standalone)").matches);
+// "on", "off", "ios" (add to the Home Screen first), "app" (the iPhone app: not yet), "blocked", "none" (this browser can't), "" (not set up)
+function pushAvail(){
+ if(!pushCfg())return"";if(IS_APP)return"app";if(isIOS()&&!isStandalone())return"ios";
+ if(!window.isSecureContext||!("serviceWorker"in navigator)||!("PushManager"in window)||!("Notification"in window))return"none";
+ if(Notification.permission==="denied")return"blocked";
+ return pushState()&&Notification.permission==="granted"?"on":"off"}
+const b64uBytes=s=>Uint8Array.from(atob(s.replace(/-/g,"+").replace(/_/g,"/")+"=".repeat((4-s.length%4)%4)),c=>c.charCodeAt(0));
+const bytesB64u=b=>btoa(String.fromCharCode(...new Uint8Array(b))).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,"");
+const rndB64u=n=>bytesB64u(crypto.getRandomValues(new Uint8Array(n)));
+function rndUUID(){const b=crypto.getRandomValues(new Uint8Array(16));b[6]=b[6]&15|64;b[8]=b[8]&63|128;const h=[...b].map(x=>x.toString(16).padStart(2,"0")).join("");
+ return`${h.slice(0,8)}-${h.slice(8,12)}-${h.slice(12,16)}-${h.slice(16,20)}-${h.slice(20)}`}
+async function pushRpc(fn,body){const c=pushCfg();if(!c)throw new Error("notifications aren't set up");
+ const r=await fetch(new URL(c.supabaseUrl).origin+"/rest/v1/rpc/"+fn,{method:"POST",headers:{apikey:c.supabaseKey,"Content-Type":"application/json"},body:JSON.stringify(body),credentials:"omit",cache:"no-store",referrerPolicy:"no-referrer"});
+ if(!r.ok){let m="";try{m=String((await r.json()).message||"")}catch(e){}throw new Error(m&&m.length<160?m:"the server answered "+r.status)}}
+// What the hourly job needs to answer this device's alerts the way this page does. Tuning is only sent for fish
+// that have an alert (it changes nothing else).
+function pushWatch(){
+ const ids=new Set((DATA?DATA.spots:[]).filter(s=>!s.user).map(s=>s.id)),rules=getAlerts(),d=userDepth();   // the site's spots only, never your own pins
+ const w={v:1,rules,favs:getFavs().filter(x=>typeof x==="string"&&ids.has(x)).slice(0,200),boat:boat(),fish:setupFish()};
+ if(d!=null)w.depth=d;if(!COMM_ON)w.comm=false;
+ if(TUNE_ON){const f={},g={};for(const k of new Set(rules.filter(r=>r.type==="score").map(r=>r.sp))){if(TUNE.fish[k])f[k]=TUNE.fish[k];const G=spGroup(k);if(TUNE.group[G])g[G]=TUNE.group[G]}
+  if(Object.keys(f).length||Object.keys(g).length)w.tune={fish:f,group:g}}
+ return w}
+// The service worker receives the notifications; it's missing in a few cases (private windows in some browsers)
+const swReady=()=>Promise.race([navigator.serviceWorker.ready,new Promise((_,no)=>setTimeout(()=>no(new Error("this browser isn't running OceanCast's offline helper; reload the page, or use a normal window")),10000))]);
+// The browser's push subscription for this site, made again if it's missing or was made with an old key
+async function pushSubscription(){
+ const pm=(await swReady()).pushManager,want=b64uBytes(pushCfg().pushKey);let sub=await pm.getSubscription();
+ const k=sub&&sub.options&&sub.options.applicationServerKey;
+ if(sub&&k&&bytesB64u(k)!==bytesB64u(want)){try{await sub.unsubscribe()}catch(e){}sub=null}
+ return sub||pm.subscribe({userVisibleOnly:true,applicationServerKey:want})}
+async function pushSave(sub,st){const watch=pushWatch();
+ await pushRpc("oc_push_save",{p_device:st.id,p_key:st.key,p_endpoint:sub.endpoint,p_p256dh:bytesB64u(sub.getKey("p256dh")),p_auth:bytesB64u(sub.getKey("auth")),p_watch:watch});
+ setPushState({...st,sig:JSON.stringify([sub.endpoint,watch]),at:Date.now()})}
+let PUSH_T=null,PUSH_JUST=false;
+async function pushEnable(){
+ // Asking first, before anything else is awaited, keeps the browser's "allow notifications?" tied to the tap
+ const perm=Notification.permission==="granted"?"granted":await Notification.requestPermission();
+ if(perm!=="granted")throw new Error(perm==="denied"?"blocked":"declined");
+ const st=pushState()||{id:crypto.randomUUID?crypto.randomUUID():rndUUID(),key:rndB64u(32)};
+ await pushSave(await pushSubscription(),st);PUSH_JUST=true}
+async function pushDisable(){const st=pushState();setPushState(null);PUSH_JUST=false;
+ try{const sub=await(await swReady()).pushManager.getSubscription();if(sub)await sub.unsubscribe()}catch(e){}
+ // if this can't reach the server, the push service now refuses the address and the hourly job removes it
+ if(st)try{await pushRpc("oc_push_delete",{p_device:st.id,p_key:st.key})}catch(e){}}
+// Keeps the saved copy up to date: after alerts, starred spots or settings change, and when the app opens
+async function pushSync(){
+ const st=pushState();if(!st||!DATA||!pushCfg()||IS_APP||!("serviceWorker"in navigator)||!("PushManager"in window)||!("Notification"in window))return;
+ if(Notification.permission!=="granted"){await pushDisable();if(typeof renderAlerts==="function")renderAlerts();return}   // turned off in the browser's settings
+ const sub=await pushSubscription(),sig=JSON.stringify([sub.endpoint,pushWatch()]);
+ if(sig===st.sig&&Date.now()-(st.at||0)<7*864e5)return;
+ await pushSave(sub,st)}
+function pushDirty(){if(!pushState())return;clearTimeout(PUSH_T);PUSH_T=setTimeout(()=>{pushSync().catch(()=>{})},2500)}
+function pushHTML(){const a=pushAvail();if(!a)return"";
+ const box=(cls,title,txt,btn)=>`<div class="al-push${cls}"><div><b>${title}</b><span class="note">${txt}</span></div>${btn||""}</div><div class="msg" id="pushmsg" role="status"></div>`;
+ if(a==="on")return box(" on","🔔 Notifications are on for this device",(PUSH_JUST?"You'll get a short “Notifications are on” message within the hour, so you know it works. ":"")+"Alerts are checked every hour, even with OceanCast closed. Quiet from 9 PM to 6 AM, except hurricane and storm surge warnings."+(getMy().length?" Notifications cover the site's spots; matches at your own pins show in the app.":"")+(ACCT.user?" Changes made on another device reach this one the next time you open OceanCast here.":""),`<button type="button" class="t" data-push="off">Turn off</button>`);
+ if(a==="off")return box("","Get these on your phone","A notification when an alert matches, even with OceanCast closed. Checked every hour.",`<button type="button" class="t on" data-push="on">Turn on</button>`);
+ if(a==="ios")return box("","Notifications on iPhone","Put OceanCast on your Home Screen first: tap Share, then “Add to Home Screen”, and open it from there. Needs iOS 16.4 or later.");
+ if(a==="app")return box("","Notifications","Notifications in the iPhone app are coming. For now, alerts show here whenever the app is open.");
+ if(a==="blocked")return box("","Notifications are blocked","Notifications for this site are switched off in your browser or phone settings. Allow them there, then come back here.");
+ return box("","Notifications",isIOS()?"Update your iPhone to iOS 16.4 or later to get notifications.":"This browser can't show notifications. Chrome, Edge, Firefox and Safari can.")}
+const pushErr=e=>e&&e.message==="blocked"?"Notifications are blocked for this site. Allow them in your browser or phone settings, then try again.":e&&e.message==="declined"?"Notifications weren't allowed, so alerts will show in the app only.":"Couldn't turn on notifications ("+((e&&e.message)||"unknown problem")+"). Try again in a moment.";
 // ---- Catch photos: kept on this device only (IndexedDB), shrunk to 1280 px. Re-drawing the picture
 // onto a canvas and saving a new JPEG drops the camera's hidden metadata, including GPS location.
 const PHOTO_DB="oc-photos";
@@ -4432,8 +4518,8 @@ const acctCfg=()=>{const c=window.OC_CONFIG||{};return c.supabaseUrl&&c.supabase
 function localBlob(){const o={};for(const k of SYNC_KEYS){try{const v=localStorage.getItem(k);if(v!=null)o[k]=v}catch(e){}}return o}
 // Any change to a synced setting is saved to the account a moment later
 (()=>{try{const S=window.Storage&&Storage.prototype;if(!S||S.__oc)return;S.__oc=1;const set=S.setItem,rem=S.removeItem;
- S.setItem=function(k,v){set.call(this,k,v);if(this===window.localStorage&&SYNC_KEYS.includes(k))acctDirty()};
- S.removeItem=function(k){rem.call(this,k);if(this===window.localStorage&&SYNC_KEYS.includes(k))acctDirty()}}catch(e){}})();
+ S.setItem=function(k,v){set.call(this,k,v);if(this===window.localStorage){if(SYNC_KEYS.includes(k))acctDirty();try{if(pushWatches(k))pushDirty()}catch(e){}}};
+ S.removeItem=function(k){rem.call(this,k);if(this===window.localStorage){if(SYNC_KEYS.includes(k))acctDirty();try{if(pushWatches(k))pushDirty()}catch(e){}}}}catch(e){}})();
 function acctDirty(){if(!ACCT.user||ACCT.applying)return;clearTimeout(ACCT.timer);ACCT.state="busy";acctUI();ACCT.timer=setTimeout(acctPush,1200)}
 async function acctPush(){
  if(!ACCT.user)return;
@@ -5027,6 +5113,7 @@ async function load(isRefresh){
  fetch(dataPath("history.json")+"?t="+Date.now()).then(r=>r.ok?r.json():null).then(h=>{if(h&&h.t){HIST=h;if(DATA&&sel)render()}}).catch(()=>{});
  computeTune();
  addMySpots();
+ if(!isRefresh)pushDirty();
  LAST_LOAD=Date.now();
  // A link to one spot (home page card, search pages, shared scores) opens its page straight away on phones
  const viaLink=!isRefresh&&/^#[a-z]+\/[A-Za-z0-9_-]+$/.test(location.hash||""),linkOK=viaLink&&readHash();

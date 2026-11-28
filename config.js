@@ -15,6 +15,11 @@ window.OC_CONFIG = {
   // steps in README.md under "Bot check": paste the Turnstile SITE key here (never the secret key).
   turnstileSiteKey: "0x4AAAAAAGRQAsS_dYzk1h1i",
 
+  // Phone notifications (optional): the PUBLIC half of the key pair from `node scripts/webpush.js keys`.
+  // The private half goes in the VAPID_PRIVATE_KEY repository secret, never here. Steps are in README.md
+  // under "Phone notifications". Leave empty and alerts only show in the app, as before.
+  pushKey: "",
+
   // Where the iPhone app loads the hourly data files (latest.json, forecast.json and the map layers).
   // The website ignores this and always loads its own copy, exactly as before. Must end with "/".
   dataUrl: "https://kenny-powers-55-g.github.io/LA-Fishing/"

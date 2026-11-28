@@ -448,3 +448,165 @@ end;
 $$;
 revoke all on function public.oc_community_stats() from public, anon, authenticated;
 grant execute on function public.oc_community_stats() to anon, authenticated;
+
+-- =====================================================================================
+-- Phone notifications (web push). Safe to run again.
+-- A phone or computer that turns on notifications under My alerts gets one row here: the address its
+-- browser's push service gave it (Apple, Google, Mozilla or Microsoft), the two keys that encrypt messages
+-- to it, and a copy of its alert rules plus the few settings that change their answers (starred spots,
+-- boat size, depth, tuning). No account, username, email or network address is stored, and the row isn't
+-- linked to an account. The hourly job reads the rows with the project's secret key, checks each device's
+-- rules with the page's own scoring and sends anything new. Nobody else can read the table: the app can
+-- only add, change or remove its own device's row, through the functions below, with a random key that
+-- only that device holds. Turning notifications off deletes the row.
+-- =====================================================================================
+
+create table if not exists public.oc_push_devices (
+  device_id  uuid primary key,
+  key_hash   text not null,                        -- sha-256 of the device's random key (the key stays on the device)
+  endpoint   text not null unique,                 -- the push service address for this browser
+  p256dh     text not null,
+  auth       text not null,
+  watch      jsonb not null default '{}'::jsonb check (jsonb_typeof(watch) = 'object' and octet_length(watch::text) <= 8000),
+  sent       jsonb not null default '{}'::jsonb,   -- what was already sent, so nothing repeats (the job keeps 8 days)
+  fails      integer not null default 0,           -- refused sends in a row; the job drops the row after 10
+  created_on date not null default current_date,
+  last_ok    date,                                 -- the day a notification last reached it
+  updated_at timestamptz not null default now()    -- the last time the device itself checked in
+);
+alter table public.oc_push_devices enable row level security;
+-- No policies on purpose: the app goes through oc_push_save() / oc_push_delete(), the hourly job uses the secret key.
+revoke all on public.oc_push_devices from public, anon, authenticated;
+grant select, update, delete on public.oc_push_devices to service_role;
+
+-- New devices a day, counted like community reports: by a one-way code of the network address mixed with
+-- the daily secret in oc_report_salt, deleted the next day.
+create table if not exists public.oc_push_limits (
+  day    date not null,
+  bucket text not null,
+  n      integer not null default 0,
+  primary key (day, bucket)
+);
+alter table public.oc_push_limits enable row level security;
+revoke all on public.oc_push_limits from public, anon, authenticated;
+
+-- Add or update this device. The app calls it without the person's sign-in.
+-- p_key is the device's own random key: the first call sets it, later calls must send the same one.
+create or replace function public.oc_push_save(p_device uuid, p_key text, p_endpoint text, p_p256dh text, p_auth text, p_watch jsonb)
+returns void
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  per_sender  constant integer := 10;      -- new devices a day from one network address
+  per_unknown constant integer := 300;     -- new devices a day, all together, whose sender address isn't known
+  per_day     constant integer := 3000;    -- new devices a day from everyone together (the backstop)
+  max_devices constant integer := 25000;   -- raise this if the database has room (each row is about 2 KB)
+  hdr  json := nullif(current_setting('request.headers', true), '')::json;
+  h    text;
+  old  text;
+  ip   text;
+  net  text;
+  s    text;
+  b    text;
+  cnt  integer;
+begin
+  if p_device is null then raise exception 'No device id'; end if;
+  if p_key is null or p_key !~ '^[A-Za-z0-9_-]{43}$' then raise exception 'Bad device key'; end if;
+  -- Only the push services browsers use, so the hourly job can never be pointed at any other address
+  if p_endpoint is null or length(p_endpoint) > 1024
+     or p_endpoint !~ '^https://(fcm\.googleapis\.com|updates\.push\.services\.mozilla\.com|web\.push\.apple\.com|[a-z0-9-]+\.notify\.windows\.com)/[!-~]+$' then
+    raise exception 'Not a push service address';
+  end if;
+  if p_p256dh is null or p_p256dh !~ '^[A-Za-z0-9_-]{87}$' then raise exception 'Bad push key'; end if;
+  if p_auth is null or p_auth !~ '^[A-Za-z0-9_-]{22}$' then raise exception 'Bad push secret'; end if;
+  if p_watch is null or jsonb_typeof(p_watch) <> 'object' or octet_length(p_watch::text) > 8000 then raise exception 'Bad alert list'; end if;
+  if jsonb_typeof(coalesce(p_watch -> 'rules', '[]'::jsonb)) <> 'array' or jsonb_array_length(coalesce(p_watch -> 'rules', '[]'::jsonb)) > 20 then
+    raise exception 'Too many alerts';
+  end if;
+  h := encode(sha256(convert_to(p_key, 'UTF8')), 'hex');
+
+  select d.key_hash into old from public.oc_push_devices d where d.device_id = p_device;
+  if found then
+    if old <> h then raise exception 'Not this device'; end if;
+    -- The same browser address can't be listed under two devices
+    delete from public.oc_push_devices d where d.endpoint = p_endpoint and d.device_id <> p_device;
+    update public.oc_push_devices d
+       set endpoint = p_endpoint, p256dh = p_p256dh, auth = p_auth, watch = p_watch, updated_at = now(),
+           fails = case when d.endpoint = p_endpoint then d.fails else 0 end
+     where d.device_id = p_device;
+    return;
+  end if;
+
+  -- A browser that cleared its storage comes back with a new device id but the same address: replace its old row
+  delete from public.oc_push_devices d where d.endpoint = p_endpoint;
+  if not found then
+    if (select count(*) from public.oc_push_devices) >= max_devices then
+      raise exception 'Notifications are full right now. Alerts still show in the app.';
+    end if;
+    delete from public.oc_push_limits where day < current_date;
+    delete from public.oc_report_salt where day < current_date;
+    insert into public.oc_report_salt (day, salt) values (current_date, gen_random_uuid()::text) on conflict (day) do nothing;
+    select rs.salt into s from public.oc_report_salt rs where rs.day = current_date;
+    -- Same address rules as oc_report_catch(): only Cloudflare's header, IPv6 counted by its /64 network
+    ip := nullif(trim(coalesce(hdr ->> 'cf-connecting-ip', '')), '');
+    begin
+      net := case when ip is null then null when family(ip::inet) = 6 then network(set_masklen(ip::inet, 64))::text else host(ip::inet) end;
+    exception when others then
+      net := null;
+    end;
+    b := case when net is null then 'unknown' else encode(sha256(convert_to(s || '|push|' || net, 'UTF8')), 'hex') end;
+    insert into public.oc_push_limits as l (day, bucket, n) values (current_date, b, 1)
+      on conflict (day, bucket) do update set n = l.n + 1
+      returning l.n into cnt;
+    if cnt > (case when b = 'unknown' then per_unknown else per_sender end)
+       or (select sum(l.n) from public.oc_push_limits l where l.day = current_date) > per_day then
+      raise exception 'Too many new devices today. Try again tomorrow.';
+    end if;
+  end if;
+
+  insert into public.oc_push_devices (device_id, key_hash, endpoint, p256dh, auth, watch)
+  values (p_device, h, p_endpoint, p_p256dh, p_auth, p_watch);
+end;
+$$;
+revoke all on function public.oc_push_save(uuid, text, text, text, text, jsonb) from public, anon, authenticated;
+grant execute on function public.oc_push_save(uuid, text, text, text, text, jsonb) to anon, authenticated;
+
+-- Turn notifications off for this device (needs the device's own key). Does nothing if it's already gone.
+create or replace function public.oc_push_delete(p_device uuid, p_key text)
+returns void
+language sql
+security definer
+set search_path = ''
+as $$
+  delete from public.oc_push_devices d
+   where d.device_id = p_device and d.key_hash = encode(sha256(convert_to(coalesce(p_key, ''), 'UTF8')), 'hex');
+$$;
+revoke all on function public.oc_push_delete(uuid, text) from public, anon, authenticated;
+grant execute on function public.oc_push_delete(uuid, text) to anon, authenticated;
+
+-- For the hourly job only (secret key): record what was sent and remove devices the push services dropped.
+-- p_sent: [{device_id, sent, fails, ok}]; p_gone: [{device_id, endpoint}] (the endpoint must still match, so a
+-- device that re-subscribed in the meantime isn't removed). Also forgets devices that neither opened the app
+-- nor received a notification for 180 days.
+create or replace function public.oc_push_mark(p_sent jsonb, p_gone jsonb)
+returns void
+language plpgsql
+security definer
+set search_path = ''
+as $$
+begin
+  update public.oc_push_devices d
+     set sent = u.sent, fails = greatest(0, coalesce(u.fails, 0)), last_ok = case when u.ok then current_date else d.last_ok end
+    from jsonb_to_recordset(coalesce(p_sent, '[]'::jsonb)) as u(device_id uuid, sent jsonb, fails integer, ok boolean)
+   where d.device_id = u.device_id and jsonb_typeof(u.sent) = 'object';
+  delete from public.oc_push_devices d
+   using jsonb_to_recordset(coalesce(p_gone, '[]'::jsonb)) as g(device_id uuid, endpoint text)
+   where d.device_id = g.device_id and d.endpoint = g.endpoint;
+  delete from public.oc_push_devices d
+   where d.updated_at < now() - interval '180 days' and coalesce(d.last_ok, d.created_on) < current_date - 180;
+end;
+$$;
+revoke all on function public.oc_push_mark(jsonb, jsonb) from public, anon, authenticated;
+grant execute on function public.oc_push_mark(jsonb, jsonb) to service_role;
