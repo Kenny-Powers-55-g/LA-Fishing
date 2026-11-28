@@ -26,7 +26,7 @@ function loadScoring() {
   };
   ctx.window = ctx;
   vm.createContext(ctx);
-  vm.runInContext(code + "\n;globalThis.__api={SP,score,MODEL_UPDATED,setCommunity};", ctx, { filename: "map.html" });
+  vm.runInContext(code + "\n;globalThis.__api={SP,score,MODEL_UPDATED,setCommunity,bestWindowFor,winTxt,LV_TXT,setFC:f=>{FC=f}};", ctx, { filename: "map.html" });
   return ctx.__api;
 }
 
@@ -40,6 +40,7 @@ function main() {
   }
   const api = loadScoring();
   api.setCommunity(readJSON("community.json", null));   // the same community tuning the page uses
+  api.setFC(readJSON("forecast.json", null));           // for the card's best time and boat check
   const now = Date.now(), today = {};
   for (const spot of latest.spots) {
     if (spot.user) continue;
@@ -60,9 +61,16 @@ function main() {
       if (spot.user) continue;
       let r; try { r = api.score(k, spot, now); } catch (e) { continue; }
       if (!r || r.gate || typeof r.total !== "number" || (r.coverage != null && r.coverage < 0.65)) continue;
-      if (!top || r.total > top.score) top = { k, id: spot.id, name: spot.name, fish: api.SP[k].name, score: Math.round(r.total), reason: r.reason || "" };
+      if (!top || r.total > top.score) top = { k, id: spot.id, name: spot.name, fish: api.SP[k].name, score: Math.round(r.total), reason: r.reason || "", spot };
     }
-    if (top) board.push(top);
+    if (top) {
+      // The best 3-hour window in the next day and a half that's safe for a small boat, and the verdict for it
+      let w = null; try { w = api.bestWindowFor(top.spot, k, 36); } catch (e) {}
+      if (w) { top.best = api.winTxt(w); if (w.lv != null) top.boat = api.LV_TXT[w.lv]; }
+      // Surf beaches are fished from the sand, so the card says so instead of giving a boat verdict
+      if (/\(surf\)/i.test(top.name)) { top.shore = true; delete top.boat; if (top.best) top.best = top.best.replace(/, [^,]* for your boat$/, ""); }
+      delete top.spot; board.push(top);
+    }
   }
   board.sort((a, b) => b.score - a.score);
   const nSpots = latest.spots.filter(x => !x.user).length;

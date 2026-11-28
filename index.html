@@ -3,9 +3,9 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-src 'none'; upgrade-insecure-requests">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; font-src 'self'; img-src 'self' data:; connect-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-src 'none'; upgrade-insecure-requests">
 <title>OceanCast: Louisiana fishing forecast and live conditions</title>
-<meta name="description" content="Hourly fishing scores for every Louisiana spot, built from NOAA buoys, satellites and tides. Free, no account needed.">
+<meta name="description" content="Find the best spot to fish today in Louisiana: hourly scores for 90+ spots and 39 fish from live tide, wind and water readings, with a boat check. Free.">
 <meta property="og:title" content="OceanCast: Louisiana fishing forecast and live conditions">
 <meta property="og:description" content="Hourly fishing scores for every Louisiana spot, built from NOAA buoys, satellites and tides. Free, no account needed.">
 <meta property="og:type" content="website">
@@ -26,9 +26,6 @@
 <script src="forward.js"></script>
 <script src="site.js"></script>
 <script src="board.js" defer></script>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Russo+One&display=swap">
 <link rel="stylesheet" href="site.css">
 </head>
 <body>
@@ -45,29 +42,40 @@
 <div class="wrap hero-grid">
 <div>
 <p class="resume" id="resume" hidden><a href="map.html" data-cta>Looking for a spot? <b>Open it on the map &rarr;</b></a></p>
-<h1>Know where the bite is before you leave the dock.</h1>
-<p class="lede">Hourly fishing scores for every Louisiana spot, built from NOAA buoys, satellites and tides.</p>
-<div class="cta"><a class="btn" href="map.html" data-cta>Open the map, free</a><p class="fine">No account needed. Works on your phone or computer.</p></div>
+<p class="eyebrow">Free Louisiana fishing forecast</p>
+<h1>Find the best spot to fish today, anywhere in Louisiana.</h1>
+<p class="lede">Every hour, OceanCast scores <span class="nspots">90+</span> spots for <span class="nfish">39</span> kinds of fish from live tide, wind and water readings, and tells you when it's safe to take your boat out.</p>
+<div class="cta"><a class="btn" href="map.html" data-cta>Show me today's best spots</a><p class="fine">Free · No sign-up · No ads · Works on any phone</p></div>
 </div>
 <figure class="demo" id="demo" hidden aria-labelledby="democap">
-<figcaption id="democap" class="demo-cap"><span class="demo-live">Live</span> Best spot right now</figcaption>
+<figcaption id="democap" class="demo-cap"><span class="demo-live">Live</span> Best spot right now for</figcaption>
+<div class="demo-fishes" id="demofishes" role="group" aria-label="Fish"></div>
 <div class="demo-main">
 <p class="demo-score" id="demoscore" aria-label="Score">--</p>
 <div class="demo-info"><p class="demo-name" id="demoname"></p><p class="demo-fish" id="demofish"></p><p class="demo-band" id="demoband"></p></div>
 </div>
+<dl class="demo-rows"><dt>Best time</dt><dd id="demobest">–</dd><dt>Boating</dt><dd id="demoboat">–</dd></dl>
 <p class="demo-why" id="demowhy"></p>
+<div class="demo-btns"><a class="demo-go" id="demogo" href="map.html">See this spot &rarr;</a><a class="demo-all" href="map.html" data-cta>All <span class="nspots">90+</span> spots</a></div>
 <p class="demo-up" id="demoup"></p>
-<a class="demo-go" id="demogo" href="map.html">See this spot on the map &rarr;</a>
 </figure>
 </div></section>
-<section class="sect"><div class="wrap">
-<h2>Why anglers use it</h2>
-<ul class="benefits">
-<li><b>Pick a spot faster.</b> Every spot gets a score for the fish you're after, updated every hour, so you can compare the whole coast in one look.</li>
-<li><b>Skip wasted fuel offshore.</b> See which offshore spots look worth the run before you leave the dock.</li>
-<li><b>Get an alert when your spot turns on.</b> Save your spots and fish. Alerts show inside OceanCast today; phone notifications arrive with the iPhone app.</li>
-</ul>
-<p><a href="spots/index.html">Browse every spot and fish</a>: today's scores, conditions and limits.</p>
+<section class="sect" id="how"><div class="wrap">
+<h2>How it works</h2>
+<ol class="steps">
+<li><b>Pick your fish.</b> Redfish, specks, bass and 36 more, each scored on its own.</li>
+<li><b>Tell us where you launch.</b> We rank the spots near you and check the wind and waves for your boat.</li>
+<li><b>Go when it's best.</b> See the best hours today and this week, and get an alert when your spot turns on.</li>
+</ol>
+</div></section>
+<section class="sect sect-alt"><div class="wrap">
+<h2>Why you can trust the numbers</h2>
+<p class="live-line" id="liveline" hidden></p>
+<div class="trust">
+<div><h3>Built on public data</h3><p>Live readings from NOAA buoys and tide stations, USGS river and lake gauges, National Weather Service forecasts and NOAA satellites.</p></div>
+<div><h3>Every score shows its reasons</h3><p>Open any spot to see what's helping and hurting, where each reading came from and how old it is. Scores are estimates, not promises.</p></div>
+<div><h3>Free and private</h3><p>No ads, no analytics and no tracking cookies. Your catches and saved spots stay on your device unless you choose to share them.</p></div>
+</div>
 </div></section>
 <section class="sect sect-alt"><div class="wrap">
 <h2>What's in OceanCast</h2>
@@ -80,13 +88,9 @@
 <div><h3>Your spots, catches and alerts</h3><p>Save spots, log what you catch, and share with the friends you choose.</p></div>
 </div>
 </div></section>
-<section class="sect" id="how"><div class="wrap">
-<h2>How it works</h2>
-<ol class="steps">
-<li><b>Choose your fish.</b> Pick the species you target, or start with a few common ones.</li>
-<li><b>See the scores.</b> Every spot is ranked from current water, wind, tide and moon readings.</li>
-<li><b>Go fishing.</b> Head for the spot that's turning on, then log your catch to learn what works for you.</li>
-</ol>
+<section class="sect"><div class="wrap">
+<h2>Find a spot or a fish</h2>
+<div class="finds"><a href="spots/index.html">Every spot, by area</a><a href="fish/index.html">Every fish</a><a href="map.html" data-cta>Open the map</a></div>
 </div></section>
 <section class="sect sect-alt" id="score"><div class="wrap">
 <h2>How the score is built</h2>
@@ -97,7 +101,7 @@
 <div><dt>Water</dt><dd>Temperature, clarity and salinity, compared with what each fish prefers.</dd></div>
 <div><dt>Wind</dt><dd>Speed and direction, and how they change through the day.</dd></div>
 <div><dt>Tide</dt><dd>Water movement and level, where the data allows.</dd></div>
-<div><dt>Moon</dt><dd>Moon phase and light, which affect when fish feed.</dd></div>
+<div><dt>Boat safety</dt><dd>Wind, gusts and waves checked against your boat size: go, caution or no-go.</dd></div>
 </dl>
 <p class="fine">Scores are estimates from public data. They are not guarantees that you'll catch fish.</p>
 </div></section>

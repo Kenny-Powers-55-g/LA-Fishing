@@ -2801,6 +2801,33 @@ def update_history(results, river_data, now, path=HISTORY):
     os.replace(tmp, path)
     return h
 
+FC_CARRY_H = 6                   # a spot whose weather fetch failed keeps its last forecast for up to this long
+
+def carry_forecasts(fc, now, path="forecast.json"):
+    """When a spot's weather fetch fails (Open-Meteo sometimes refuses a few spots in a run), keep that
+    spot's forecast from the last run if it's under FC_CARRY_H hours old, so its hour-by-hour view and
+    best time don't go blank. The hours are timestamped from "start", so the page skips the past ones."""
+    try:
+        with open(path) as f:
+            old = json.load(f).get("spots") or {}
+    except (OSError, ValueError, AttributeError):
+        return []
+    kept = []
+    for sid, ent in old.items():
+        if sid in fc["spots"] or not isinstance(ent, dict) or sid not in {s["id"] for s in SPOTS}:
+            continue
+        try:
+            age = now - datetime.fromisoformat(ent.get("carried_from") or ent["start"])
+        except (KeyError, TypeError, ValueError):
+            continue
+        if timedelta(0) <= age <= timedelta(hours=FC_CARRY_H):
+            ent.setdefault("carried_from", ent["start"])
+            fc["spots"][sid] = ent
+            kept.append(sid)
+    if kept:
+        log.warning("forecast: kept the last run's forecast for %s (weather fetch failed this run)", ", ".join(sorted(kept)))
+    return kept
+
 SPOT_BUDGET_S = 20 * 60          # stop starting new spots after this long (the workflow step allows 35 minutes)
 
 def run_once():
@@ -2867,6 +2894,7 @@ def run_once():
             log.exception("%s failed", name)
     save_station_cache(cache)
     fc = {"generated": now.isoformat(), "spots": {r["id"]: r["forecast"] for r in results if r.get("forecast")}}
+    carry_forecasts(fc, now)
     for r in results:
         r.pop("forecast", None)
     nearest_launches(results)

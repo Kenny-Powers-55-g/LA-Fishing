@@ -26,7 +26,7 @@ function loadScoring() {
   };
   ctx.window = ctx;
   vm.createContext(ctx);
-  vm.runInContext(code + "\n;globalThis.__api={SP,score,closedNow,regFor,regSize,areaOf,AREAS,FRESH_SP,setCommunity};", ctx, { filename: "map.html" });
+  vm.runInContext(code + "\n;globalThis.__api={SP,score,closedNow,regFor,regSize,areaOf,AREAS,FRESH_SP,setCommunity,fcHours,pickWindow,bestWindowFor,winTxt,LV_TXT,milesJS,setFC:f=>{FC=f}};", ctx, { filename: "map.html" });
   return ctx.__api;
 }
 
@@ -38,6 +38,16 @@ const SAFE_ID = /^[A-Za-z0-9_-]{1,40}$/;
 const clip = (t, n) => { if (esc(t).length <= n) return t; let c = t.slice(0, n); while (esc(c + "…").length > n) c = c.slice(0, c.lastIndexOf(" ")); return c.replace(/[ ,.:;]+$/, "") + "…"; };
 // The fish most people come for lead a spot's page (lightly-modelled fish score high too easily)
 const FEATURED = ["redfish", "trout", "flounder", "sheepshead", "drum", "bass", "crappie"];
+// Surf beaches are fished from the sand: no boat verdict there
+const SHORE = s => /\(surf\)/i.test(s.name || "");
+// "Sat 12 PM–3 PM" -> "Today 12 PM–3 PM" / "Tomorrow …" (pages are rewritten every hour, in Louisiana time)
+function dayWord(t, now) {
+  const m = /^([A-Z][a-z]{2}) (.*)$/.exec(t || ""); if (!m) return t || "";
+  const wd = ms => new Date(ms).toLocaleDateString("en-US", { weekday: "short" });
+  return m[1] === wd(now) ? "Today " + m[2] : m[1] === wd(now + 864e5) ? "Tomorrow " + m[2] : t;
+}
+const crumbs = (T, items) => `<nav class="crumbs" aria-label="Breadcrumb">${items.map(([n, h], i) => i < items.length - 1 ? `<a href="${h}">${esc(n)}</a>` : `<span aria-current="page">${esc(n)}</span>`).join(" › ")}</nav>
+<script type="application/ld+json">${JSON.stringify({ "@context": "https://schema.org", "@type": "BreadcrumbList", itemListElement: items.map(([n, , u], i) => ({ "@type": "ListItem", position: i + 1, name: n, item: T.base + u })) }).replace(/</g, "\\u003c")}</script>`;
 
 // The shared look: about.html's security policy, header and footer, with links pointed one folder up
 function template() {
@@ -73,7 +83,6 @@ function page(T, rel, title, desc, body) {
 <meta name="theme-color" content="#081017">
 <link rel="icon" href="../favicon.svg" type="image/svg+xml">
 <script src="../site.js"></script>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Russo+One&display=swap">
 <link rel="stylesheet" href="../site.css">
 </head>
 <body>
@@ -96,6 +105,7 @@ function main() {
   if (!latest || !Array.isArray(latest.spots) || !latest.spots.length) { console.log("pages: no latest.json, skipping"); return; }
   const api = loadScoring(), T = template();
   api.setCommunity(readJSON("community.json", null));
+  const FCJ = readJSON("forecast.json", null); api.setFC(FCJ);   // best times, the 7-day list and the boat check
   const now = Date.now(), spots = latest.spots.filter(s => !s.user && SAFE_ID.test(s.id || ""));
   const fishIds = Object.keys(api.SP).filter(k => SAFE_ID.test(k));
   const when = new Date(latest.generated || now).toLocaleString("en-US", { timeZone: "America/Chicago", weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }) + " Central";
@@ -109,6 +119,17 @@ function main() {
       if (r && !r.gate && typeof r.total === "number" && (r.coverage == null || r.coverage >= 0.5)) S[s.id][k] = { v: Math.round(r.total), why: r.reason || "" };
     }
   }
+  // Best 3 safe hours in the next day and a half, for the answer boxes
+  const bestTime = (s, k) => { let w = null; try { w = api.bestWindowFor(s, k, 36); } catch (e) {} if (!w) return null;
+    return { when: dayWord(api.winTxt(w).replace(/, [^,]* for your boat$/, ""), now), boat: SHORE(s) ? "Fished from the beach" : w.lv != null ? api.LV_TXT[w.lv] + " for a small boat" : null }; };
+  // The best window of each of the next 7 days, as in the app's 7-day view
+  const week = (s, k) => {
+    const f = FCJ && FCJ.spots && FCJ.spots[s.id]; if (!f) return [];
+    let hr = []; try { hr = api.fcHours(s, k, f, now - 36e5, Infinity); } catch (e) { return []; }
+    const byDay = {}; for (const h of hr) (byDay[new Date(h.ts).toDateString()] = byDay[new Date(h.ts).toDateString()] || []).push(h);
+    return Object.values(byDay).map(d => { try { return api.pickWindow(d); } catch (e) { return null; } }).filter(Boolean).slice(0, 7);
+  };
+  const boatTxt = (s, w) => SHORE(s) ? "From the beach" : w.lv != null ? api.LV_TXT[w.lv] : "–";
   for (const d of ["spots", "fish"]) fs.mkdirSync(path.join(DIR, d), { recursive: true });
   const written = [];
   const write = (rel, html) => { fs.writeFileSync(path.join(DIR, rel), html); written.push(rel); };
@@ -123,11 +144,20 @@ function main() {
     const title = clip(`${s.name} fishing report: scores and conditions`, 75);
     const lead = [top, ...list.filter(x => x !== top && FEATURED.includes(x[0]))].filter(Boolean).slice(0, 3).map(([k]) => api.SP[k].name.toLowerCase());
     const desc = clip(`${s.name}${area ? `, ${area}` : ""}: hourly fishing scores for ${lead.length > 1 ? lead.slice(0, -1).join(", ") + " and " + lead[lead.length - 1] : lead[0] || "local fish"}, with water temperature, wind and tide.`, 160);
-    const body = `<h1>${esc(s.name)} fishing report</h1>
+    const bt = top && bestTime(s, top[0]), wk = top ? week(s, top[0]) : [];
+    const near = spots.filter(x => x.id !== s.id && (x.zone || "inshore") === (s.zone || "inshore")).map(x => [x, api.milesJS(s.lat, s.lon, x.lat, x.lon)])
+      .sort((a, b) => a[1] - b[1]).slice(0, 4).map(([x, mi]) => { const l = Object.entries(S[x.id]).sort((a, b) => b[1].v - a[1].v), t = l.find(([k]) => FEATURED.includes(k)) || l[0]; return { x, mi, t }; });
+    const body = `${crumbs(T, [["Home", "../index.html", ""], ["Spots", "index.html", "spots/index.html"], [s.name, "", `spots/${s.id}.html`]])}
+<h1>${esc(s.name)} fishing report</h1>
 <p class="meta">${esc(area ? area + ", Louisiana" : "Louisiana")} · updated ${esc(when)}</p>
-${top ? `<p>${FEATURED.includes(top[0]) ? "Best of the popular fish right now" : "Best right now"}: <b>${esc(api.SP[top[0]].name)}, ${top[1].v} (${band(top[1].v)})</b>${top[1].why ? `. ${esc(top[1].why)}.` : "."} <a href="../map.html#${top[0]}/${s.id}">Open ${esc(s.name)} in the map</a> for the 7-day outlook, best times and wind and waves.</p>` : `<p>No fish has enough readings to score here right now. <a href="../map.html#redfish/${s.id}">Open it in the map</a>.</p>`}
+${top ? `<div class="answer"><p class="answer-k">${FEATURED.includes(top[0]) ? "Best of the popular fish right now" : "Best right now"}</p>
+<p class="answer-v"><b>${esc(api.SP[top[0]].name)}: ${top[1].v}</b> <span class="band b-${band(top[1].v).toLowerCase()}">${band(top[1].v)}</span></p>
+<dl><dt>Best time</dt><dd>${esc(bt ? bt.when : "Open the map for hours")}</dd>${bt && bt.boat ? `<dt>Boating</dt><dd>${esc(bt.boat)}</dd>` : ""}${top[1].why ? `<dt>Why</dt><dd>${esc(top[1].why)}</dd>` : ""}</dl>
+<a class="btn" href="../map.html#${top[0]}/${s.id}">Open ${esc(s.name)} in the map</a></div>` : `<p>No fish has enough readings to score here right now. <a href="../map.html#redfish/${s.id}">Open it in the map</a>.</p>`}
+${wk.length ? `<h2>Next 7 days for ${esc(api.SP[top[0]].name.toLowerCase())}</h2><table class="days"><tr><th>Day</th><th>Best time</th><th>Score</th><th>Boat</th></tr>${wk.map(w => `<tr><td>${esc(dayWord(new Date(w.from).toLocaleDateString("en-US", { weekday: "short" }) + " x", now).replace(/ x$/, ""))}</td><td>${esc(api.winTxt(w, false).replace(/, [^,]* for your boat$/, ""))}</td><td>${w.v} ${band(w.v)}</td><td>${esc(boatTxt(s, w))}</td></tr>`).join("")}</table>` : ""}
 ${reading.length ? `<h2>Conditions now</h2><table>${reading.map(([l, v]) => `<tr><td>${esc(l)}</td><td>${esc(v)}</td></tr>`).join("")}</table>` : ""}
 ${list.length ? `<h2>Scores by fish</h2><table><tr><th>Fish</th><th>Score</th><th>Why</th></tr>${list.slice(0, 14).map(([k, r]) => `<tr><td><a href="../fish/${k}.html">${esc(api.SP[k].name)}</a></td><td>${r.v} ${band(r.v)}</td><td>${esc(r.why)}</td></tr>`).join("")}</table>` : ""}
+${near.length ? `<h2>Nearby spots</h2><ul class="near">${near.map(({ x, mi, t }) => `<li><a href="${x.id}.html">${esc(x.name)}</a>, about ${Math.round(mi)} miles${t ? `: ${esc(api.SP[t[0]].name.toLowerCase())} ${t[1].v} (${band(t[1].v)})` : ""}</li>`).join("")}</ul>` : ""}
 ${L && L.name ? `<h2>Nearest boat launch</h2><p>${esc(L.name)}, about ${esc(L.mi)} miles away${L.note ? ` (${esc(L.note)})` : ""}. From OpenStreetMap; check it's open before you tow.</p>` : ""}
 <p><a href="index.html">All spots and fish</a></p>`;
     write(`spots/${s.id}.html`, page(T, `spots/${s.id}.html`, title, desc, body));
@@ -140,10 +170,15 @@ ${L && L.name ? `<h2>Nearest boat launch</h2><p>${esc(L.name)}, about ${esc(L.mi
     const name = P.name, lc = name.toLowerCase();
     const title = clip(`${name} fishing in Louisiana: best spots today`, 75);
     const desc = clip(`Where ${lc} should bite best in Louisiana right now, scored hourly from water temperature, tide and wind${R ? `, plus the ${lc} limits` : ""}.`, 160);
-    const body = `<h1>${esc(name)} fishing in Louisiana</h1>
+    const fb = best.length && bestTime(best[0][0], k);
+    const body = `${crumbs(T, [["Home", "../index.html", ""], ["Fish", "index.html", "spots/index.html"], [name, "", `fish/${k}.html`]])}
+<h1>${esc(name)} fishing in Louisiana</h1>
 <p class="meta">Updated ${esc(when)}</p>
 ${closed ? `<p><b>${esc(closed)}.</b></p>` : ""}
-${best.length ? `<p>Best right now: <b>${esc(best[0][0].name)}, ${best[0][1].v} (${band(best[0][1].v)})</b>. <a href="../map.html#${k}/${best[0][0].id}">Open it in the map</a>.</p>
+${best.length ? `<div class="answer"><p class="answer-k">Best spot right now</p>
+<p class="answer-v"><b>${esc(best[0][0].name)}: ${best[0][1].v}</b> <span class="band b-${band(best[0][1].v).toLowerCase()}">${band(best[0][1].v)}</span></p>
+<dl><dt>Best time</dt><dd>${esc(fb ? fb.when : "Open the map for hours")}</dd>${fb && fb.boat ? `<dt>Boating</dt><dd>${esc(fb.boat)}</dd>` : ""}${best[0][1].why ? `<dt>Why</dt><dd>${esc(best[0][1].why)}</dd>` : ""}</dl>
+<a class="btn" href="../map.html#${k}/${best[0][0].id}">Open it in the map</a></div>
 <h2>Top spots right now</h2><table><tr><th>Spot</th><th>Score</th><th>Why</th></tr>${best.slice(0, 15).map(([s, r]) => `<tr><td><a href="../spots/${s.id}.html">${esc(s.name)}</a></td><td>${r.v} ${band(r.v)}</td><td>${esc(r.why)}</td></tr>`).join("")}</table>`
       : `<p>No spot has a score for ${esc(lc)} right now${closed ? " (the season is closed)" : ""}.</p>`}
 ${R ? `<h2>Louisiana limits</h2><table><tr><td>Size</td><td>${esc(api.regSize(R))}${R.len && R.min ? ` (${esc(R.len)})` : ""}</td></tr><tr><td>Keep</td><td>${esc(R.bag)}</td></tr></table>${R.note ? `<p>${esc(R.note)}</p>` : ""}` : ""}
