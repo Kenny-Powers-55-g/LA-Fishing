@@ -647,3 +647,31 @@ class BoatLaunches(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class CarryForecast(unittest.TestCase):
+    """A spot whose weather fetch failed keeps the last run's forecast for a few hours."""
+    def test_recent_forecast_is_kept_old_one_is_not(self):
+        from datetime import datetime, timedelta, timezone
+        now = datetime(2026, 11, 28, 12, tzinfo=timezone.utc)
+        ids = [s["id"] for s in ingest.SPOTS][:3]
+        old = {"spots": {ids[0]: {"start": (now - timedelta(hours=2)).isoformat(), "wind": [5]},
+                         ids[1]: {"start": (now - timedelta(hours=9)).isoformat(), "wind": [5]},
+                         ids[2]: {"start": (now - timedelta(hours=1)).isoformat(), "wind": [9]},
+                         "not-a-spot": {"start": now.isoformat(), "wind": [1]}}}
+        d = tempfile.mkdtemp(); self.addCleanup(shutil.rmtree, d)
+        p = os.path.join(d, "forecast.json")
+        with open(p, "w") as f:
+            json.dump(old, f)
+        fc = {"spots": {ids[2]: {"start": now.isoformat(), "wind": [3]}}}
+        kept = ingest.carry_forecasts(fc, now, p)
+        self.assertEqual(kept, [ids[0]])                       # 9 h old is too old; unknown ids are dropped
+        self.assertEqual(fc["spots"][ids[2]]["wind"], [3])     # this run's forecast wins
+        self.assertIn("carried_from", fc["spots"][ids[0]])
+        # Carried again an hour later: the age still counts from the original run
+        with open(p, "w") as f:
+            json.dump({"spots": {ids[0]: {**fc["spots"][ids[0]], "carried_from": (now - timedelta(hours=7)).isoformat()}}}, f)
+        self.assertEqual(ingest.carry_forecasts({"spots": {}}, now, p), [])
+
+    def test_missing_file_is_fine(self):
+        self.assertEqual(ingest.carry_forecasts({"spots": {}}, None, "/nonexistent/forecast.json"), [])

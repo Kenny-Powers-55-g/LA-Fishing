@@ -85,7 +85,7 @@ jobs:
           owner="${GITHUB_REPOSITORY%%/*}"; repo="${GITHUB_REPOSITORY#*/}"
           site="https://$(echo "$owner" | tr 'A-Z' 'a-z').github.io/$repo"
           lost=""
-          for f in history.json scores-daily.json rigs.json reefs.json launches.json alerts_state.json tropical.json deadzone.json community.json; do
+          for f in history.json forecast.json scores-daily.json rigs.json reefs.json launches.json alerts_state.json tropical.json deadzone.json community.json; do
             code=$(curl -sL --retry 4 --retry-all-errors --retry-delay 5 --max-time 60 -w "%{http_code}" "$site/$f?t=$(date +%s)" -o "$f.dl" || echo 000)
             if [ "$code" = "200" ] && [ -s "$f.dl" ]; then mv "$f.dl" "$f"; echo "$f: $(wc -c < "$f") bytes"
             else rm -f "$f.dl"; echo "$f: not fetched (HTTP $code)"
@@ -127,11 +127,15 @@ jobs:
       - name: Save today's scores for trends
         id: snapshot
         continue-on-error: true
+        env:
+          TZ: America/Chicago        # times on the home page card ("Sat 3 PM–6 PM") are Louisiana time
         run: node scripts/snapshot.js
 
       - name: Write the search pages (one per spot and fish) and the sitemap
         id: pages
         continue-on-error: true
+        env:
+          TZ: America/Chicago
         run: node scripts/pages.js
 
       - name: Send phone alerts
