@@ -66,9 +66,10 @@ function main() {
     if (top) {
       // The best 3-hour window in the next day and a half that's safe for a small boat, and the verdict for it
       let w = null; try { w = api.bestWindowFor(top.spot, k, 36); } catch (e) {}
-      if (w) { top.best = api.winTxt(w); if (w.lv != null) top.boat = api.LV_TXT[w.lv]; }
+      // The boat verdict has its own row on the card, so the time doesn't repeat it
+      if (w) { top.best = api.winTxt(w).replace(/, [^,]* for your boat$/, ""); if (w.lv != null) top.boat = api.LV_TXT[w.lv]; }
       // Surf beaches are fished from the sand, so the card says so instead of giving a boat verdict
-      if (/\(surf\)/i.test(top.name)) { top.shore = true; delete top.boat; if (top.best) top.best = top.best.replace(/, [^,]* for your boat$/, ""); }
+      if (/\(surf\)/i.test(top.name)) { top.shore = true; delete top.boat; }
       delete top.spot; board.push(top);
     }
   }
