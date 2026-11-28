@@ -5,7 +5,7 @@
      Outside scripts are allowed by their exact file (Leaflet and the Supabase library), not whole sites, and
      only this site's own Supabase project may be contacted. Changing supabaseUrl in config.js? Change both
      of its addresses in connect-src too (node tests/check_page.js checks they match). -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-ap5MSQrXWR0reWT9leoroLT0xlM5zuuNBvia3r/cTEw=' 'sha256-2LgwnoksPj0e53raafgGmO6MxaErvr2bFEMuIMlZJS8=' https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.118.0/dist/umd/supabase.js https://challenges.cloudflare.com/turnstile/; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https://*.noaa.gov https://gibs.earthdata.nasa.gov https://tile.openstreetmap.org https://cdnjs.cloudflare.com; connect-src 'self' https://kenny-powers-55-g.github.io https://*.noaa.gov https://gibs.earthdata.nasa.gov https://tile.openstreetmap.org https://api.open-meteo.com https://qpbqepzdxkadmulkmfbj.supabase.co wss://qpbqepzdxkadmulkmfbj.supabase.co https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://fonts.googleapis.com https://fonts.gstatic.com; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-src https://challenges.cloudflare.com; upgrade-insecure-requests">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-ap5MSQrXWR0reWT9leoroLT0xlM5zuuNBvia3r/cTEw=' 'sha256-GWvHin6PYTFSzzZsxx9u4T1X2EaMY63FlzjBsnVyZDE=' https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.118.0/dist/umd/supabase.js https://challenges.cloudflare.com/turnstile/; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; font-src 'self'; img-src 'self' data: blob: https://*.noaa.gov https://gibs.earthdata.nasa.gov https://tile.openstreetmap.org https://cdnjs.cloudflare.com; connect-src 'self' https://kenny-powers-55-g.github.io https://*.noaa.gov https://gibs.earthdata.nasa.gov https://tile.openstreetmap.org https://api.open-meteo.com https://qpbqepzdxkadmulkmfbj.supabase.co wss://qpbqepzdxkadmulkmfbj.supabase.co https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-src https://challenges.cloudflare.com; upgrade-insecure-requests">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -45,9 +45,7 @@ h1,h3,.dial span,.day b,.rank b{font-family:"Bricolage Grotesque",system-ui,sans
 header{background:linear-gradient(160deg,#071c3a 0%,#0c2f5e 60%,#103d78 100%);color:#fff;position:relative;overflow:hidden}
 .topo{position:absolute;inset:0;width:100%;height:100%}
 .topo path{fill:none;stroke:#7fb8ff;stroke-opacity:.26;stroke-width:1;vector-effect:non-scaling-stroke;stroke-linejoin:round}
-.hd{position:relative;max-width:1000px;margin:auto;padding:30px 16px 34px}
 h1{font-size:clamp(28px,6vw,42px);line-height:1.04;margin:0 0 8px;font-weight:800;letter-spacing:-.025em}
-.hd p{margin:0 0 14px;color:rgba(255,255,255,.82);max-width:34em}
 header .sub{display:inline-block;font-size:var(--fs-caption);color:rgba(255,255,255,.85);background:rgba(255,255,255,.13);padding:3px 12px;border-radius:99px}
 header .sub span{color:#ffb4a8!important}
 .sub,.note{color:var(--mu);font-size:var(--fs-caption)}
@@ -189,7 +187,6 @@ button.t,.pick{min-height:44px}
 .offline-banner{background:var(--y);color:#1a1200;text-align:center;padding:8px 12px;font-size:var(--fs-caption);font-weight:600}
 .hdr-actions{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:10px}
 @media(max-width:799px){
-  .hd{padding:22px 14px 26px}
   h1{font-size:clamp(24px,7vw,34px)}
   main{padding:0 12px 36px;gap:12px}
   .card{padding:14px;border-radius:16px}
@@ -202,9 +199,6 @@ button.t,.pick{min-height:44px}
 .chips{display:grid;grid-template-columns:repeat(auto-fit,minmax(92px,1fr));gap:8px;margin:12px 0}
 .chip{border-radius:12px;padding:8px 10px;background:var(--bg);border-left:4px solid var(--c,var(--mu));font-size:var(--fs-caption)}
 .chip b{display:block;font-size:var(--fs-label)}
-.ss select{font:inherit;font-size:var(--fs-caption);border:1px solid var(--bd);background:var(--card);color:var(--tx);border-radius:99px;padding:4px 10px}
-.ss svg{width:100%;height:auto;display:block}
-.ss a{color:var(--ac)}
 
 /* ===================== Map-first look (dark outdoors theme) ===================== */
 :root{color-scheme:dark;--bg:#0b1014;--card:#121a20;--s2:#19232b;--tx:#e9eef1;--mu:#8d9ca5;--bd:#24313a;--ac:#ffb547;--onac:#1b1200;
@@ -220,7 +214,7 @@ a{color:var(--ac)}
 .logo{height:42px;width:83px;flex:none;display:block}
 .appbar .brand{display:flex;align-items:center;gap:10px}
 .appbar h1{font-size:var(--fs-title-s);font-weight:800;letter-spacing:-.02em;margin:0;white-space:nowrap;display:flex;align-items:baseline}
-.wm{font-family:"Russo One",Impact,system-ui,sans-serif;font-weight:400;font-size:var(--fs-title);letter-spacing:.02em;display:inline-block;transform:skewX(-10deg);color:var(--lg-ink)}.wm-c{color:var(--lg-amber)}
+.wm{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;font-weight:900;font-style:italic;font-size:var(--fs-title);letter-spacing:.02em;display:inline-block;transform:skewX(-10deg);color:var(--lg-ink)}.wm-c{color:var(--lg-amber)}
 .appbar .tag{font-weight:500;color:var(--mu);font-size:var(--fs-label);margin-left:4px}
 .appbar .hdr-actions{margin:0;flex-wrap:nowrap;gap:8px}
 .appbar .sub{background:var(--s2);color:var(--mu);border:1px solid var(--bd);padding:4px 10px;border-radius:99px;font-size:var(--fs-caption);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:46vw}
@@ -540,8 +534,6 @@ h3.dh{margin:18px 0 8px;font-size:var(--fs-caption);text-transform:none;letter-s
 #welcome p{margin:0 0 14px;font-size:var(--fs-body-s);color:var(--mu)}
 .w-feats{list-style:none;margin:0 0 16px;padding:0;display:grid;gap:12px}
 .w-feats li{display:flex;gap:12px;align-items:flex-start}
-.w-ic{flex:none;width:36px;height:36px;border-radius:10px;display:grid;place-items:center;background:color-mix(in srgb,var(--ac) 16%,var(--s2));color:var(--ac)}
-.w-ic svg{width:20px;height:20px}
 .w-feats b{display:block;font-size:var(--fs-body-s)}
 .w-feats div span{font-size:var(--fs-label);color:var(--mu)}
 .w-feats b span{font-size:inherit;color:inherit}
@@ -567,7 +559,6 @@ h3.dh{margin:18px 0 8px;font-size:var(--fs-caption);text-transform:none;letter-s
 #detail .big{gap:16px;flex-wrap:nowrap;align-items:center;padding-bottom:4px}
 #detail .big>div:last-child{min-width:0}
 #detail .bestwin{border:1px solid color-mix(in srgb,var(--ac) 35%,var(--bd));background:color-mix(in srgb,var(--ac) 8%,var(--s2));font-size:var(--fs-body-s)}
-#detail .bestwin b{color:var(--ac)}
 #radarnear{font-size:var(--fs-label);color:var(--mu);margin:8px 0}
 #radarnear:empty{display:none}
 #radarnear .gono{display:block;border-radius:12px;padding:10px 14px;font-size:var(--fs-label);line-height:1.35}
@@ -609,7 +600,6 @@ h3.dh{margin:18px 0 8px;font-size:var(--fs-caption);text-transform:none;letter-s
  --glass:rgba(255,255,255,.88);--appbg:rgba(249,249,249,.92);--lift:transparent;--seg:#fff;--handle:#c7c7cc}}
 body{font-family:var(--sys);font-size:var(--fs-body-s);line-height:1.45;letter-spacing:-.01em;-webkit-font-smoothing:antialiased;-webkit-tap-highlight-color:transparent;font-feature-settings:normal}
 h1,h2,h3,h4,h5,.dial span,.day b,.rank b,.pick .sc,.log-assess .bigish,.fab,#bnav button,.saved .del,button,input,select,textarea{font-family:var(--sys)}
-.wm{font-family:"Russo One",Impact,system-ui,sans-serif}
 button,a,summary,label{touch-action:manipulation}
 b,strong{font-weight:600}
 /* type scale: title 20/bold, headline 17/semibold, body 15-16, footnote 13, caption 12 */
@@ -701,7 +691,6 @@ button.t.on{background:var(--ac);color:var(--onac);font-weight:600}
 #acctdlg{border:0;border-radius:14px;box-shadow:0 20px 60px rgba(0,0,0,.3)}
 :is(#acctbody,#friendsbody) .who{border:0}
 #welcome{border:0;background:var(--card)}
-.w-ic{border-radius:9px;background:color-mix(in srgb,var(--ac) 16%,transparent)}
 /* phones */
 @media(max-width:899px){
  body{font-size:var(--fs-body)}
@@ -826,7 +815,7 @@ html.boat .note{color:var(--mu)}
 .tip1{display:flex;gap:10px;align-items:flex-start;background:var(--good-bg);border-radius:12px;padding:12px 14px;margin:14px 0 4px;font-size:var(--fs-body-s);line-height:1.4}
 .tip-ic{flex:none;font-size:var(--fs-body);line-height:1.3}
 .tidenext{display:flex;gap:8px;align-items:baseline;flex-wrap:wrap;margin:14px 4px 10px;font-size:var(--fs-body-s)}
-.dsec-b .tidechart,.dsec-b svg{max-width:100%}
+.dsec-b svg{max-width:100%}
 .dcard>summary{list-style:none;cursor:pointer;display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;min-height:28px;padding-right:22px;position:relative}
 .dcard>summary::-webkit-details-marker{display:none}
 .dcard>summary::after{content:"";position:absolute;right:4px;top:8px;width:7px;height:7px;border-right:1.5px solid var(--handle);border-bottom:1.5px solid var(--handle);transform:rotate(45deg);transition:transform .18s}
@@ -835,9 +824,6 @@ html.boat .note{color:var(--mu)}
 .dcard[open]>summary{margin-bottom:12px}
 .dcard[hidden]{display:none}
 #compare>h3{display:none}
-.more7>summary{cursor:pointer;color:var(--ac);font-size:var(--fs-body-s);min-height:44px;display:flex;align-items:center;list-style:none}
-.more7>summary::-webkit-details-marker{display:none}
-.more7[open]>summary{display:none}
 @media(prefers-reduced-motion:reduce){.dcard>summary::after{transition:none}}
 
 /* Drop-downs: solid colours. A see-through select made the opened list unreadable on some phones and
@@ -1119,11 +1105,6 @@ body.mapfull #mapcard:has(#windbar:not([hidden])) .legend{bottom:calc(186px + en
 @media(prefers-color-scheme:light){:root:not([data-theme="dark"]) .rank.on .note{color:#45454a}}
 .rank{grid-template-columns:minmax(0,1fr) 36px!important}
 .rk-open{display:grid;grid-template-columns:52px minmax(0,1fr);gap:10px;align-items:center;width:100%;min-height:44px;padding:0;border:0;background:none;color:inherit;font:inherit;text-align:left;cursor:pointer;border-radius:10px}
-.rk-c3{color:#2E7D32}.rk-c2{color:#8A6100}.rk-c1{color:#B45309}.rk-c0{color:#B23A33}
-.bb-tr.up{color:#2E7D32}.bb-tr.dn{color:#B23A33}
-:root[data-theme="dark"] .rk-c3,:root[data-theme="dark"] .bb-tr.up{color:var(--g)}
-:root[data-theme="dark"] .rk-c2{color:var(--y)}:root[data-theme="dark"] .rk-c1{color:var(--o)}:root[data-theme="dark"] .rk-c0,:root[data-theme="dark"] .bb-tr.dn{color:var(--r)}
-@media(prefers-color-scheme:dark){:root:not([data-theme]) .rk-c3,:root:not([data-theme]) .bb-tr.up{color:var(--g)}:root:not([data-theme]) .rk-c2{color:var(--y)}:root:not([data-theme]) .rk-c1{color:var(--o)}:root:not([data-theme]) .rk-c0,:root:not([data-theme]) .bb-tr.dn{color:var(--r)}}
 /* ---- Today tab: slim empty cards ---- */
 .card.slim{padding:8px 14px}
 .slim-row{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:2px 12px;font-size:var(--fs-body-s)}
@@ -1414,7 +1395,6 @@ input[type=checkbox],input[type=radio]{width:24px;height:24px;accent-color:var(-
 .score{--f:var(--score-na);--i:var(--score-na-ink)}
 [data-s="0"]{--f:var(--score-0);--i:var(--score-0-ink)}[data-s="1"]{--f:var(--score-1);--i:var(--score-1-ink)}
 [data-s="2"]{--f:var(--score-2);--i:var(--score-2-ink)}[data-s="3"]{--f:var(--score-3);--i:var(--score-3-ink)}
-.rk-c3{color:var(--st3)}.rk-c2{color:var(--st2)}.rk-c1{color:var(--st1)}.rk-c0{color:var(--st0)}
 :root:root:root .rk-c3{color:var(--st3)}:root:root:root .rk-c2{color:var(--st2)}:root:root:root .rk-c1{color:var(--st1)}:root:root:root .rk-c0{color:var(--st0)}
 :root:root:root .bb-tr.up{color:var(--st3)}:root:root:root .bb-tr.dn{color:var(--ink-2)}
 /* Map pins: the score badge with a dark ring and a light halo, readable on any map */
@@ -1433,7 +1413,7 @@ input[type=checkbox],input[type=radio]{width:24px;height:24px;accent-color:var(-
 .gochip.ww-b{min-height:44px;border:1.5px solid var(--vc)}
 .gochip.ww-b::before{position:static;inset:auto}
 /* Wet hands: every control at least 44px */
-.compare-btn,#cmpbtn,.lf button,.mf-seg button,.chipbtn,a.dir,.gorow a{min-height:44px}
+#cmpbtn,.lf button,a.dir,.gorow a{min-height:44px}
 /* Bottom bar labels readable */
 #bnav button{font-size:var(--fs-caption);font-weight:600}
 /* Boat mode is token-driven now: bigger type and targets everywhere, no page zoom */
@@ -2822,7 +2802,6 @@ function compareSpots(){
  const spots=CMP.map(id=>DATA.spots.find(s=>s.id===id));
  const R=spots.map(s=>({s,r:score(sp,s),w:bestWindowFor(s,sp),c:s.conditions||{}}));
  const top=Math.max(...R.map(x=>x.r.gate?-1:x.r.total));
- const hf=t=>new Date(t).toLocaleString([],{weekday:"short",hour:"numeric"});
  const rows=[["Score now",x=>x.r.gate?`<span class="note">${esc(x.r.gate)}</span>`:`<b style="color:${col(x.r.total)}">${x.r.total}</b> ${lab(x.r.total)}`],
   ["Best 3 hours (next 36 h)",x=>x.w?`<b style="color:${col(x.w.v)}">${x.w.v}</b> ${esc(winTxt(x.w))}`:"—"],
   ["Wind",x=>x.c.wind!=null?`${x.c.wind} mph${x.c.wdir!=null?" "+windCompass(x.c.wdir):""}`:"—"],
@@ -3662,9 +3641,6 @@ function bestCandidates(fish,area,n){
  out.sort((a,b)=>b.rank-a.rank);return out.slice(0,n)}
 function windowTxt(x,fish){const w=bestWindowFor(x,fish);return w?winTxt(w):""}
 function trendOf(x,fish,v){if(!DAILY)return null;const y=DAILY[ymd(Date.now()-864e5)],p=y&&y[x.id+"|"+fish];return p==null||v==null?null:v-p}
-function trendHtml(d){if(d==null)return`<span class="bb-tr" title="Trend appears once yesterday's score is saved">trend –</span>`;
- if(d>0)return`<span class="bb-tr up">▲ ${d} vs yesterday</span>`;if(d<0)return`<span class="bb-tr dn">▼ ${-d} vs yesterday</span>`;
- return`<span class="bb-tr">same as yesterday</span>`}
 // ---- Today: the answer first, a day picker, one ranked list with the boat verdict on every row ----
 let BBDAY="now",BBALL=false,BB_CACHE={k:"",v:null};
 const dayKey=ts=>new Date(ts).toDateString();
@@ -4862,9 +4838,6 @@ initAccounts();
 // ---- Theme: automatic (follows the device), light or dark ----
 // Feather "settings" icon (MIT licence)
 const GEAR_ICON='<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>';
-const THEME_ICON={auto:'<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M12 4a8 8 0 0 1 0 16z" fill="currentColor"/></svg>',
- light:'<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4" fill="currentColor"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1 7 17M17 7l2.1-2.1" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>',
- dark:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z" fill="currentColor"/></svg>'};
 function boatMode(){try{return localStorage.getItem("oc-boatmode")==="1"}catch(e){return false}}
 function setBoatMode(on){try{if(on)localStorage.setItem("oc-boatmode","1");else localStorage.removeItem("oc-boatmode")}catch(e){}
  document.documentElement.classList.toggle("boat",on);if(MAP)setTimeout(()=>MAP.invalidateSize(),50)}

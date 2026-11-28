@@ -143,7 +143,10 @@ email service under **Authentication → Emails → SMTP Settings** (Resend, Sen
 - Side steps (search pages, trends, community tuning, alerts) never block the update, but a failure in any
   of them turns the run red, so GitHub emails you.
 - A data source that fails six calls in a row is skipped for the rest of that run, and after 20 minutes no
-  new spots are started, so one slow service can't stop every deploy.
+  new spots are started, so one slow service can't stop every deploy. A spot whose weather fetch fails keeps
+  its last forecast for up to 6 hours, so its hour-by-hour view doesn't go blank.
+- The hourly scripts that score spots (`snapshot.js` for the home page card and trends, `pages.js`, `alerts.js`)
+  run the page's own scoring code from `map.html` through `scripts/scoring.js`, so they always agree with the app.
 - Worth doing once: create a free check at healthchecks.io (period 1 hour, grace 2 hours) and save its ping
   URL as the `HEALTHCHECK_URL` repository secret; every successful update pings it, and it emails you if the
   pings stop. Also set the `USGS_API_KEY` repository secret (free at api.waterdata.usgs.gov/signup): the logs show it's empty, and the

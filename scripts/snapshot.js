@@ -5,30 +5,11 @@
 // Each run overwrites today's entry, so the value kept for a day is its latest one.
 //
 //   node scripts/snapshot.js        (reads and writes in the current folder, or SNAPSHOT_DIR)
-const fs = require("fs"), path = require("path"), vm = require("vm");
-const ROOT = path.join(__dirname, ".."), DIR = process.env.SNAPSHOT_DIR || process.cwd();
+const fs = require("fs"), path = require("path");
+const DIR = process.env.SNAPSHOT_DIR || process.cwd();
 const KEEP = 3;
 
-function loadScoring() {
-  const html = fs.readFileSync(path.join(ROOT, "map.html"), "utf8");
-  const code = [...html.matchAll(/<script>([\s\S]*?)<\/script>/g)].map(m => m[1]).join("\n");
-  if (!code.trim()) throw new Error("No scripts found in map.html");
-  const noop = () => [];
-  const el = () => new Proxy({ style: {}, dataset: {}, classList: { toggle() {}, add() {}, remove() {} } },
-    { get: (t, k) => (k in t ? t[k] : noop), set: (t, k, v) => ((t[k] = v), true) });
-  const ctx = {
-    document: { getElementById: el, querySelector: el, querySelectorAll: () => [], createElement: el,
-                addEventListener() {}, body: el(), hidden: false },
-    navigator: { onLine: true }, localStorage: { getItem: () => null, setItem() {}, removeItem() {} },
-    fetch: () => Promise.reject(new Error("no network in snapshot")), setTimeout: () => 0, clearTimeout() {},
-    setInterval: () => 0, console, location: { hash: "", href: "", hostname: "", pathname: "/" },
-    history: { replaceState() {} }, addEventListener() {}, innerWidth: 1000, matchMedia: () => ({ matches: false }),
-  };
-  ctx.window = ctx;
-  vm.createContext(ctx);
-  vm.runInContext(code + "\n;globalThis.__api={SP,score,MODEL_UPDATED,setCommunity,bestWindowFor,winTxt,LV_TXT,setFC:f=>{FC=f}};", ctx, { filename: "map.html" });
-  return ctx.__api;
-}
+const loadScoring = () => require("./scoring")(["SP", "score", "MODEL_UPDATED", "setCommunity", "bestWindowFor", "winTxt", "LV_TXT", "setFC"]);
 
 const readJSON = (f, d) => { try { return JSON.parse(fs.readFileSync(path.join(DIR, f), "utf8")); } catch (e) { return d; } };
 const dayKey = ms => new Date(ms).toISOString().slice(0, 10);

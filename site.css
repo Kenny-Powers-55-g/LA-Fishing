@@ -70,7 +70,6 @@ img,svg{max-width:100%}
 .hero h1{color:#fff}
 .hero .lede{color:#DCE8F0}
 .hero .fine{color:#B9CAD6}
-.hero .shot-slot{border-color:rgba(255,255,255,.45);color:#DCE8F0;background:rgba(8,26,40,.35)}
 .hero-grid{display:grid;gap:36px;align-items:center}
 .hero h1{margin:0 0 14px;font-size:clamp(32px,8vw,52px);line-height:1.08;font-weight:800;letter-spacing:-.03em;max-width:15em}
 .lede{margin:0 0 24px;font-size:clamp(17px,4.4vw,20px);line-height:1.45;color:var(--mu);max-width:28em}
@@ -79,12 +78,8 @@ img,svg{max-width:100%}
 .resume[hidden]{display:none}
 .resume a{display:inline-flex;align-items:center;gap:4px;min-height:44px;padding:8px 16px;border-radius:12px;background:var(--info-bg);border:1px solid var(--info-bd);color:var(--tx);text-decoration:none;font-size:15px}
 .resume b{color:var(--ac)}
-.shot-slot{width:100%;max-width:300px;aspect-ratio:9/16;justify-self:center;border:1.5px dashed var(--bd);border-radius:20px;display:grid;place-items:center;padding:24px;text-align:center;color:var(--mu);font-size:15px}
-.shot-slot p{margin:0}
 .sect{padding:40px 0}
 .sect h2{margin:0 0 14px;font-size:clamp(24px,6vw,30px);line-height:1.2;font-weight:800;letter-spacing:-.02em}
-.benefits{margin:0;padding:0 0 0 20px;display:grid;gap:14px;font-size:17px;line-height:1.5}
-.benefits li::marker{color:var(--ac)}
 .steps{margin:0;padding:0 0 0 22px;display:grid;gap:10px;font-size:17px}
 .steps li::marker{font-weight:700;color:var(--ac)}
 @media(min-width:900px){
@@ -144,8 +139,6 @@ img,svg{max-width:100%}
 .demo-go{display:inline-flex;align-items:center;min-height:44px;margin-top:6px;font-weight:600;color:var(--ac)}
 .demo .c-ex{color:#00642f}.demo .c-gd{color:#007273}.demo .c-fr{color:#1c6a99}.demo .c-po{color:#4b5a68}
 :root[data-theme="dark"] .demo .c-ex{color:#86f09f}:root[data-theme="dark"] .demo .c-gd{color:#2dc3b9}:root[data-theme="dark"] .demo .c-fr{color:#6fb6e8}:root[data-theme="dark"] .demo .c-po{color:#a3b2bf}
-.demo .d-ex{background:#2E7D32}.demo .d-gd{background:#7FB548}.demo .d-fr{background:#F59E0B}.demo .d-po{background:#C8423B}
-.demo-band i{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:6px;vertical-align:middle}
 .sect-alt{background:var(--card)}
 .sect-alt .sect{background:transparent}
 .cols{display:grid;gap:22px 28px;grid-template-columns:1fr}

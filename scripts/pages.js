@@ -4,31 +4,14 @@
 //   fish/<id>.html    one fish: its best spots right now, its season and its Louisiana limits
 //   spots/index.html  every spot and fish, by area
 // and rewrites sitemap.xml to list them. Scores come from the site's own scoring code (map.html), the
-// same way snapshot.js and alerts.js load it. Header, footer and security policy come from about.html,
+// same way snapshot.js and alerts.js load it (scripts/scoring.js). Header, footer and security policy come from about.html,
 // so these pages look and behave like the rest of the site.
 //
 //   node scripts/pages.js        (reads latest.json and writes in the current folder, or PAGES_DIR)
-const fs = require("fs"), path = require("path"), vm = require("vm");
+const fs = require("fs"), path = require("path");
 const ROOT = path.join(__dirname, ".."), DIR = process.env.PAGES_DIR || process.cwd();
 
-function loadScoring() {
-  const html = fs.readFileSync(path.join(ROOT, "map.html"), "utf8");
-  const code = [...html.matchAll(/<script>([\s\S]*?)<\/script>/g)].map(m => m[1]).join("\n");
-  const noop = () => [];
-  const el = () => new Proxy({ style: {}, dataset: {}, classList: { toggle() {}, add() {}, remove() {} } },
-    { get: (t, k) => (k in t ? t[k] : noop), set: (t, k, v) => ((t[k] = v), true) });
-  const ctx = {
-    document: { getElementById: el, querySelector: el, querySelectorAll: () => [], createElement: el, addEventListener() {}, body: el(), hidden: false },
-    navigator: { onLine: true }, localStorage: { getItem: () => null, setItem() {}, removeItem() {} },
-    fetch: () => Promise.reject(new Error("no network in pages")), setTimeout: () => 0, clearTimeout() {}, setInterval: () => 0, console,
-    location: { hash: "", href: "", hostname: "", pathname: "/" }, history: { replaceState() {} }, addEventListener() {}, innerWidth: 1000,
-    matchMedia: () => ({ matches: false }),
-  };
-  ctx.window = ctx;
-  vm.createContext(ctx);
-  vm.runInContext(code + "\n;globalThis.__api={SP,score,closedNow,regFor,regSize,areaOf,AREAS,FRESH_SP,setCommunity,fcHours,pickWindow,bestWindowFor,winTxt,LV_TXT,milesJS,setFC:f=>{FC=f}};", ctx, { filename: "map.html" });
-  return ctx.__api;
-}
+const loadScoring = () => require("./scoring")(["SP", "score", "closedNow", "regFor", "regSize", "areaOf", "AREAS", "FRESH_SP", "setCommunity", "fcHours", "pickWindow", "bestWindowFor", "winTxt", "LV_TXT", "milesJS", "setFC"]);
 
 const readJSON = (f, d) => { try { return JSON.parse(fs.readFileSync(path.join(DIR, f), "utf8")); } catch (e) { return d; } };
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));

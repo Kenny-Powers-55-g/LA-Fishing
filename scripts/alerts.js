@@ -10,33 +10,11 @@
 // Env: NTFY_TOPIC  ntfy topic to publish to (a repository secret)
 //      SITE_URL    link opened when the notification is tapped
 //      ALERTS_DIR  folder with latest.json, forecast.json, alerts.json (default: current folder)
-const fs = require("fs"), path = require("path"), vm = require("vm");
+const fs = require("fs"), path = require("path");
 const ROOT = path.join(__dirname, ".."), DIR = process.env.ALERTS_DIR || process.cwd();
 const TZ = "America/Chicago", H = 36e5;
 
-function loadScoring() {
-  const html = fs.readFileSync(path.join(ROOT, "map.html"), "utf8");
-  const code = [...html.matchAll(/<script>([\s\S]*?)<\/script>/g)].map(m => m[1]).join("\n");
-  if (!code.trim()) throw new Error("No scripts found in map.html");
-  const noop = () => [];
-  const el = () => new Proxy({ style: {}, dataset: {}, classList: { toggle() {}, add() {}, remove() {} } },
-    { get: (t, k) => (k in t ? t[k] : noop), set: (t, k, v) => ((t[k] = v), true) });
-  const ctx = {
-    document: { getElementById: el, querySelector: el, querySelectorAll: () => [], createElement: el,
-                addEventListener() {}, body: el(), hidden: false },
-    navigator: { onLine: true }, localStorage: { getItem: () => null, setItem() {}, removeItem() {} },
-    fetch: () => Promise.reject(new Error("no network in alerts")),
-    // the page's own timers (like its 45 s "still loading" watchdog) must not keep this script running
-    setTimeout: (fn, ms) => { const t = setTimeout(fn, ms); if (t && t.unref) t.unref(); return t; }, clearTimeout,
-    setInterval: () => 0, console, location: { hash: "", href: "", hostname: "", pathname: "/" },
-    history: { replaceState() {} }, addEventListener() {}, innerWidth: 1000, matchMedia: () => ({ matches: false }),
-  };
-  ctx.window = ctx;
-  vm.createContext(ctx);
-  // the page's top-level consts aren't visible from outside, so hand the pieces we need back
-  vm.runInContext(code + "\n;globalThis.__api={SP,score,scoreC,fcConditions,lightNow,setCommunity};", ctx, { filename: "map.html" });
-  return ctx.__api;
-}
+const loadScoring = () => require("./scoring")(["SP", "score", "scoreC", "fcConditions", "lightNow", "setCommunity"]);
 
 const readJSON = (f, d) => { try { return JSON.parse(fs.readFileSync(path.join(DIR, f), "utf8")); } catch (e) { return d; } };
 const dayName = ts => new Intl.DateTimeFormat("en-US", { timeZone: TZ, weekday: "short" }).format(ts);
