@@ -1591,9 +1591,9 @@ def collect(spot, now, cache):
             cache[tkey] = tide_pts(spot["tide"], now)
         pts = cache[tkey]
     tide, trange = stage_at(pts, now) if pts else (None, None)
-    # next highs and lows for the page (48 h)
+    # highs and lows for the page: the whole 7-day forecast, so the hour-by-hour view can draw the tide any day
     tides = [{"t": t.isoformat(), "v": round(v, 2), "type": k} for t, v, k in pts
-             if now - timedelta(hours=7) <= t <= now + timedelta(hours=48)] or None
+             if now - timedelta(hours=7) <= t <= now + timedelta(hours=180)] or None
     if tide:
         src["tide"] = {"source": f"coops-predictions:{spot['tide']}", "age_min": 0}
 
