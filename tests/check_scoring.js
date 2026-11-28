@@ -20,7 +20,7 @@ function load(store = {}) {
   };
   ctx.window = ctx;
   vm.createContext(ctx);
-  vm.runInContext(code + "\n;globalThis.__api={SP,scoreC,closedNow,computeTune,tuneFor,SEASON,SEASONS_CHECKED,REGS,REGS_CHECKED,regFor,keepCheck,seasonOf,FRESH_SP};", ctx, { filename: "map.html" });
+  vm.runInContext(code + "\n;globalThis.__api={SP,scoreC,closedNow,computeTune,tuneFor,SEASON,SEASONS_CHECKED,REGS,REGS_CHECKED,regFor,keepCheck,seasonOf,FRESH_SP,pickWindow};", ctx, { filename: "map.html" });
   return ctx.__api;
 }
 const at = d => Date.parse(d + "T18:00:00Z");
@@ -160,6 +160,19 @@ const at = d => Date.parse(d + "T18:00:00Z");
   const api = load(), off = { zone: "offshore", temp: 82, wave: 2, wind: 8, cur: .8, vis: 60, light: "Dawn", mon: 6, bdepth: 4000 };
   const edge = api.scoreC("yft", { ...off, ssh_edge: 1.2 }, {}, at("2027-06-15")).total, none = api.scoreC("yft", { ...off, ssh_edge: .3 }, {}, at("2027-06-15")).total;
   if (!(edge - none >= 4)) fail(`yellowfin should score higher near a current edge (edge ${edge}, none ${none})`);
+}
+
+// ---- Best windows: safe for the boat first; a flat day is "steady" ----
+{
+  const api = load(), t0 = Date.parse("2027-11-28T12:00:00Z"), H = 36e5;
+  const hrs = (vals, lvs) => vals.map((v, i) => ({ ts: t0 + i * H, v, lv: lvs ? lvs[i] : 2 }));
+  // the 3 highest hours are rough for the boat: the best safe window wins and the rough one is reported
+  let w = api.pickWindow(hrs([70, 72, 74, 95, 96, 97, 80, 80, 80], [2, 2, 2, 1, 1, 1, 2, 2, 2]));
+  if (!(w.safe && w.v === 80 && w.rough && w.rough.v === 96)) fail(`the best window must be safe for the boat (got ${JSON.stringify(w)})`);
+  w = api.pickWindow(hrs([88, 89, 90, 89, 88, 90, 89, 88]));
+  if (!w.steady) fail("a day within 3 points all day should read as steady");
+  w = api.pickWindow(hrs([90, 91, 92], [0, 0, 0]));
+  if (w.safe) fail("when no window is safe, the result must say so");
 }
 
 // ---- Personal tuning is per fish ----
